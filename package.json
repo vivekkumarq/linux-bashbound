@@ -1,0 +1,27 @@
+{
+  "name": "linux-bashbound",
+  "private": true,
+  "version": "1.0.0",
+  "homepage": "https://vivekkumarq.github.io/linux-bashbound/",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4321",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint src",
+    "preview": "vite preview --host 127.0.0.1 --port 4321"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

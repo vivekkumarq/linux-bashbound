@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Linux BashBound</title>
+    <script>
+      sessionStorage.setItem(
+        "bb-spa-redirect",
+        location.pathname + location.search + location.hash,
+      );
+      var parts = location.pathname.split("/").filter(Boolean);
+      var base = parts.length ? "/" + parts[0] + "/" : "/";
+      location.replace(base);
+    </script>
+  </head>
+  <body></body>
+</html>

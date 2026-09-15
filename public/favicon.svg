@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Linux BashBound">
+  <rect width="64" height="64" rx="12" fill="#0b1218"/>
+  <rect x="8" y="12" width="48" height="40" rx="6" fill="#121a22" stroke="#2f8f6b" stroke-width="2"/>
+  <path d="M16 28h8l4 10 8-20 4 10h8" fill="none" stroke="#3ecf8e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="18" cy="20" r="1.6" fill="#7aa2f7"/>
+  <circle cx="23" cy="20" r="1.6" fill="#e0b15a"/>
+  <circle cx="28" cy="20" r="1.6" fill="#3ecf8e"/>
+</svg>
