@@ -10,7 +10,7 @@ export function Footer() {
             <Logo />
             <span className="brand-text">
               <strong>
-                Linux<em>BashBound</em>
+                Linux <em>BashBound</em>
               </strong>
               <small>From first command to mastery</small>
             </span>
