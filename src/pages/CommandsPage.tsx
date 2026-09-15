@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { commands, getCommand } from "../data/commands";
 import type { CommandCategory } from "../types";
 import { CodeBlock } from "../components/CodeBlock";
 import { scoreMatch } from "../utils/search";
+import { extractRunnable, usePalette } from "../lib/paletteContext";
 
 const cats: CommandCategory[] = [
   "File",
@@ -20,7 +21,7 @@ const cats: CommandCategory[] = [
 
 export function CommandsPage() {
   const { name } = useParams();
-  const nav = useNavigate();
+  const pal = usePalette();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
   const filtered = useMemo(() => {
@@ -87,7 +88,7 @@ export function CommandsPage() {
           <h3>Examples</h3>
           {current.examples.map((e) => (
             <div key={e.command} style={{ marginBottom: 12 }}>
-              <CodeBlock code={e.command} onTry={() => nav(`/terminal?cmd=${encodeURIComponent(e.command)}`)} />
+              <CodeBlock code={e.command} onTry={(code) => pal.openBash(extractRunnable(code))} />
               <p className="muted">{e.note}</p>
             </div>
           ))}

@@ -49,6 +49,17 @@ export const cheatSheets: CheatSheet[] = [
           { item: "cmd && x || y", meaning: "Careful: y runs if x fails too" },
           { item: "for f in *; do ...; done", meaning: "Glob loop" },
           { item: "set -euo pipefail", meaning: "Stricter scripts" },
+          { item: "echo $?", meaning: "Last exit status" },
+          { item: "type ls", meaning: "Alias, builtin, or PATH" },
+        ],
+      },
+      {
+        heading: "Try in Live bash (this site)",
+        rows: [
+          { item: "help", meaning: "List simulated commands" },
+          { item: "ls -l", meaning: "Long listing of the lab dir" },
+          { item: "cat Documents/notes.txt", meaning: "Read a lab file" },
+          { item: "grep ERROR /var/log/syslog", meaning: "Filter a log" },
         ],
       },
     ],

@@ -52,6 +52,7 @@ export interface Concept {
   interview: { question: string; answer: string };
   related: string[];
   whereUsed?: string[];
+  takeaway?: string;
 }
 
 export interface Topic {

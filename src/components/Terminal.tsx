@@ -4,9 +4,13 @@ import { freshState, promptPath, runCommand, type TermState } from "../lib/termi
 export function Terminal({
   initialCommands,
   compact,
+  autoFocus,
+  seed,
 }: {
   initialCommands?: string[];
   compact?: boolean;
+  autoFocus?: boolean;
+  seed?: string;
 }) {
   const [state, setState] = useState<TermState>(() => freshState());
   const [lines, setLines] = useState<{ q: string; a: string }[]>([]);
@@ -14,13 +18,21 @@ export function Terminal({
   const [histIdx, setHistIdx] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const seeded = useRef(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
   }, [lines]);
 
+  useEffect(() => {
+    if (autoFocus) input.current?.focus();
+  }, [autoFocus, lines]);
+
   function exec(raw: string) {
-    const { output, state: next } = runCommand(state, raw);
+    const { output, state: next } = runCommand(stateRef.current, raw);
+    stateRef.current = next;
     setState(next);
     if (output === "__CLEAR__") {
       setLines([]);
@@ -28,6 +40,12 @@ export function Terminal({
     }
     setLines((l) => [...l, { q: raw, a: output }]);
   }
+
+  useEffect(() => {
+    if (!seed || seeded.current) return;
+    seeded.current = true;
+    exec(seed.trim());
+  }, [seed]);
 
   function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
@@ -67,7 +85,7 @@ export function Terminal({
           not a real shell
         </span>
       </div>
-      <div className="terminal-body" style={{ minHeight: compact ? 180 : 280, maxHeight: compact ? 280 : 420, overflow: "auto" }}>
+      <div className="terminal-body" style={{ minHeight: compact ? 160 : 280, maxHeight: compact ? 240 : 420, overflow: "auto" }}>
         {initialCommands?.map((c) => (
           <div key={c}>
             <div>
@@ -99,11 +117,21 @@ export function Terminal({
         </div>
         <div ref={end} />
       </div>
-      <div style={{ padding: "8px 12px", borderTop: "1px solid #243140", fontSize: 12, color: "#8aa0b5", display: "flex", gap: 8 }}>
-        <button className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => setState(freshState())}>
+      <div className="terminal-actions">
+        <button
+          type="button"
+          className="btn btn-ghost"
+          style={{ padding: "4px 8px", fontSize: 12 }}
+          onClick={() => {
+            const fresh = freshState();
+            stateRef.current = fresh;
+            setState(fresh);
+            setLines([]);
+          }}
+        >
           Reset environment
         </button>
-        <button className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => exec("help")}>
+        <button type="button" className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => exec("help")}>
           help
         </button>
       </div>

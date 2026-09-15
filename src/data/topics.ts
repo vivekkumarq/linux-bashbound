@@ -1,4 +1,5 @@
 import type { Concept, Topic } from "../types";
+import { extraConcepts } from "./extraConcepts";
 
 function concept(c: Concept): Concept {
   return c;
@@ -13,7 +14,7 @@ const posixRef = { label: "POSIX.1-2017 (Open Group)", href: "https://pubs.openg
 const systemdRef = { label: "systemd documentation", href: "https://www.freedesktop.org/software/systemd/man/" };
 const kernelRef = { label: "Linux kernel documentation", href: "https://docs.kernel.org/" };
 
-export const topics: Topic[] = [
+const baseTopics: Topic[] = [
   topic({
     slug: "what-is-linux",
     title: "What is Linux?",
@@ -193,7 +194,7 @@ export const topics: Topic[] = [
           output: "READ(2)  Linux Programmer's Manual",
           explanation: "Section 2 is system calls. Section 3 is library functions. read(2) is the kernel interface; fread(3) is libc.",
         },
-        mistakes: ["Thinking the shell is the kernel.", "Thinking sudo runs your process in kernel space — it still user space, with uid 0."],
+        mistakes: ["Thinking the shell is the kernel.", "Thinking sudo runs your process in kernel space — it is still user space, with uid 0."],
         practices: ["When something fails with EPERM, ask which syscall and which credential.", "Use strace to see syscalls when debugging mysterious failures."],
         exercise: { prompt: "Open man 2 intro if available, or man syscalls. List three syscalls used when running cat file.", solution: "openat/open, read, write, close are typical; execve for starting cat." },
         interview: { question: "Does root run in kernel space?", answer: "No. Root is uid 0 in user space with permission to perform privileged syscalls. Kernel space is a CPU privilege level, not a user id." },
@@ -1261,6 +1262,16 @@ export const topics: Topic[] = [
     ],
   }),
 ];
+
+export const topics: Topic[] = baseTopics.map((t) => {
+  const extra = extraConcepts[t.slug] ?? [];
+  if (!extra.length) return t;
+  return {
+    ...t,
+    minutes: t.minutes + extra.length * 6,
+    concepts: [...t.concepts, ...extra],
+  };
+});
 
 export const topicMap = new Map(topics.map((t) => [t.slug, t]));
 

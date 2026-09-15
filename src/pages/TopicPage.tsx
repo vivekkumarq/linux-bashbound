@@ -4,12 +4,14 @@ import { levels } from "../data/roadmap";
 import { CodeBlock } from "../components/CodeBlock";
 import { FdDiagram, PermDiagram, ProcessDiagram, UnixCompare } from "../components/Diagrams";
 import { useStore } from "../hooks/useStore";
+import { extractRunnable, usePalette } from "../lib/paletteContext";
 
 export function TopicPage() {
   const { slug = "" } = useParams();
   const topic = getTopic(slug);
   const nav = useNavigate();
   const { progress, setProgress } = useStore();
+  const pal = usePalette();
   if (!topic) {
     return (
       <p>
@@ -61,8 +63,14 @@ export function TopicPage() {
         {slug === "linux-vs-unix" || slug === "unix-posix" ? <UnixCompare /> : null}
 
         {topic.concepts.map((c) => (
-          <section key={c.id} id={c.id} style={{ marginTop: 28 }}>
+          <section key={c.id} id={c.id} className="concept-block">
             <h2>{c.title}</h2>
+            {c.takeaway ? (
+              <p className="takeaway">
+                <strong>In one line. </strong>
+                {c.takeaway}
+              </p>
+            ) : null}
             <h3>Simple explanation</h3>
             <p>{c.simple}</p>
             <h3>Technical explanation</h3>
@@ -70,7 +78,10 @@ export function TopicPage() {
             <h3>Real-world analogy</h3>
             <p>{c.analogy}</p>
             <h3>Example</h3>
-            <CodeBlock code={`$ ${c.example.command}\n${c.example.output}`} />
+            <CodeBlock
+              code={`$ ${c.example.command}\n${c.example.output}`}
+              onTry={(code) => pal.openBash(extractRunnable(code))}
+            />
             <p className="muted">{c.example.explanation}</p>
             {c.whereUsed?.length ? (
               <>

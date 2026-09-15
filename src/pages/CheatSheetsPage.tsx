@@ -19,7 +19,7 @@ export function CheatSheetsPage() {
         {sheet.groups.map((g) => (
           <section key={g.heading}>
             <h2>{g.heading}</h2>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="sheet-table">
               <tbody>
                 {g.rows.map((r) => (
                   <tr key={r.item}>

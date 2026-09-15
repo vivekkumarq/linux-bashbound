@@ -287,7 +287,7 @@ export const labs: Lab[] = [
         id: "i",
         prompt: "Server log: Authentication refused: bad ownership. Fix?",
         options: [
-          { id: "perm", label: "chown user:user ~ ~./.ssh; chmod 700 ~/.ssh; chmod 600 authorized_keys", next: "j", note: "sshd StrictModes." },
+          { id: "perm", label: "chown user:user ~ ~/.ssh; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys", next: "j", note: "sshd StrictModes." },
           { id: "777", label: "chmod -R 777 ~", next: "j", note: "Makes sshd even more likely to refuse." },
         ],
       },

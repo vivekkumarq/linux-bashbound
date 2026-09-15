@@ -18,7 +18,8 @@ export function HomePage() {
           <p className="tagline">From first command to system mastery.</p>
           <p className="muted">
             A structured journey from “What is Linux?” to administration, internals, troubleshooting, and interviews.
-            Always know where you are, what to learn next, and what to practice.
+            Press <kbd>Ctrl</kbd>+<kbd>K</kbd> to jump, or <kbd>Ctrl</kbd>+<kbd>`</kbd> for live bash — a simulated Unix
+            shell in this tab.
           </p>
           <div className="row" style={{ marginTop: 20 }}>
             <Link className="btn btn-primary" to="/learn">

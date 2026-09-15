@@ -37,7 +37,7 @@ export function LearnIndexPage() {
                     <Link to={`/learn/${slug}`}>{t.title}</Link>
                   </h3>
                   <p className="muted" style={{ margin: 0 }}>
-                    {t.summary}
+                    {t.summary} · {t.concepts.length} concepts
                   </p>
                 </div>
               </li>

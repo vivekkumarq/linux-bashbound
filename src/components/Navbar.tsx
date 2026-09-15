@@ -8,6 +8,7 @@ import { topics } from "../data/topics";
 import { questions } from "../data/questions";
 import { cheatSheets } from "../data/cheatsheets";
 import { scoreMatch } from "../utils/search";
+import { usePalette } from "../lib/paletteContext";
 
 const links = [
   { to: "/learn", label: "Learn" },
@@ -21,6 +22,7 @@ const links = [
 
 export function Navbar() {
   const { progress } = useStore();
+  const pal = usePalette();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -170,6 +172,13 @@ export function Navbar() {
         </nav>
         <div className="nav-actions">
           {renderSearch()}
+          <button type="button" className="type-btn hide-sm" onClick={() => pal.openBash()} title="Live bash (Ctrl+`)">
+            <span className="mono" style={{ fontWeight: 700 }}>$</span>
+            <span className="font-name">Bash</span>
+          </button>
+          <button type="button" className="type-btn hide-sm" onClick={pal.openJump} title="Jump (Ctrl+K)">
+            <span className="font-name">Ctrl+K</span>
+          </button>
           <Link className="progress-chip" to="/progress" title="My learning">
             {progress.completedTopics.length}
             <span>done</span>
@@ -194,6 +203,9 @@ export function Navbar() {
           <NavLink to="/terminal" onClick={() => setOpen(false)}>
             Terminal
           </NavLink>
+          <button type="button" className="drawer-bash" onClick={() => { setOpen(false); pal.openBash(); }}>
+            Open live bash
+          </button>
         </div>
       ) : null}
     </header>

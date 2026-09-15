@@ -125,6 +125,42 @@ export function promptPath(state: TermState) {
   return p || "/";
 }
 
+export const SIMULATED = [
+  "help",
+  "clear",
+  "reset",
+  "pwd",
+  "whoami",
+  "hostname",
+  "uname",
+  "id",
+  "date",
+  "env",
+  "export",
+  "history",
+  "echo",
+  "printf",
+  "ls",
+  "cd",
+  "mkdir",
+  "touch",
+  "cat",
+  "head",
+  "tail",
+  "wc",
+  "grep",
+  "rm",
+  "cp",
+  "mv",
+  "chmod",
+  "ln",
+  "stat",
+  "file",
+  "type",
+  "which",
+  "man",
+];
+
 export function runCommand(state: TermState, line: string): { output: string; state: TermState } {
   const trimmed = line.trim();
   if (!trimmed) return { output: "", state };
@@ -142,7 +178,7 @@ export function runCommand(state: TermState, line: string): { output: string; st
     case "help":
       return {
         output:
-          "Simulation Mode. Safe educational commands:\n  pwd ls cd mkdir touch cat echo rm cp mv head tail wc grep whoami uname hostname id env date clear history help reset\nDestructive commands are simulated only and refuse paths outside this lab tree.",
+          "Simulation Mode (in-browser lab, not a real OS).\n  Files: pwd ls cd mkdir touch cat head tail wc grep rm cp mv chmod ln stat file\n  Shell: echo printf whoami id uname hostname env export date history type which clear help reset\nDestructive paths like / are refused. Type a command, or open this palette with Ctrl+K then Live bash.",
         state: next,
       };
     case "clear":
@@ -330,6 +366,93 @@ export function runCommand(state: TermState, line: string): { output: string; st
       }
       if (cmd === "mv" && srcParent && srcParent.kind === "dir") delete srcParent.children[sn];
       return { output: "", state: next };
+    }
+    case "printf":
+      return { output: args.join(" ").replace(/\\n/g, "\n"), state: next };
+    case "export": {
+      if (!args.length) {
+        return {
+          output: Object.entries(next.env)
+            .map(([k, v]) => `declare -x ${k}="${v}"`)
+            .join("\n"),
+          state: next,
+        };
+      }
+      for (const a of args) {
+        const eq = a.indexOf("=");
+        if (eq === -1) continue;
+        next.env[a.slice(0, eq)] = a.slice(eq + 1);
+      }
+      return { output: "", state: next };
+    }
+    case "type":
+    case "which": {
+      const name = args.find((a) => !a.startsWith("-"));
+      if (!name) return { output: `${cmd}: missing operand`, state: next };
+      if (SIMULATED.includes(name)) {
+        return { output: cmd === "type" ? `${name} is a simulated shell command` : `/usr/bin/${name}`, state: next };
+      }
+      return { output: `${cmd}: ${name}: not found in Simulation Mode`, state: next };
+    }
+    case "stat": {
+      const name = args.find((a) => !a.startsWith("-")) || ".";
+      const path = resolve(next, name);
+      const node = path ? walk(next.fs, path) : null;
+      if (!node) return { output: `stat: cannot statx '${name}'`, state: next };
+      return {
+        output: `  File: ${name}\n  Size: ${node.kind === "file" ? node.content.length : 4096}\n  Type: ${node.kind}\nAccess: ${node.mode}`,
+        state: next,
+      };
+    }
+    case "file": {
+      const name = args[0];
+      if (!name) return { output: "file: missing operand", state: next };
+      const node = walk(next.fs, resolve(next, name)!);
+      if (!node) return { output: `${name}: cannot open`, state: next };
+      return { output: node.kind === "dir" ? `${name}: directory` : `${name}: ASCII text`, state: next };
+    }
+    case "chmod": {
+      const mode = args.find((a) => /^[0-7]{3,4}$/.test(a) || /^[ugoa]*[-+=][rwx]+$/.test(a));
+      const name = args.filter((a) => a !== mode).pop();
+      if (!name) return { output: "chmod: missing operand", state: next };
+      const path = resolve(next, name);
+      const node = path ? walk(next.fs, path) : null;
+      if (!node) return { output: `chmod: cannot access '${name}'`, state: next };
+      if (mode && /^[0-7]{3}$/.test(mode)) {
+        const map: Record<string, string> = {
+          "7": "rwx",
+          "6": "rw-",
+          "5": "r-x",
+          "4": "r--",
+          "0": "---",
+        };
+        const u = map[mode[0]] ?? "rwx";
+        const g = map[mode[1]] ?? "r-x";
+        const o = map[mode[2]] ?? "r-x";
+        node.mode = `${node.kind === "dir" ? "d" : "-"}${u}${g}${o}`;
+      }
+      return { output: "", state: next };
+    }
+    case "ln": {
+      const sym = args.includes("-s");
+      const names = args.filter((a) => !a.startsWith("-"));
+      if (names.length < 2) return { output: "ln: missing operand", state: next };
+      const target = names[0];
+      const dest = resolve(next, names[1]);
+      if (!dest) return { output: "ln: dest error", state: next };
+      const { parent, name } = parentAndName(dest);
+      const p = walk(next.fs, parent);
+      if (!p || p.kind !== "dir") return { output: "ln: dest error", state: next };
+      p.children[name] = file(name, sym ? `symlink -> ${target}` : "", "-rw-r--r--");
+      return { output: "", state: next };
+    }
+    case "man": {
+      const name = args.find((a) => !/^\d+$/.test(a) && !a.startsWith("-"));
+      if (!name) return { output: "What manual page do you want?", state: next };
+      if (SIMULATED.includes(name)) {
+        return { output: `${name.toUpperCase()}(1)  Simulation Mode\n\nTYPE help FOR THE LAB COMMAND LIST.\nOn a real host run: man ${name}`, state: next };
+      }
+      return { output: `No simulated man page for ${name}. Open the Commands explorer in this site.`, state: next };
     }
     default:
       return {

@@ -59,7 +59,7 @@ export function InterviewPage() {
       <p className="muted">
         {idx + 1} / {filtered.length} in view · {questions.length} in the bank
       </p>
-      <div className="grid-3" style={{ margin: "12px 0" }}>
+      <div className="filters">
         <input className="input" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="select" value={cat} onChange={(e) => setCat(e.target.value)}>
           <option>All</option>

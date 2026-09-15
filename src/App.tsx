@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
+import { CommandPalette } from "./components/CommandPalette";
 import { StoreContext } from "./hooks/useStore";
+import { PaletteContext, type PaletteApi } from "./lib/paletteContext";
 import { defaultProgress, loadProgress, saveProgress, updateStreak } from "./utils/storage";
 import type { ProgressState } from "./types";
 import { paletteIsDark, resolvePalette, type FontId, type ThemeId } from "./appearance";
@@ -11,6 +13,10 @@ export default function App() {
   const [progress, setProgressState] = useState<ProgressState>(() => defaultProgress());
   const [ready, setReady] = useState(false);
   const [prefersLight, setPrefersLight] = useState(false);
+  const [palOpen, setPalOpen] = useState(false);
+  const [palTab, setPalTab] = useState<"jump" | "bash">("jump");
+  const [palSeed, setPalSeed] = useState<string | null>(null);
+  const [palNonce, setPalNonce] = useState(0);
   const loc = useLocation();
 
   useEffect(() => {
@@ -58,6 +64,27 @@ export default function App() {
 
   const themeResolved: "dark" | "light" = paletteIsDark(palette) ? "dark" : "light";
 
+  const paletteApi = useMemo<PaletteApi>(
+    () => ({
+      open: palOpen,
+      tab: palTab,
+      seed: palSeed,
+      runKey: palNonce,
+      openJump: () => {
+        setPalTab("jump");
+        setPalOpen(true);
+      },
+      openBash: (command?: string) => {
+        setPalTab("bash");
+        setPalSeed(command ?? null);
+        setPalNonce((n) => n + 1);
+        setPalOpen(true);
+      },
+      close: () => setPalOpen(false),
+    }),
+    [palOpen, palTab, palSeed, palNonce],
+  );
+
   function setProgress(next: ProgressState | ((p: ProgressState) => ProgressState)) {
     setProgressState((p) => (typeof next === "function" ? next(p) : next));
   }
@@ -75,16 +102,24 @@ export default function App() {
 
   return (
     <StoreContext.Provider value={store}>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
-      <div className="app-shell">
-        <Navbar />
-        <main id="main" className="main">
-          <Outlet />
-        </main>
-        <Footer />
-      </div>
+      <PaletteContext.Provider value={paletteApi}>
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        <div className="atmosphere" aria-hidden="true" />
+        <div className="app-shell">
+          <Navbar />
+          <main id="main" className="main page-enter" key={loc.pathname}>
+            <Outlet />
+          </main>
+          <Footer />
+        </div>
+        <CommandPalette />
+        <button type="button" className="live-fab" onClick={() => paletteApi.openBash()} title="Live bash (Ctrl+`)">
+          <span>$</span>
+          <em>Live bash</em>
+        </button>
+      </PaletteContext.Provider>
     </StoreContext.Provider>
   );
 }
