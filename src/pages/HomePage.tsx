@@ -12,8 +12,10 @@ export function HomePage() {
       <section className="hero">
         <div>
           <p className="kicker">Linux · Unix · Bash</p>
-          <h1>Linux BashBound</h1>
-          <p className="tagline">From First Command to System Mastery.</p>
+          <h1>
+            Linux <em>BashBound</em>
+          </h1>
+          <p className="tagline">From first command to system mastery.</p>
           <p className="muted">
             A structured journey from “What is Linux?” to administration, internals, troubleshooting, and interviews.
             Always know where you are, what to learn next, and what to practice.

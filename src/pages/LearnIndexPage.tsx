@@ -24,18 +24,22 @@ export function LearnIndexPage() {
       )}
 
       {path !== "advanced" && (
-        <ol className="stack" style={{ margin: "24px 0" }}>
+        <ol className="path-list">
           {beginnerPath.map((slug, i) => {
             const t = topics.find((x) => x.slug === slug)!;
             return (
-              <li key={slug} className="card">
-                <span className="muted">
-                  {i + 1} / {beginnerPath.length}
+              <li key={slug} className="path-item">
+                <span className="path-num">
+                  {String(i + 1).padStart(2, "0")} / {beginnerPath.length}
                 </span>
-                <h3>
-                  <Link to={`/learn/${slug}`}>{t.title}</Link>
-                </h3>
-                <p className="muted">{t.summary}</p>
+                <div>
+                  <h3>
+                    <Link to={`/learn/${slug}`}>{t.title}</Link>
+                  </h3>
+                  <p className="muted" style={{ margin: 0 }}>
+                    {t.summary}
+                  </p>
+                </div>
               </li>
             );
           })}

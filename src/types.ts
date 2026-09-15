@@ -157,5 +157,5 @@ export interface ProgressState {
   lastVisit: string | null;
   streak: number;
   theme: "dark" | "midnight" | "forest" | "light" | "paper" | "contrast" | "system";
-  font: "sans" | "humanist" | "serif" | "rounded" | "mono";
+  font: "sans" | "serif" | "mono";
 }

@@ -7,7 +7,13 @@ export function Footer() {
       <div className="footer-inner">
         <div>
           <div className="brand">
-            <Logo /> Linux BashBound
+            <Logo />
+            <span className="brand-text">
+              <strong>
+                Linux<em>BashBound</em>
+              </strong>
+              <small>From first command to mastery</small>
+            </span>
           </div>
           <p className="muted">From First Command to System Mastery.</p>
           <p className="muted" style={{ fontSize: 13 }}>

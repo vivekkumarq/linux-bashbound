@@ -1,4 +1,4 @@
-import type { FontId, ThemeId } from "../appearance";
+import type { ThemeId } from "../appearance";
 import { isFontId, isThemeId } from "../appearance";
 import type { ProgressState } from "../types";
 
@@ -13,7 +13,7 @@ export const defaultProgress = (): ProgressState => ({
   challengeDays: [],
   lastVisit: null,
   streak: 0,
-  theme: "dark",
+  theme: "light",
   font: "sans",
 });
 
@@ -24,7 +24,8 @@ export function loadProgress(): ProgressState {
     if (!raw) return base;
     const parsed = JSON.parse(raw) as Partial<ProgressState>;
     const theme = parsed.theme && isThemeId(parsed.theme) ? (parsed.theme as ThemeId) : base.theme;
-    const font = parsed.font && isFontId(parsed.font) ? (parsed.font as FontId) : base.font;
+    const rawFont = String(parsed.font ?? "");
+    const font = isFontId(rawFont) ? rawFont : base.font;
     return { ...base, ...parsed, theme, font };
   } catch {
     return base;
