@@ -7,6 +7,7 @@ import "./styles/appearance.css";
 import "./styles/features.css";
 import "./styles/interactive.css";
 import "./styles/lesson.css";
+import "./styles/sidepanel.css";
 import "./styles/shortcuts.css";
 import "./styles/arena.css";
 import "./styles/quiz.css";

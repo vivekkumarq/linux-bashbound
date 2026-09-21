@@ -127,14 +127,22 @@ export function PermissionBuilder() {
 
       {/* The mode string, character by character. Each cell is the same state
           as the checkbox grid below it. */}
+      {/* The characters scroll on narrow screens; the octal sits outside that
+          scroller so the number you came for is never scrolled out of view. */}
       <div className="pb-string" aria-hidden="true">
-        {modeString.split("").map((ch, i) => (
-          <span key={i} className={`pb-char${ch === "-" ? " is-off" : ""}${i === 0 ? " is-type" : ""}`}>
-            {ch}
-          </span>
-        ))}
+        <div className="pb-chars">
+          {modeString.split("").map((ch, i) => (
+            <span key={i} className={`pb-char${ch === "-" ? " is-off" : ""}${i === 0 ? " is-type" : ""}`}>
+              {ch}
+            </span>
+          ))}
+        </div>
         <span className="pb-octal">{octal}</span>
       </div>
+
+      <p className="visually-hidden">
+        Mode {modeString}, octal {octal}.
+      </p>
 
       <div className="pb-grid">
         {WHO.map((who) => (

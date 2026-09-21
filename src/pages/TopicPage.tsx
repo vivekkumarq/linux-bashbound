@@ -4,6 +4,7 @@ import { levels } from "../data/roadmap";
 import { CodeBlock } from "../components/CodeBlock";
 import { visualsForTopic } from "../components/interactive/forTopic";
 import { MasteryBar } from "../components/MasteryBar";
+import { SidePanel } from "../components/SidePanel";
 import { useStore } from "../hooks/useStore";
 import { extractRunnable, usePalette } from "../lib/paletteContext";
 import { coursePosition, lessonNeighbours } from "../lib/learning";
@@ -33,6 +34,7 @@ export function TopicPage() {
   const { position, total } = coursePosition(slug);
   const { previous: prev, next } = lessonNeighbours(slug);
   const level = levels.find((l) => l.id === topic.level);
+  const levelTopics = topics.filter((t) => t.level === topic.level);
   const complete = progress.completedTopics.includes(slug);
   const practised = progress.practicedTopics.includes(slug);
 
@@ -52,17 +54,21 @@ export function TopicPage() {
 
   return (
     <div className="learn-layout">
-      <aside className="sidebar-nav" aria-label="Modules in this level">
-        <p className="kicker">Level {topic.level}</p>
-        {topics
-          .filter((t) => t.level === topic.level)
-          .map((t) => (
+      <SidePanel
+        title={`Level ${topic.level} · ${level?.title ?? ""}`}
+        summary={`${levelTopics.length} modules`}
+        label="Modules in this level"
+      >
+        <nav className="sidebar-nav">
+          <p className="kicker side-panel-kicker">Level {topic.level}</p>
+          {levelTopics.map((t) => (
             <Link key={t.slug} to={`/learn/${t.slug}`} className={t.slug === slug ? "active" : ""}>
               {progress.completedTopics.includes(t.slug) ? "✓ " : ""}
               {t.title}
             </Link>
           ))}
-      </aside>
+        </nav>
+      </SidePanel>
 
       <article>
         <p className="kicker">

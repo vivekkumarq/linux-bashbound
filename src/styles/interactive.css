@@ -66,6 +66,13 @@
   font-family: var(--font-mono);
 }
 
+.pb-chars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .pb-char {
   display: grid;
   place-items: center;
@@ -510,4 +517,90 @@
 
 .terminal-hint kbd {
   font-size: 11px;
+}
+
+/* ==========================================================================
+   Narrow-screen corrections.
+   ========================================================================== */
+
+@media (max-width: 620px) {
+  .perm-builder,
+  .flow,
+  .fstree {
+    padding: 16px 14px;
+  }
+
+  /* The heading and the File/Directory switch collided when the switch was
+     pulled to the right of a wrapping title. Stack them instead. */
+  .pb-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pb-type {
+    align-self: flex-start;
+  }
+
+  /* The mode string must stay on one line: wrapping it split the owner /
+     group / others triplets and made the grouping meaningless. */
+  /* Characters scroll as one row; the octal wraps to its own line beneath so
+     it is always visible. */
+  .pb-chars {
+    flex: 1 1 100%;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+
+  .pb-char {
+    flex: none;
+    width: 28px;
+    height: 34px;
+    font-size: 16px;
+  }
+
+  .pb-octal {
+    margin-left: 0;
+    padding: 5px 12px;
+    font-size: 17px;
+  }
+
+  .pb-command {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pb-command code {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ---- Terminal chrome on narrow screens ----------------------------------- */
+
+@media (max-width: 620px) {
+  .terminal-bar {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    font-size: 12px;
+  }
+
+  /* "not a real shell" is the one label that must not be squeezed onto two
+     lines next to the title. */
+  .terminal-bar .badge {
+    margin-left: auto;
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .terminal-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .terminal-hint {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }

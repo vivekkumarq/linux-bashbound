@@ -601,6 +601,12 @@ a.card:hover {
   gap: 28px;
 }
 
+/* Grid and flex children default to min-width auto, which lets wide content
+   stretch the track instead of scrolling inside it. */
+.learn-layout > * {
+  min-width: 0;
+}
+
 .toc a {
   display: block;
   color: var(--muted);
@@ -825,7 +831,10 @@ a.card:hover {
   .learn-layout,
   .footer-inner,
   .grid-3 {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr) rather than 1fr: a plain 1fr track has min-width auto,
+       so any wide child (a no-wrap row, a long code line) can push the whole
+       column past the viewport. */
+    grid-template-columns: minmax(0, 1fr);
   }
   .learn-layout .on-page {
     display: none;
@@ -1100,7 +1109,7 @@ kbd {
   .filters { grid-template-columns: 1fr; }
   .sheet-table td:first-child { white-space: normal; }
   .learn-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .palette-scrim {
     padding: 12px;

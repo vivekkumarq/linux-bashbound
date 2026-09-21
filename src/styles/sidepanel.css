@@ -1,0 +1,166 @@
+/* ==========================================================================
+   Collapsible sidebar used by the lesson and command pages.
+
+   Wide screens: an ordinary column, toggle hidden.
+   Narrow screens: a labelled disclosure, so a 40-module or 128-command list
+   does not sit between the reader and the page they opened.
+   ========================================================================== */
+
+.side-panel {
+  min-width: 0;
+}
+
+.side-panel-toggle {
+  display: none;
+}
+
+.side-panel-heading {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.side-panel-kicker {
+  margin: 0 0 8px;
+}
+
+/* The command list is long; cap it and let it scroll on its own. */
+.command-list {
+  margin-top: 12px;
+  max-height: 68vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 980px) {
+  .side-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .side-panel-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .side-panel-toggle svg {
+    margin-left: auto;
+    flex: none;
+    color: var(--faint);
+    transition: transform 200ms var(--ease);
+  }
+
+  .side-panel-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  .side-panel-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .side-panel-meta {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--faint);
+  }
+
+  .side-panel-body {
+    display: none;
+    padding: 0 14px 14px;
+  }
+
+  .side-panel-body.is-open {
+    display: block;
+    animation: side-panel-open 180ms var(--ease);
+  }
+
+  @keyframes side-panel-open {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The heading is already in the toggle label on narrow screens. */
+  .side-panel-heading,
+  .side-panel-kicker {
+    display: none;
+  }
+
+  .command-list {
+    max-height: 50vh;
+  }
+
+  /* Links become full-width rows with a real tap target. */
+  .side-panel .sidebar-nav a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    font-size: 15px;
+  }
+
+  .side-panel .sidebar-nav a:last-child {
+    border-bottom: 0;
+  }
+}
+
+/* ==========================================================================
+   Very small phones (<=400px).
+
+   The header ran past the viewport here: the burger, the wordmark and the
+   action cluster together needed more width than a 320px screen has. The
+   wordmark is the part that can go — the logo mark still identifies the site
+   and still links home.
+   ========================================================================== */
+
+@media (max-width: 400px) {
+  .nav-inner {
+    gap: 8px;
+    width: min(1480px, calc(100% - 20px));
+  }
+
+  .brand-text {
+    display: none;
+  }
+
+  .progress-chip {
+    padding-inline: 6px;
+  }
+}
+
+/* ==========================================================================
+   The floating "live bash" button.
+
+   Fixed to the bottom right, it sat directly over the right-hand control
+   column — the bookmark button on every arena row that scrolled under it.
+   Tapping bookmark opened the shell instead. On narrow screens it moves to
+   the left, where nothing else is interactive.
+   ========================================================================== */
+
+@media (max-width: 980px) {
+  .live-fab {
+    right: auto;
+    left: max(16px, env(safe-area-inset-left));
+  }
+}

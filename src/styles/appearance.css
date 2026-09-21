@@ -279,18 +279,6 @@ html {
     font-size: 16px;
     color: var(--text);
   }
-  .learn-layout aside.sidebar-nav,
-  .learn-layout > aside:first-child {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-  }
-  .learn-layout aside a,
-  .sidebar-nav a {
-    white-space: nowrap;
-    flex: 0 0 auto;
-  }
   .search-panel {
     left: 0;
     right: 0;

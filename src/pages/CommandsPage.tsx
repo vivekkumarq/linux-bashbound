@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { commands, getCommand } from "../data/commands";
 import type { CommandCategory } from "../types";
 import { CodeBlock } from "../components/CodeBlock";
+import { SidePanel } from "../components/SidePanel";
 import { scoreMatch } from "../utils/search";
 import { extractRunnable, usePalette } from "../lib/paletteContext";
 
@@ -44,23 +45,39 @@ export function CommandsPage() {
 
   return (
     <div className="learn-layout">
-      <aside>
-        <h1 style={{ fontSize: 22 }}>Command explorer</h1>
-        <input className="input" placeholder="Search grep, chmod…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="select" style={{ marginTop: 8 }} value={cat} onChange={(e) => setCat(e.target.value)}>
+      <SidePanel
+        title="Command explorer"
+        summary={`${filtered.length} of ${commands.length}`}
+        label="Browse commands"
+      >
+        <h1 className="side-panel-heading">Command explorer</h1>
+        <input
+          className="input"
+          placeholder="Search grep, chmod…"
+          aria-label="Search commands"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <select
+          className="select"
+          style={{ marginTop: 8 }}
+          aria-label="Filter by category"
+          value={cat}
+          onChange={(e) => setCat(e.target.value)}
+        >
           <option>All</option>
           {cats.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
-        <div className="sidebar-nav" style={{ marginTop: 12, maxHeight: "70vh", overflow: "auto" }}>
+        <nav className="sidebar-nav command-list">
           {filtered.map((c) => (
             <Link key={c.name} to={`/commands/${c.name}`} className={c.name === current?.name ? "active" : ""}>
               {c.name}
             </Link>
           ))}
-        </div>
-      </aside>
+        </nav>
+      </SidePanel>
       {current ? (
         <article>
           <p className="kicker">{current.category}</p>
