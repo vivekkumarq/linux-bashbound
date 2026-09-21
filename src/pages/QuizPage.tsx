@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { questions } from "../data/questions";
 import { getTopic } from "../data/topics";
@@ -57,10 +57,37 @@ export function QuizPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [wrong, setWrong] = useState<InterviewQuestion[]>([]);
+  // Frozen when the run ends, so the reported duration does not creep upward
+  // every time the results screen re-renders.
+  const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const recorded = useRef(false);
 
   const available = useMemo(() => poolFor(category).length, [category]);
   const drawn = Math.min(size, available);
+
+  const finished = run !== null && index >= run.questions.length;
+
+  // Recorded from an effect rather than during render: writing progress while
+  // rendering is a side effect React is entitled to run twice.
+  useEffect(() => {
+    if (!finished || !run || recorded.current) return;
+    recorded.current = true;
+    setProgress((p) => ({
+      ...p,
+      quizHistory: [
+        ...p.quizHistory,
+        {
+          at: Date.now(),
+          category: run.category,
+          score,
+          total: run.questions.length,
+          seconds: Math.round(((finishedAt ?? Date.now()) - run.startedAt) / 1000),
+          weak: [...new Set(wrong.map((q) => q.category))],
+          topics: [...new Set(run.questions.flatMap((q) => q.relatedTopics))],
+        },
+      ].slice(-60),
+    }));
+  }, [finished, run, finishedAt, score, wrong, setProgress]);
 
   function start() {
     const seed = Date.now();
@@ -75,6 +102,7 @@ export function QuizPage() {
     setPicked(null);
     setScore(0);
     setWrong([]);
+    setFinishedAt(null);
     recorded.current = false;
   }
 
@@ -86,6 +114,8 @@ export function QuizPage() {
   }
 
   function next() {
+    const last = run !== null && index + 1 >= run.questions.length;
+    if (last) setFinishedAt(Date.now());
     setIndex((i) => i + 1);
     setPicked(null);
   }
@@ -154,34 +184,15 @@ export function QuizPage() {
   }
 
   /* ---- Results ---- */
-  if (index >= run.questions.length) {
+  if (finished) {
     const total = run.questions.length;
     const accuracy = total ? Math.round((score / total) * 100) : 0;
-    const seconds = Math.round((Date.now() - run.startedAt) / 1000);
+    const seconds = Math.max(0, Math.round(((finishedAt ?? run.startedAt) - run.startedAt) / 1000));
     const weakAreas = [...new Set(wrong.map((q) => q.category))];
     const reviewTopics = [...new Set(wrong.flatMap((q) => q.relatedTopics))]
       .map((slug) => getTopic(slug))
       .filter(Boolean)
       .slice(0, 6);
-
-    if (!recorded.current) {
-      recorded.current = true;
-      setProgress((p) => ({
-        ...p,
-        quizHistory: [
-          ...p.quizHistory,
-          {
-            at: Date.now(),
-            category: run.category,
-            score,
-            total,
-            seconds,
-            weak: weakAreas,
-            topics: [...new Set(run.questions.flatMap((q) => q.relatedTopics))],
-          },
-        ].slice(-60),
-      }));
-    }
 
     return (
       <div className="quiz-results">
