@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { CommandPalette } from "./components/CommandPalette";
+import { Shortcuts } from "./components/Shortcuts";
 import { StoreContext } from "./hooks/useStore";
 import { PaletteContext, type PaletteApi } from "./lib/paletteContext";
 import { defaultProgress, loadProgress, saveProgress, updateStreak } from "./utils/storage";
@@ -115,6 +116,7 @@ export default function App() {
           <Footer />
         </div>
         <CommandPalette />
+        <Shortcuts />
         <button type="button" className="live-fab" onClick={() => paletteApi.openBash()} title="Live bash (Ctrl+`)">
           <span>$</span>
           <em>Live bash</em>

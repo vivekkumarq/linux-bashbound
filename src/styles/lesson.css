@@ -1,0 +1,225 @@
+/* ==========================================================================
+   Lesson page: metadata, mastery, boxes, navigation.
+   ========================================================================== */
+
+.lesson-meta {
+  margin: 10px 0 12px;
+}
+
+.lesson-prereq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+/* ---- Mastery ------------------------------------------------------------- */
+
+.mastery {
+  margin: 24px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.mastery-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mastery-head .kicker {
+  margin: 0;
+}
+
+.mastery-percent {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.mastery-steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.mastery-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--faint);
+  font-size: 13.5px;
+}
+
+.mastery-steps li.is-done {
+  color: var(--ok);
+}
+
+.mastery-tick {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.mastery-steps a.mastery-label {
+  color: var(--accent-text);
+  border-bottom: 1px dotted currentColor;
+}
+
+.mastery-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+/* ---- Lesson boxes -------------------------------------------------------- */
+
+.lesson-box {
+  margin: 18px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-2);
+}
+
+.lesson-box h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+}
+
+.lesson-box p {
+  margin: 0 0 10px;
+  max-width: 72ch;
+}
+
+.lesson-box details p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.lesson-box summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--accent-text);
+}
+
+.lesson-box-interview {
+  border-left-color: var(--accent-3);
+}
+
+.lesson-question {
+  font-family: var(--font-interview);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ---- Actions and navigation ---------------------------------------------- */
+
+.lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.lesson-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.lesson-nav-btn {
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  transition: border-color 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.lesson-nav-btn:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.lesson-nav-btn .muted {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.lesson-nav-btn.is-next {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .lesson-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .lesson-nav-btn.is-next {
+    text-align: left;
+  }
+}
+
+/* ==========================================================================
+   Focus mode: strips the shell down to the lesson itself.
+   ========================================================================== */
+
+[data-focus="on"] .nav,
+[data-focus="on"] .footer,
+[data-focus="on"] .live-fab,
+[data-focus="on"] .learn-layout > aside.sidebar-nav,
+[data-focus="on"] .learn-layout > aside.on-page {
+  display: none;
+}
+
+[data-focus="on"] .learn-layout {
+  grid-template-columns: minmax(0, 76ch);
+  justify-content: center;
+}
+
+[data-focus="on"] .main {
+  padding-top: 24px;
+}
+
+.focus-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+.focus-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}

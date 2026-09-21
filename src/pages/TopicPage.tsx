@@ -2,9 +2,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { getTopic, topics } from "../data/topics";
 import { levels } from "../data/roadmap";
 import { CodeBlock } from "../components/CodeBlock";
-import { FdDiagram, PermDiagram, ProcessDiagram, UnixCompare } from "../components/Diagrams";
+import { visualsForTopic } from "../components/interactive/forTopic";
+import { MasteryBar } from "../components/MasteryBar";
 import { useStore } from "../hooks/useStore";
 import { extractRunnable, usePalette } from "../lib/paletteContext";
+import { coursePosition, lessonNeighbours } from "../lib/learning";
 
 export function TopicPage() {
   const { slug = "" } = useParams();
@@ -12,55 +14,94 @@ export function TopicPage() {
   const nav = useNavigate();
   const { progress, setProgress } = useStore();
   const pal = usePalette();
+
   if (!topic) {
     return (
-      <p>
-        Unknown topic. <Link to="/learn">Back to learn</Link>
-      </p>
+      <div className="notfound">
+        <h1>No such module</h1>
+        <p className="muted">
+          There is no lesson at <code>/learn/{slug}</code>.
+        </p>
+        <Link className="btn btn-primary" to="/learn">
+          Browse all modules
+        </Link>
+      </div>
     );
   }
-  const idx = topics.findIndex((t) => t.slug === slug);
-  const prev = topics[idx - 1];
-  const next = topics[idx + 1];
-  const level = levels.find((l) => l.id === topic.level)!;
-  const complete = progress.completedTopics.includes(topic.slug);
+
+  // Roadmap order, not array order — the roadmap is the course.
+  const { position, total } = coursePosition(slug);
+  const { previous: prev, next } = lessonNeighbours(slug);
+  const level = levels.find((l) => l.id === topic.level);
+  const complete = progress.completedTopics.includes(slug);
+  const practised = progress.practicedTopics.includes(slug);
+
+  function toggleComplete() {
+    setProgress((p) => ({
+      ...p,
+      completedTopics: complete ? p.completedTopics.filter((s) => s !== slug) : [...p.completedTopics, slug],
+    }));
+  }
+
+  function togglePractised() {
+    setProgress((p) => ({
+      ...p,
+      practicedTopics: practised ? p.practicedTopics.filter((s) => s !== slug) : [...p.practicedTopics, slug],
+    }));
+  }
 
   return (
     <div className="learn-layout">
-      <aside className="sidebar-nav" aria-label="Course">
+      <aside className="sidebar-nav" aria-label="Modules in this level">
         <p className="kicker">Level {topic.level}</p>
         {topics
           .filter((t) => t.level === topic.level)
           .map((t) => (
             <Link key={t.slug} to={`/learn/${t.slug}`} className={t.slug === slug ? "active" : ""}>
+              {progress.completedTopics.includes(t.slug) ? "✓ " : ""}
               {t.title}
             </Link>
           ))}
       </aside>
+
       <article>
         <p className="kicker">
-          Lesson {idx + 1} of {topics.length} · {level.title}
+          Module {position} of {total} · {level?.title ?? `Level ${topic.level}`}
         </p>
         <h1>{topic.title}</h1>
-        <div className="row">
+
+        <p className="mono-meta muted lesson-meta">
           <span className={`badge ${topic.difficulty.toLowerCase()}`}>{topic.difficulty}</span>
-          <span className="badge">{topic.minutes} min</span>
-          {topic.prerequisites.map((p) => (
-            <Link key={p} className="badge" to={`/learn/${p}`}>
-              prereq: {p}
-            </Link>
-          ))}
-        </div>
+          <span>{topic.minutes} min</span>
+          <span>
+            {topic.concepts.length} concept{topic.concepts.length === 1 ? "" : "s"}
+          </span>
+        </p>
+
+        {topic.prerequisites.length ? (
+          <p className="lesson-prereq">
+            <span className="muted">Assumes: </span>
+            {topic.prerequisites.map((p) => {
+              const pre = getTopic(p);
+              return (
+                <Link key={p} className="badge" to={`/learn/${p}`}>
+                  {pre?.title ?? p}
+                </Link>
+              );
+            })}
+          </p>
+        ) : null}
+
         <p>{topic.summary}</p>
+
         <div className="callout">
           <strong>Why this matters. </strong>
           {topic.why}
         </div>
 
-        {slug === "mode-bits" ? <PermDiagram /> : null}
-        {slug === "pipes-redirection" ? <FdDiagram /> : null}
-        {slug === "process-model" || slug === "jobs-signals" ? <ProcessDiagram /> : null}
-        {slug === "linux-vs-unix" || slug === "unix-posix" ? <UnixCompare /> : null}
+        <MasteryBar slug={slug} />
+
+        {visualsForTopic(slug)}
 
         {topic.concepts.map((c) => (
           <section key={c.id} id={c.id} className="concept-block">
@@ -85,7 +126,7 @@ export function TopicPage() {
             <p className="muted">{c.example.explanation}</p>
             {c.whereUsed?.length ? (
               <>
-                <h3>Where is this used?</h3>
+                <h3>Where you see this</h3>
                 <ul>
                   {c.whereUsed.map((w) => (
                     <li key={w}>{w}</li>
@@ -105,7 +146,8 @@ export function TopicPage() {
                 <li key={m}>{m}</li>
               ))}
             </ul>
-            <div className="card">
+
+            <div className="lesson-box">
               <h3>Practical exercise</h3>
               <p>{c.exercise.prompt}</p>
               <details>
@@ -113,22 +155,30 @@ export function TopicPage() {
                 <p>{c.exercise.solution}</p>
               </details>
             </div>
-            <div className="card" style={{ marginTop: 10 }}>
+
+            <div className="lesson-box lesson-box-interview">
               <h3>Interview relevance</h3>
-              <p style={{ fontFamily: "var(--font-interview)" }}>{c.interview.question}</p>
+              <p className="lesson-question">{c.interview.question}</p>
               <details>
                 <summary>Reveal answer</summary>
                 <p>{c.interview.answer}</p>
               </details>
             </div>
+
             {c.related.length ? (
-              <p>
-                Related:{" "}
-                {c.related.map((r) => (
-                  <Link key={r} className="badge" to={`/learn/${r}`}>
-                    {r}
-                  </Link>
-                ))}
+              <p className="related-row">
+                <span className="muted">Related: </span>
+                {c.related.map((r) =>
+                  getTopic(r) ? (
+                    <Link key={r} className="badge related-link" to={`/learn/${r}`}>
+                      {getTopic(r)?.title ?? r}
+                    </Link>
+                  ) : (
+                    <span key={r} className="badge related-plain">
+                      {r}
+                    </span>
+                  ),
+                )}
               </p>
             ) : null}
           </section>
@@ -145,35 +195,42 @@ export function TopicPage() {
           ))}
         </ul>
 
-        <div className="row" style={{ marginTop: 24 }}>
-          <button
-            className="btn btn-primary"
-            onClick={() =>
-              setProgress((p) => ({
-                ...p,
-                completedTopics: complete ? p.completedTopics.filter((s) => s !== slug) : [...p.completedTopics, slug],
-              }))
-            }
-          >
-            {complete ? "Mark unread" : "Mark complete"}
+        <div className="lesson-actions">
+          <button className="btn btn-primary" onClick={toggleComplete}>
+            {complete ? "Mark unread" : "Mark this module read"}
+          </button>
+          <button className="btn btn-secondary" onClick={togglePractised}>
+            {practised ? "Practised ✓" : "I ran the exercises"}
+          </button>
+          <button className="btn btn-ghost" onClick={() => pal.openBash()}>
+            Open the sandbox
           </button>
         </div>
-        <div className="row" style={{ marginTop: 16, justifyContent: "space-between" }}>
+
+        <nav className="lesson-nav" aria-label="Module navigation">
           {prev ? (
-            <button className="btn btn-secondary" onClick={() => nav(`/learn/${prev.slug}`)}>
-              Previous: {prev.title}
+            <button className="lesson-nav-btn" onClick={() => nav(`/learn/${prev.slug}`)}>
+              <span className="muted">← Previous</span>
+              <span>{prev.title}</span>
             </button>
           ) : (
             <span />
           )}
           {next ? (
-            <button className="btn btn-secondary" onClick={() => nav(`/learn/${next.slug}`)}>
-              Next: {next.title}
+            <button className="lesson-nav-btn is-next" onClick={() => nav(`/learn/${next.slug}`)}>
+              <span className="muted">Next →</span>
+              <span>{next.title}</span>
             </button>
-          ) : null}
-        </div>
+          ) : (
+            <Link className="lesson-nav-btn is-next" to="/interview">
+              <span className="muted">Course complete →</span>
+              <span>Test yourself in the Arena</span>
+            </Link>
+          )}
+        </nav>
       </article>
-      <aside className="on-page toc">
+
+      <aside className="on-page toc" aria-label="On this page">
         <p className="kicker">On this page</p>
         {topic.concepts.map((c) => (
           <a key={c.id} href={`#${c.id}`}>

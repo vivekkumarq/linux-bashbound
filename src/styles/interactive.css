@@ -1,0 +1,501 @@
+/* ==========================================================================
+   Interactive explainers: permission builder, flow diagram, filesystem tree.
+   All colours resolve to design tokens so every palette stays consistent.
+   ========================================================================== */
+
+.perm-builder,
+.flow,
+.fstree {
+  margin: 28px 0;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.btn-compact {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+/* ---- Permission builder -------------------------------------------------- */
+
+.pb-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pb-head h3 {
+  margin: 0;
+}
+
+.pb-type {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--surface-2);
+}
+
+.pb-type button {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pb-type button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.pb-string {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 20px 0;
+  font-family: var(--font-mono);
+}
+
+.pb-char {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.pb-char.is-off {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--faint);
+}
+
+.pb-char.is-type {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+
+/* Visual gap between the owner, group and other triplets. */
+.pb-char:nth-child(4),
+.pb-char:nth-child(7) {
+  margin-left: 12px;
+}
+
+.pb-octal {
+  margin-left: 16px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.pb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pb-col-head {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pb-col-head code {
+  color: var(--faint);
+}
+
+.pb-bit {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--muted);
+  text-align: left;
+  transition: border-color 140ms var(--ease), background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.pb-bit:hover {
+  border-color: var(--border-strong);
+}
+
+.pb-bit.is-on {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.pb-bit.is-selected {
+  box-shadow: var(--focus);
+}
+
+.pb-bit-letter {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pb-bit-label {
+  font-size: 13px;
+}
+
+.pb-bit-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.pb-col-total {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--faint);
+  text-align: right;
+}
+
+.pb-special {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.pb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.pb-chip.is-on {
+  border-color: color-mix(in srgb, var(--accent-3) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-3) 12%, transparent);
+  color: var(--accent-3);
+}
+
+.pb-explain {
+  min-height: 62px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-left: 2px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.pb-explain p {
+  margin: 0 0 8px;
+}
+
+.pb-explain p:last-child {
+  margin-bottom: 0;
+}
+
+.pb-warning {
+  margin-top: 14px;
+}
+
+.pb-command {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.pb-command code {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pb-foot {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+/* ---- Flow diagram --------------------------------------------------------- */
+
+.flow-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.flow-head h3 {
+  margin: 0 0 6px;
+}
+
+.flow-intro {
+  max-width: 62ch;
+  margin: 0;
+}
+
+.flow-rail {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.flow-step {
+  position: relative;
+  flex: 1 0 140px;
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--muted);
+  text-align: left;
+  transition: border-color 160ms var(--ease), background 160ms var(--ease), transform 160ms var(--ease);
+}
+
+/* Short connector joining each step to the next. */
+.flow-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.flow-step.is-past {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text);
+}
+
+.flow-step.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  transform: translateY(-2px);
+}
+
+.flow-step-index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.flow-step-label {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.flow-step-caption {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+
+.flow-panel {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.flow-panel h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.flow-panel p {
+  margin: 0 0 12px;
+  max-width: 72ch;
+}
+
+.flow-takeaway {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  max-width: 72ch;
+}
+
+/* ---- Filesystem tree ------------------------------------------------------ */
+
+.fstree header h3 {
+  margin: 0 0 6px;
+}
+
+.fstree header p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.fstree-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 250px) 1fr;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.fstree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius);
+}
+
+.fstree-list:focus-visible {
+  box-shadow: var(--focus);
+}
+
+.fstree-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.fstree-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.fstree-item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.fstree-branch {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+.fstree-tag {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-3);
+}
+
+.fstree-detail {
+  min-width: 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+
+.fstree-detail h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.fstree-purpose {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.fstree-detail p {
+  max-width: 72ch;
+}
+
+.fstree-detail h5 {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+}
+
+.fstree-notable {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.fstree-notable dt {
+  font-size: 13.5px;
+}
+
+.fstree-notable dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 70ch;
+}
+
+.fstree-real {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .pb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fstree-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fstree-detail {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .fstree-list {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+}
