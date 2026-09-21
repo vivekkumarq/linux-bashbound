@@ -9,6 +9,7 @@ import "./styles/interactive.css";
 import "./styles/lesson.css";
 import "./styles/shortcuts.css";
 import "./styles/arena.css";
+import "./styles/quiz.css";
 import { HomePage } from "./pages/HomePage.tsx";
 
 // Restores the path that public/404.html stashed before GitHub Pages served

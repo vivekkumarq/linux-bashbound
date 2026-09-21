@@ -1,6 +1,7 @@
 import type { Difficulty, InterviewQuestion, Track } from "../types";
 import { commands } from "./commands";
 import { topics } from "./topics";
+import { mcqExtra } from "./questionsMcq";
 
 let n = 1;
 
@@ -1991,7 +1992,7 @@ const extraScenarios: Omit<InterviewQuestion, "id">[] = [
  * every distractor is a plausible wrong answer someone actually gives rather
  * than obvious filler, and each carries its own explanation.
  */
-type Mcq = {
+export type Mcq = {
   question: string;
   answer: string;
   choices: string[];
@@ -1999,6 +2000,7 @@ type Mcq = {
   difficulty: Difficulty;
   explanation: string;
   tags: string[];
+  /** Module slug this question is drawn from. Validated by npm run stats. */
   topic: string;
 };
 
@@ -2011,7 +2013,7 @@ const mcqBank: Mcq[] = [
     difficulty: "Beginner",
     explanation: "0 is stdin, 1 is stdout, 2 is stderr. `2>&1` redirects stderr to wherever stdout currently points.",
     tags: ["file-descriptors", "redirection"],
-    topic: "redirection-pipes",
+    topic: "pipes-redirection",
   },
   {
     question: "What does `2>&1 > file` actually do?",
@@ -2027,7 +2029,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Redirections are applied left to right. `2>&1` copies stdout's current target (the terminal) to fd 2, then `> file` moves only stdout. The order that sends both to the file is `> file 2>&1`.",
     tags: ["redirection", "order"],
-    topic: "redirection-pipes",
+    topic: "pipes-redirection",
   },
   {
     question: "Which signal cannot be caught, blocked, or ignored?",
@@ -2070,7 +2072,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "On directories, r lists names, w creates and removes entries, and x permits traversal. A directory with r but no x lets you see names but not stat or open what is inside.",
     tags: ["chmod", "directories"],
-    topic: "permissions-model",
+    topic: "mode-bits",
   },
   {
     question: "What is the numeric form of `-rwxr-xr--`?",
@@ -2080,7 +2082,7 @@ const mcqBank: Mcq[] = [
     difficulty: "Beginner",
     explanation: "rwx = 4+2+1 = 7, r-x = 4+0+1 = 5, r-- = 4+0+0 = 4.",
     tags: ["chmod", "octal"],
-    topic: "permissions-model",
+    topic: "mode-bits",
   },
   {
     question: "The sticky bit on /tmp means:",
@@ -2096,7 +2098,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Shown as `t` in the others-execute position (drwxrwxrwt). Without it, any user could delete any other user's files in a shared writable directory. Group inheritance is setgid, a different bit.",
     tags: ["sticky-bit", "tmp"],
-    topic: "special-permissions",
+    topic: "special-bits-acl",
   },
   {
     question: "`df` reports the disk is full but `du -sh /` shows far less. The most likely cause is:",
@@ -2112,7 +2114,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Unlinking a file only removes the name. Blocks are freed when the last file descriptor closes, so df still counts them while du cannot see the path. Find it with `lsof +L1` and restart the holder.",
     tags: ["df", "du", "lsof"],
-    topic: "disk-usage",
+    topic: "disks-partitions",
   },
   {
     question: "On a 4-core machine, a load average of 4.00 means:",
@@ -2187,7 +2189,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "ext4 allocates a fixed inode count at mkfs time. Millions of tiny files (session or cache dirs) can exhaust inodes while blocks remain free.",
     tags: ["inodes", "enospc"],
-    topic: "disk-usage",
+    topic: "disks-partitions",
   },
   {
     question: "Why must `cd` be a shell builtin rather than an external program?",
@@ -2203,7 +2205,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "The cwd is per-process state. An external `cd` would fork, change its own directory, and exit — leaving the shell exactly where it was.",
     tags: ["builtin", "cd"],
-    topic: "shell-basics",
+    topic: "terminal-shell",
   },
   {
     question: "In `set -euo pipefail`, what does `pipefail` change?",
@@ -2246,7 +2248,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "`ss -ltnp` lists listening (-l) TCP (-t) sockets numerically (-n) with the owning process (-p, needs root to see other users'). `netstat -ltnp` is the older equivalent.",
     tags: ["ss", "ports"],
-    topic: "network-troubleshooting",
+    topic: "net-fundamentals",
   },
   {
     question: "`ping` to a host succeeds but `curl http://host` times out. The most likely cause is:",
@@ -2262,7 +2264,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "ICMP reaching the host proves L3 connectivity and name resolution. A port-specific failure is L4 or above: check `ss -ltnp` on the server and the firewall in between.",
     tags: ["curl", "firewall", "layers"],
-    topic: "network-troubleshooting",
+    topic: "net-fundamentals",
   },
   {
     question: "Why does a closed TCP connection linger in TIME-WAIT?",
@@ -2278,7 +2280,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "The side that closes first waits roughly 2×MSL so stray packets from the old connection cannot be mistaken for part of a new one on the same four-tuple.",
     tags: ["tcp", "time-wait"],
-    topic: "networking-internals",
+    topic: "tcp-and-sockets",
   },
   {
     question: "Which is the correct order in the Linux boot chain?",
@@ -2326,7 +2328,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "'active (running)' only means the main process is alive. It can be serving errors, bound to the wrong interface, or blocked by a firewall — the logs and `ss -ltnp` tell you which.",
     tags: ["systemd", "journalctl"],
-    topic: "systemd-services",
+    topic: "systemd",
   },
   {
     question: "What does `chmod 777 file` actually grant?",
@@ -2342,7 +2344,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "It is almost never the right fix. If a service cannot read a file, correct the ownership or group instead — 777 makes the file writable by every account on the host.",
     tags: ["chmod", "security"],
-    topic: "permissions-model",
+    topic: "mode-bits",
   },
   {
     question: "Which is true of `sudo` versus logging in as root?",
@@ -2369,7 +2371,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "known_hosts records server keys you have trusted; id_rsa is your private key; host keys identify the server. Wrong permissions on ~/.ssh (must not be group/world writable) silently break key auth.",
     tags: ["ssh", "keys"],
-    topic: "ssh-remote",
+    topic: "remote-access",
   },
   {
     question: "What do namespaces provide that cgroups do not?",
@@ -2385,7 +2387,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Namespaces partition visibility (PID, mount, network, UTS, IPC, user, cgroup). cgroups meter and cap resource usage. A container is both, plus a root filesystem.",
     tags: ["namespaces", "cgroups", "containers"],
-    topic: "containers-and-isolation",
+    topic: "namespaces-cgroups",
   },
   {
     question: "A system call transitions the CPU from:",
@@ -2417,7 +2419,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "procfs is a virtual filesystem — the files have no on-disk backing and are produced when read. That is why their sizes usually show as 0.",
     tags: ["proc", "virtual-filesystem"],
-    topic: "filesystem-hierarchy",
+    topic: "directory-map",
   },
   {
     question: "`grep -r 'ERROR' .` returns nothing but you know the string is there. Most likely reason:",
@@ -2433,7 +2435,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "grep is case-sensitive by default (`-i` fixes that) and skips or summarises binary matches (`-a` treats them as text).",
     tags: ["grep", "case"],
-    topic: "text-processing",
+    topic: "bash-basics",
   },
   {
     question: "Which command safely finds files over 100 MB without following symlinks?",
@@ -2449,7 +2451,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "`-type f` restricts to regular files and find does not follow symlinks unless told to with -L. Parsing `ls` output is fragile with unusual filenames.",
     tags: ["find", "size"],
-    topic: "finding-files",
+    topic: "bash-basics",
   },
   {
     question: "What is the difference between `>` and `>>`?",
@@ -2465,7 +2467,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Both create the file if it is missing. `>` is the one that silently destroys existing content, which is why `set -o noclobber` exists.",
     tags: ["redirection"],
-    topic: "redirection-pipes",
+    topic: "pipes-redirection",
   },
   {
     question: "`ls -l` shows a file owned by a numeric UID instead of a name. That means:",
@@ -2481,7 +2483,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Common after copying files between hosts, restoring a backup, or bind-mounting a volume into a container where the UID namespaces differ.",
     tags: ["uid", "ownership"],
-    topic: "users-and-groups",
+    topic: "users-groups",
   },
   {
     question: "Which is the most portable way to print text in a POSIX shell script?",
@@ -2519,7 +2521,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Files are created from base 666 and directories from 777, with the umask bits removed: 666 & ~022 = 644, and directories become 755.",
     tags: ["umask"],
-    topic: "permissions-model",
+    topic: "mode-bits",
   },
   {
     question: "Which package manager belongs to the Red Hat family?",
@@ -2529,7 +2531,7 @@ const mcqBank: Mcq[] = [
     difficulty: "Beginner",
     explanation: "apt is Debian/Ubuntu, pacman is Arch, apk is Alpine. dnf (formerly yum) drives RPM packages.",
     tags: ["dnf", "packages"],
-    topic: "package-management",
+    topic: "package-managers",
   },
   {
     question: "Which cron expression runs a job every day at 02:30?",
@@ -2540,7 +2542,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "Fields are minute, hour, day-of-month, month, day-of-week. `30 2 * * 0` would restrict it to Sundays.",
     tags: ["cron", "scheduling"],
-    topic: "cron-and-timers",
+    topic: "logs-and-jobs",
   },
   {
     question: "A script works when you run it but fails from cron. The usual cause is:",
@@ -2556,7 +2558,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "cron does not source your shell profile. Use absolute paths, set PATH explicitly at the top of the crontab, and redirect output somewhere you can read it.",
     tags: ["cron", "environment"],
-    topic: "cron-and-timers",
+    topic: "logs-and-jobs",
   },
   {
     question: "Which mount option in /etc/fstab prevents setuid binaries from taking effect?",
@@ -2567,7 +2569,7 @@ const mcqBank: Mcq[] = [
     explanation:
       "noexec blocks execution entirely, nodev ignores device nodes, ro mounts read-only. On shared or removable media the three are usually combined.",
     tags: ["fstab", "hardening"],
-    topic: "mounting-filesystems",
+    topic: "mounts",
   },
   {
     question: "What does `ulimit -n` control?",
@@ -2604,7 +2606,7 @@ const mcqBank: Mcq[] = [
 ];
 
 function mcqQuestions(): InterviewQuestion[] {
-  return mcqBank.map((m) =>
+  return [...mcqBank, ...mcqExtra].map((m) =>
     q({
       question: m.question,
       category: m.category,

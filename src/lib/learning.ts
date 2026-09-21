@@ -51,9 +51,10 @@ export function topicMastery(slug: string, progress: ProgressState) {
   const read = progress.completedTopics.includes(slug);
   const practiced = (progress.practicedTopics ?? []).includes(slug);
 
-  const topic = topicMap.get(slug);
+  // A quiz records which modules its questions came from, so this is an exact
+  // match rather than a guess based on category names lining up.
   const quizzed = (progress.quizHistory ?? []).some(
-    (entry) => entry.total > 0 && entry.score / entry.total >= 0.7 && (entry.category === "Mixed" || entry.category === levelNameFor(topic)),
+    (entry) => entry.total > 0 && entry.score / entry.total >= 0.7 && (entry.topics ?? []).includes(slug),
   );
 
   // Recorded when a question is marked mastered in the arena, which already
@@ -64,11 +65,6 @@ export function topicMastery(slug: string, progress: ProgressState) {
   const steps = [read, practiced, quizzed, interviewed];
   const percent = Math.round((steps.filter(Boolean).length / steps.length) * 100);
   return { read, practiced, quizzed, interviewed, percent };
-}
-
-function levelNameFor(topic: Topic | undefined) {
-  if (!topic) return "";
-  return levels.find((l) => l.id === topic.level)?.title ?? "";
 }
 
 /** The next thing to open: first unfinished topic in roadmap order. */

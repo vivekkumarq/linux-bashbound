@@ -160,7 +160,11 @@ export interface ProgressState {
     category: string;
     score: number;
     total: number;
+    /** Seconds taken, when the run was timed. */
+    seconds?: number;
     weak: string[];
+    /** Module slugs the drawn questions related to, used for mastery. */
+    topics?: string[];
   }[];
   challengeDays: string[];
   lastVisit: string | null;

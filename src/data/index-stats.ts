@@ -63,6 +63,19 @@ for (const topic of topics) {
   }
 }
 
+// Hand-written multiple-choice questions link to the module that teaches
+// them, both from the arena and from the quiz results. A slug that does not
+// resolve is a dead "study this next" link, so those are hard failures.
+// Generated questions inherit their slugs from the lesson they came from.
+for (const q of questions) {
+  if (!q.choices?.length) continue;
+  for (const slug of q.relatedTopics) {
+    if (!topicMap.has(slug)) {
+      problems.push(`Quiz question "${q.question}" points at unknown module "${slug}"`);
+    }
+  }
+}
+
 /**
  * Non-fatal notes. Commands may legitimately point at tools the explorer does
  * not document (mtr, pgrep, ripgrep). The command page renders those as plain

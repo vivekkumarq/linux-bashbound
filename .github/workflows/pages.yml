@@ -24,6 +24,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test the terminal sandbox
+        run: npm test
+      # The build runs content-stats first, which fails on a roadmap level
+      # pointing at a module that does not exist, an unreachable module, a
+      # dangling prerequisite, or an unanswerable quiz question.
       - name: Build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
