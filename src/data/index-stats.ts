@@ -63,6 +63,17 @@ for (const topic of topics) {
   }
 }
 
+// The bank de-duplicates itself on export, so a duplicate reaching here would
+// mean that guard stopped working.
+{
+  const seen = new Set<string>();
+  for (const q of questions) {
+    const key = q.question.trim().toLowerCase();
+    if (seen.has(key)) problems.push(`Duplicate question text survived de-duplication: "${q.question}"`);
+    seen.add(key);
+  }
+}
+
 // Hand-written multiple-choice questions link to the module that teaches
 // them, both from the arena and from the quiz results. A slug that does not
 // resolve is a dead "study this next" link, so those are hard failures.

@@ -34,6 +34,9 @@ const router = createBrowserRouter(
     {
       path: "/",
       element: <App />,
+      // Routes are lazy, so the router wants something to show while a chunk
+      // is still in flight. Without it React Router logs a hydration warning.
+      hydrateFallbackElement: <div className="route-loading" aria-hidden="true" />,
       children: [
         { index: true, element: <HomePage /> },
         { path: "roadmap", lazy: page(() => import("./pages/RoadmapPage.tsx"), "RoadmapPage") },

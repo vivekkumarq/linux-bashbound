@@ -37,8 +37,8 @@ These numbers are counted from the content at build time by `scripts/content-sta
 | **40** | modules |
 | **122** | concepts |
 | **128** | commands |
-| **1,302** | interview questions |
-| **87** | multiple-choice questions driving the quiz engine |
+| **1,282** | interview questions |
+| **86** | multiple-choice questions driving the quiz engine |
 | **30** | daily challenges |
 | **9** | incident labs |
 | **11** | cheat sheets |

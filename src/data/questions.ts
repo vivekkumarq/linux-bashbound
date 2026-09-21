@@ -2623,7 +2623,7 @@ function mcqQuestions(): InterviewQuestion[] {
   );
 }
 
-export const questions: InterviewQuestion[] = [
+const assembled: InterviewQuestion[] = [
   ...conceptual.map((x) => q(x)),
   ...extraScenarios.map((x) => q(x)),
   ...famousInterview.map((x) => q(x)),
@@ -2631,6 +2631,23 @@ export const questions: InterviewQuestion[] = [
   ...topicQuestions(),
   ...mcqQuestions(),
 ];
+
+/**
+ * The same question can legitimately be reached from more than one source —
+ * a hand-written entry and a lesson that asks it too, or two commands whose
+ * concepts overlap. Showing it twice in a list is just a mistake, so the
+ * first occurrence wins and the rest are dropped. Ids stay stable; the
+ * sequence simply has gaps.
+ */
+export const questions: InterviewQuestion[] = (() => {
+  const seen = new Set<string>();
+  return assembled.filter((item) => {
+    const key = item.question.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+})();
 
 export const questionCategories = [...new Set(questions.map((x) => x.category))].sort();
 export const questionCount = questions.length;
