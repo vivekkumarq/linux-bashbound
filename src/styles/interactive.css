@@ -499,3 +499,15 @@
     overflow-y: auto;
   }
 }
+
+/* ---- Terminal footer ------------------------------------------------------ */
+
+.terminal-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.terminal-hint kbd {
+  font-size: 11px;
+}

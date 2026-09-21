@@ -1,3 +1,6 @@
+import { countFlag, makeExtras, stripTrailingNewline, writeFileAt, type Runner } from "./terminalExtras";
+import { globToRegExp, hasGlob, parseLine, unsupportedSyntax } from "./terminalShell";
+
 export type Node =
   | { kind: "dir"; name: string; children: Record<string, Node>; mode: string }
   | { kind: "file"; name: string; content: string; mode: string };
@@ -161,24 +164,56 @@ export const SIMULATED = [
   "man",
 ];
 
-export function runCommand(state: TermState, line: string): { output: string; state: TermState } {
+/**
+ * Runs one simple command (no pipes, no redirection).
+ *
+ * `stdin` is the previous stage's output when this command is part of a
+ * pipeline. Filters fall back to it when given no file operand, which is what
+ * makes `cat file | grep x` behave the way it does on a real shell.
+ *
+ * runCommand() below is the entry point; it handles the shell syntax and then
+ * calls in here per stage.
+ */
+function runBuiltin(
+  state: TermState,
+  line: string,
+  stdin = "",
+): { output: string; state: TermState } {
   const trimmed = line.trim();
   if (!trimmed) return { output: "", state };
   const next: TermState = {
     ...state,
     env: { ...state.env },
     cwd: [...state.cwd],
-    history: [...state.history, trimmed],
+    history: state.history,
   };
   const argv = tokenize(trimmed);
   const cmd = argv[0];
   const args = argv.slice(1);
 
+  const extra = EXTRA[cmd];
+  if (extra) return extra(next, args, stdin);
+
   switch (cmd) {
     case "help":
       return {
-        output:
-          "Simulation Mode (in-browser lab, not a real OS).\n  Files: pwd ls cd mkdir touch cat head tail wc grep rm cp mv chmod ln stat file\n  Shell: echo printf whoami id uname hostname env export date history type which clear help reset\nDestructive paths like / are refused. Type a command, or open this palette with Ctrl+K then Live bash.",
+        output: [
+          "Simulation Mode — an in-browser lab. Nothing here runs on your machine.",
+          "",
+          "  Files     ls cd pwd mkdir touch cat head tail stat file cp mv rm ln chmod du tree find",
+          "  Text      grep sed cut tr sort uniq wc nl tac tee seq basename dirname",
+          "  System    whoami id uname hostname env export date history ps df free uptime type which man",
+          "  Shell     help clear reset",
+          "",
+          "  Pipes     cat /var/log/syslog | grep ERROR | wc -l",
+          "  Redirect  echo hi > out.txt     and     echo more >> out.txt",
+          "  Globs     ls *.txt",
+          "  Tab       completes commands and paths",
+          "",
+          "ps, df, free and uptime print fixed sample output — illustrations, not live readings.",
+          "Control flow, command substitution and && are not simulated; the Bash module covers those.",
+          "Destructive paths such as / are refused.",
+        ].join("\n"),
         state: next,
       };
     case "clear":
@@ -217,23 +252,51 @@ export function runCommand(state: TermState, line: string): { output: string; st
     case "echo":
       return { output: args.join(" ").replace(/^["']|["']$/g, ""), state: next };
     case "ls": {
-      const targetArg = args.find((a) => !a.startsWith("-")) || ".";
-      const path = resolve(next, targetArg);
-      if (!path) return { output: "ls: path error", state: next };
-      const node = walk(next.fs, path);
-      if (!node) return { output: `ls: cannot access '${targetArg}': No such file or directory`, state: next };
-      const long = args.some((a) => a.includes("l"));
-      const all = args.some((a) => a.includes("a"));
-      if (node.kind === "file") return { output: node.name, state: next };
-      const names = Object.keys(node.children).sort();
-      const shown = all ? [".", "..", ...names] : names;
-      if (!long) return { output: shown.join("  "), state: next };
-      const lines = shown.map((name) => {
-        if (name === "." || name === "..") return `drwxr-xr-x  student student  4096  ${name}`;
-        const ch = node.children[name];
-        return `${ch.mode}  student student  ${ch.kind === "file" ? ch.content.length : 4096}  ${name}`;
-      });
-      return { output: lines.join("\n"), state: next };
+      const long = args.some((a) => /^-[a-z]*l/.test(a));
+      const all = args.some((a) => /^-[a-z]*a/.test(a));
+      // Every non-flag word is an operand. A glob expands to many of them, so
+      // listing only the first would drop most of the match.
+      const targets = args.filter((a) => !a.startsWith("-"));
+      const operands = targets.length ? targets : ["."];
+
+      const describe = (name: string, node: Node) =>
+        long
+          ? `${node.mode}  student student  ${node.kind === "file" ? node.content.length : 4096}  ${name}`
+          : name;
+
+      const blocks: string[] = [];
+      const errors: string[] = [];
+      const loose: string[] = [];
+
+      for (const target of operands) {
+        const path = resolve(next, target);
+        const node = path ? walk(next.fs, path) : null;
+        if (!node) {
+          errors.push(`ls: cannot access '${target}': No such file or directory`);
+          continue;
+        }
+        if (node.kind === "file") {
+          loose.push(describe(target, node));
+          continue;
+        }
+
+        const names = Object.keys(node.children).sort();
+        const shown = all ? [".", "..", ...names] : names;
+        const rows = shown.map((name) => {
+          if (name === "." || name === "..") return long ? `drwxr-xr-x  student student  4096  ${name}` : name;
+          return describe(name, node.children[name]);
+        });
+        const body = long ? rows.join("\n") : rows.join("  ");
+        // Only label directories when more than one thing is being listed.
+        blocks.push(operands.length > 1 ? `${target}:\n${body}` : body);
+      }
+
+      const parts = [
+        ...errors,
+        ...(loose.length ? [long ? loose.join("\n") : loose.join("  ")] : []),
+        ...blocks,
+      ];
+      return { output: parts.join("\n\n"), state: next };
     }
     case "cd": {
       const dest = args[0] ?? "~";
@@ -282,47 +345,60 @@ export function runCommand(state: TermState, line: string): { output: string; st
       return { output: "", state: next };
     }
     case "cat": {
-      if (!args.length) return { output: "cat: missing file (simulation does not read tty loops)", state: next };
-      const chunks: string[] = [];
-      for (const name of args) {
-        const path = resolve(next, name)!;
-        const node = walk(next.fs, path);
-        if (!node || node.kind !== "file") return { output: `cat: ${name}: No such file`, state: next };
-        chunks.push(node.content.replace(/\n$/, "") === node.content ? node.content : node.content);
-      }
-      return { output: chunks.join(""), state: next };
+      const read = readInput(next, args, stdin);
+      if (read.error) return { output: `cat: ${read.error}`, state: next };
+      return { output: read.text, state: next };
     }
     case "head":
     case "tail": {
-      const nFlag = args.find((flag) => flag.startsWith("-n")) || args.find((_, i) => args[i - 1] === "-n");
-      let count = 10;
-      if (nFlag?.startsWith("-n") && nFlag.length > 2) count = Number(nFlag.slice(2)) || 10;
-      const fileArg = args.filter((a) => !a.startsWith("-") && a !== nFlag).pop();
-      if (!fileArg) return { output: `${cmd}: missing file`, state: next };
-      const node = walk(next.fs, resolve(next, fileArg)!);
-      if (!node || node.kind !== "file") return { output: `${cmd}: no such file`, state: next };
-      const lines = node.content.split("\n");
+      const count = countFlag(args, 10);
+      const files = args.filter((a) => !a.startsWith("-") && !/^\d+$/.test(a));
+      const read = readInput(next, files, stdin);
+      if (read.error) return { output: `${cmd}: ${read.error}`, state: next };
+      const lines = stripTrailingNewline(read.text).split("\n");
       const slice = cmd === "head" ? lines.slice(0, count) : lines.slice(-count);
       return { output: slice.join("\n"), state: next };
     }
     case "wc": {
-      const fileArg = args.find((a) => !a.startsWith("-"));
-      if (!fileArg) return { output: "wc: missing file", state: next };
-      const node = walk(next.fs, resolve(next, fileArg)!);
-      if (!node || node.kind !== "file") return { output: "wc: no such file", state: next };
-      const lines = node.content.split("\n").filter((l, i, arr) => !(i === arr.length - 1 && l === ""));
-      const words = node.content.trim() ? node.content.trim().split(/\s+/).length : 0;
-      return { output: `${lines.length} ${words} ${node.content.length} ${fileArg}`, state: next };
+      const flags = args.filter((a) => a.startsWith("-")).join("");
+      const files = args.filter((a) => !a.startsWith("-"));
+      const read = readInput(next, files, stdin);
+      if (read.error) return { output: `wc: ${read.error}`, state: next };
+      const text = read.text;
+      const lineCount = text === "" ? 0 : stripTrailingNewline(text).split("\n").length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const label = files.length === 1 ? ` ${files[0]}` : "";
+      if (flags.includes("l")) return { output: `${lineCount}${label}`, state: next };
+      if (flags.includes("w")) return { output: `${words}${label}`, state: next };
+      if (flags.includes("c")) return { output: `${text.length}${label}`, state: next };
+      return { output: `${lineCount} ${words} ${text.length}${label}`, state: next };
     }
     case "grep": {
-      const pat = args.find((a) => !a.startsWith("-"));
-      const fileArg = args.filter((a) => !a.startsWith("-"))[1];
-      if (!pat || !fileArg) return { output: "grep: usage: grep PATTERN FILE", state: next };
-      const node = walk(next.fs, resolve(next, fileArg)!);
-      if (!node || node.kind !== "file") return { output: "grep: no such file", state: next };
-      const invert = args.includes("-v");
-      const lines = node.content.split("\n").filter((l) => (l.includes(pat) ? !invert : invert));
-      return { output: lines.join("\n"), state: next };
+      const flags = args.filter((a) => a.startsWith("-")).join("");
+      const positional = args.filter((a) => !a.startsWith("-"));
+      const pat = positional[0];
+      if (!pat) return { output: "grep: usage: grep [-ivnc] PATTERN [FILE...]", state: next };
+      const read = readInput(next, positional.slice(1), stdin);
+      if (read.error) return { output: `grep: ${read.error}`, state: next };
+
+      let re: RegExp;
+      try {
+        re = new RegExp(pat, flags.includes("i") ? "i" : "");
+      } catch {
+        return { output: `grep: ${pat}: invalid regular expression`, state: next };
+      }
+
+      const invert = flags.includes("v");
+      const hits: string[] = [];
+      stripTrailingNewline(read.text)
+        .split("\n")
+        .forEach((l, i) => {
+          if (re.test(l) === invert) return;
+          hits.push(flags.includes("n") ? `${i + 1}:${l}` : l);
+        });
+
+      if (flags.includes("c")) return { output: String(hits.length), state: next };
+      return { output: hits.join("\n"), state: next };
     }
     case "rm": {
       const rec = args.includes("-r") || args.includes("-rf") || args.includes("-fr");
@@ -460,4 +536,115 @@ export function runCommand(state: TermState, line: string): { output: string; st
         state: next,
       };
   }
+}
+
+/* ==========================================================================
+   Shell layer: pipes, redirection, globbing, completion.
+   ========================================================================== */
+
+/**
+ * Reads a filter's input: the named files if any were given, otherwise the
+ * piped stdin. This is what makes `grep x file` and `cat file | grep x` agree.
+ */
+function readInput(state: TermState, files: string[], stdin: string): { text: string; error?: string } {
+  if (!files.length) return { text: stdin };
+  let text = "";
+  for (const name of files) {
+    const node = walk(state.fs, resolve(state, name) ?? []);
+    if (!node) return { text: "", error: `${name}: No such file or directory` };
+    if (node.kind !== "file") return { text: "", error: `${name}: Is a directory` };
+    text += node.content;
+  }
+  return { text };
+}
+
+const EXTRA: Record<string, Runner> = makeExtras({ walk, resolve, readInput });
+
+/** Expands `*` and `?` against the filesystem, leaving non-matching words alone. */
+function expandGlobs(state: TermState, args: string[]): string[] {
+  return args.flatMap((word) => {
+    if (!hasGlob(word)) return [word];
+    const slash = word.lastIndexOf("/");
+    const dirPart = slash === -1 ? "." : word.slice(0, slash) || "/";
+    const basePart = slash === -1 ? word : word.slice(slash + 1);
+    const node = walk(state.fs, resolve(state, dirPart) ?? []);
+    if (!node || node.kind !== "dir") return [word];
+    const re = globToRegExp(basePart);
+    const hits = Object.keys(node.children)
+      .filter((n) => re.test(n) && (basePart.startsWith(".") || !n.startsWith(".")))
+      .sort()
+      .map((n) => (slash === -1 ? n : `${word.slice(0, slash)}/${n}`));
+    return hits.length ? hits : [word];
+  });
+}
+
+/**
+ * The sandbox entry point: parses one command line, runs each pipeline stage
+ * in turn, and applies redirection. Returns the text to print plus the new
+ * filesystem and shell state.
+ */
+export function runCommand(state: TermState, line: string): { output: string; state: TermState } {
+  const trimmed = line.trim();
+  if (!trimmed) return { output: "", state };
+
+  const recorded: TermState = { ...state, history: [...state.history, trimmed] };
+
+  const unsupported = unsupportedSyntax(trimmed);
+  if (unsupported) return { output: unsupported, state: recorded };
+
+  const parsed = parseLine(trimmed);
+  if (parsed.error) return { output: `bash: ${parsed.error}`, state: recorded };
+
+  let current = recorded;
+  let stdin = "";
+  let output = "";
+
+  for (const stage of parsed.stages) {
+    const argv = tokenize(stage.command);
+    const expanded = [argv[0], ...expandGlobs(current, argv.slice(1))].filter(Boolean);
+    const result = runBuiltin(current, expanded.join(" "), stdin);
+
+    // clear and reset are whole-terminal actions; they end the line.
+    if (result.output === "__CLEAR__") return result;
+
+    current = result.state;
+    stdin = result.output;
+    output = result.output;
+  }
+
+  if (parsed.redirect) {
+    const path = resolve(current, parsed.redirect.target) ?? [];
+    const fs = writeFileAt(current.fs, path, output ? `${output}\n` : "", parsed.redirect.append, walk);
+    return { output: "", state: { ...current, fs } };
+  }
+
+  return { output, state: current };
+}
+
+/**
+ * Tab completion: command names for the first word, filesystem entries after.
+ * Returns the candidates so the component can decide whether to complete or
+ * list them.
+ */
+export function completionsFor(state: TermState, line: string): string[] {
+  const parts = line.split(/\s+/);
+  const word = parts[parts.length - 1] ?? "";
+
+  if (parts.length <= 1) {
+    return [...new Set([...SIMULATED, ...Object.keys(EXTRA)])].filter((n) => n.startsWith(word)).sort();
+  }
+
+  const slash = word.lastIndexOf("/");
+  const dirPart = slash === -1 ? "." : word.slice(0, slash) || "/";
+  const basePart = slash === -1 ? word : word.slice(slash + 1);
+  const node = walk(state.fs, resolve(state, dirPart) ?? []);
+  if (!node || node.kind !== "dir") return [];
+
+  return Object.keys(node.children)
+    .filter((n) => n.startsWith(basePart) && (basePart.startsWith(".") || !n.startsWith(".")))
+    .sort()
+    .map((n) => {
+      const suffix = node.children[n].kind === "dir" ? "/" : "";
+      return slash === -1 ? n + suffix : `${word.slice(0, slash)}/${n}${suffix}`;
+    });
 }

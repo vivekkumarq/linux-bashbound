@@ -10,7 +10,8 @@
     "lint": "oxlint src",
     "preview": "vite preview --host 127.0.0.1 --port 4321",
     "stats": "node scripts/content-stats.mjs",
-    "prebuild": "node scripts/content-stats.mjs"
+    "prebuild": "node scripts/content-stats.mjs",
+    "test": "node scripts/terminal-test.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",
