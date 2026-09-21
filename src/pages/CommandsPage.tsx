@@ -114,13 +114,22 @@ export function CommandsPage() {
               </ul>
             </>
           ) : null}
-          <p>
-            Related:{" "}
-            {current.related.map((r) => (
-              <Link key={r} className="badge" to={`/commands/${r}`}>
-                {r}
-              </Link>
-            ))}
+          <h3>Related</h3>
+          <p className="related-row">
+            {current.related.map((r) =>
+              // Some entries point at tools the explorer does not document
+              // (mtr, pgrep, ripgrep). Those are shown as plain text so the
+              // suggestion is kept without producing a link that goes nowhere.
+              getCommand(r) ? (
+                <Link key={r} className="badge related-link" to={`/commands/${r}`}>
+                  {r}
+                </Link>
+              ) : (
+                <span key={r} className="badge related-plain" title="Not documented in the explorer yet">
+                  {r}
+                </span>
+              ),
+            )}
           </p>
         </article>
       ) : (

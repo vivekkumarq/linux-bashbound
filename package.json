@@ -8,7 +8,9 @@
     "dev": "vite --host 127.0.0.1 --port 4321",
     "build": "tsc -b && vite build",
     "lint": "oxlint src",
-    "preview": "vite preview --host 127.0.0.1 --port 4321"
+    "preview": "vite preview --host 127.0.0.1 --port 4321",
+    "stats": "node scripts/content-stats.mjs",
+    "prebuild": "node scripts/content-stats.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

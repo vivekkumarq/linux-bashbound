@@ -1,7 +1,6 @@
-import type { InterviewQuestion, Track } from "../types";
+import type { Difficulty, InterviewQuestion, Track } from "../types";
 import { commands } from "./commands";
 import { topics } from "./topics";
-import { levels } from "./roadmap";
 
 let n = 1;
 
@@ -1632,36 +1631,9 @@ function commandQuestions(): InterviewQuestion[] {
         }),
       );
     }
-    if (cmd.interview?.length) {
-      out.push(
-        q({
-          question: cmd.interview[0],
-          category: cat,
-          difficulty: "Intermediate",
-          operatingSystem: os,
-          tags: [cmd.name, "interview"],
-          type: "Conceptual",
-          answer: cmd.purpose,
-          explanation: `${cmd.summary} ${cmd.realWorld}`,
-          relatedTopics: ["bash-basics"],
-        }),
-      );
-    }
-    if (cmd.interview?.[1]) {
-      out.push(
-        q({
-          question: cmd.interview[1],
-          category: cat,
-          difficulty: "Advanced",
-          operatingSystem: os,
-          tags: [cmd.name, "interview"],
-          type: "Conceptual",
-          answer: cmd.realWorld,
-          explanation: cmd.purpose,
-          relatedTopics: ["production-linux"],
-        }),
-      );
-    }
+    // cmd.interview[] holds question prompts with no authored answer, so they
+    // are surfaced on the command page as "be ready for these" rather than
+    // pushed into the bank paired with an unrelated answer.
     if (cmd.destructive) {
       out.push(
         q({
@@ -1677,56 +1649,22 @@ function commandQuestions(): InterviewQuestion[] {
         }),
       );
     }
-    if (cmd.related[0]) {
-      out.push(
-        q({
-          question: `How does \`${cmd.name}\` relate to \`${cmd.related[0]}\` in day-to-day Linux work?`,
-          category: cat,
-          difficulty: "Intermediate",
-          operatingSystem: os,
-          tags: [cmd.name, cmd.related[0]],
-          type: "Conceptual",
-          answer: `${cmd.name}: ${cmd.summary} Related tool ${cmd.related[0]} is often used alongside it in the same workflow.`,
-          explanation: cmd.realWorld,
-          relatedTopics: ["bash-basics"],
-        }),
-      );
-    }
-    if (cmd.gnu) {
-      out.push(
-        q({
-          question: `Is \`${cmd.name}\`'s GNU behavior guaranteed on every Unix?`,
-          category: "Unix",
-          difficulty: "Intermediate",
-          operatingSystem: ["Linux", "Unix", "POSIX"],
-          tags: [cmd.name, "gnu", "posix"],
-          type: "Why",
-          answer: "No. GNU coreutils extensions (long options, extra flags) may be missing on BSD, macOS, BusyBox, and strictly POSIX environments.",
-          explanation: cmd.purpose,
-          relatedTopics: ["unix-posix", "kernel-and-gnu"],
-        }),
-      );
-    }
   }
   return out;
 }
 
+/**
+ * Questions derived from lesson content.
+ *
+ * Only lesson fields that are already written as a question/answer pair are
+ * reused: the concept's own interview Q&A, its exercise, its worked output,
+ * and its common mistake. Restating lesson prose as a pseudo-question
+ * ("Explain in simple terms: X") inflates the count without adding anything
+ * an interviewer would ask, so those variants are not generated.
+ */
 function topicQuestions(): InterviewQuestion[] {
   const out: InterviewQuestion[] = [];
   for (const t of topics) {
-    out.push(
-      q({
-        question: `Why does a Linux practitioner need to learn: ${t.title}?`,
-        category: t.level >= 10 ? "Advanced Linux" : t.level <= 3 ? "Linux Fundamentals" : "System Administration",
-        difficulty: t.difficulty === "Beginner" ? "Beginner" : t.difficulty === "Intermediate" ? "Intermediate" : "Advanced",
-        operatingSystem: ["Linux"],
-        tags: [t.slug, "why"],
-        type: "Why",
-        answer: t.why,
-        explanation: t.summary,
-        relatedTopics: [t.slug],
-      }),
-    );
     for (const c of t.concepts) {
       out.push(
         q({
@@ -1740,45 +1678,6 @@ function topicQuestions(): InterviewQuestion[] {
           explanation: `${c.simple} ${c.technical}`,
           relatedTopics: [t.slug, ...c.related],
           example: c.example.command,
-        }),
-      );
-      out.push(
-        q({
-          question: `Explain in simple terms: ${c.title}`,
-          category: "Linux Fundamentals",
-          difficulty: "Beginner",
-          operatingSystem: ["Linux"],
-          tags: [t.slug, c.id, "simple"],
-          type: "Conceptual",
-          answer: c.simple,
-          explanation: c.analogy,
-          relatedTopics: [t.slug],
-        }),
-      );
-      out.push(
-        q({
-          question: `Give a technical explanation of: ${c.title}`,
-          category: t.level >= 13 ? "Kernel" : "System Administration",
-          difficulty: "Advanced",
-          operatingSystem: ["Linux"],
-          tags: [t.slug, c.id, "technical"],
-          type: "Conceptual",
-          answer: c.technical,
-          explanation: c.simple,
-          relatedTopics: [t.slug],
-        }),
-      );
-      out.push(
-        q({
-          question: `What is a real-world analogy for: ${c.title}?`,
-          category: "Linux Fundamentals",
-          difficulty: "Beginner",
-          operatingSystem: ["Linux"],
-          tags: [t.slug, "analogy"],
-          type: "Conceptual",
-          answer: c.analogy,
-          explanation: c.simple,
-          relatedTopics: [t.slug],
         }),
       );
       out.push(
@@ -1823,40 +1722,9 @@ function topicQuestions(): InterviewQuestion[] {
           }),
         );
       }
-      if (c.whereUsed?.length) {
-        out.push(
-          q({
-            question: `Where is this used in the real world: ${c.title}?`,
-            category: "DevOps/Linux",
-            difficulty: "Beginner",
-            operatingSystem: ["Linux"],
-            tags: [t.slug, "real-world"],
-            type: "Conceptual",
-            answer: c.whereUsed.join(" "),
-            explanation: t.why,
-            relatedTopics: [t.slug],
-          }),
-        );
-      }
     }
   }
   return out;
-}
-
-function levelQuestions(): InterviewQuestion[] {
-  return levels.map((lv) =>
-    q({
-      question: `What should you be able to do after completing roadmap level ${lv.id}: ${lv.title}?`,
-      category: lv.id >= 13 ? "Kernel" : lv.id >= 8 ? "System Administration" : "Linux Fundamentals",
-      difficulty: lv.difficulty === "Beginner" ? "Beginner" : lv.difficulty === "Intermediate" ? "Intermediate" : "Advanced",
-      operatingSystem: ["Linux"],
-      tags: [lv.slug, "roadmap"],
-      type: "Conceptual",
-      answer: lv.summary,
-      explanation: `${lv.subtitle} Estimated ${lv.hours} hours. Topics: ${lv.topics.join(", ")}.`,
-      relatedTopics: lv.topics,
-    }),
-  );
 }
 
 const famousInterview: Omit<InterviewQuestion, "id">[] = [
@@ -2118,49 +1986,652 @@ const extraScenarios: Omit<InterviewQuestion, "id">[] = [
   },
 ];
 
-function mcqPadding(): InterviewQuestion[] {
-  const items: InterviewQuestion[] = [];
-  const pairs: [string, string, string, string[]][] = [
-    ["Which command prints the working directory?", "pwd", "Conceptual", ["cwd", "ls", "cd", "pwd"]],
-    ["Which command changes directory?", "cd", "Conceptual", ["pwd", "ls", "cd", "mv"]],
-    ["Which command lists files by default in the current directory?", "ls", "Conceptual", ["cat", "ls", "stat", "file"]],
-    ["Which signal number is SIGKILL?", "9", "Conceptual", ["1", "9", "15", "2"]],
-    ["Which signal is SIGTERM?", "15", "Conceptual", ["9", "15", "19", "1"]],
-    ["Default SSH port?", "22", "Conceptual", ["21", "22", "23", "2222"]],
-    ["HTTPS port?", "443", "Conceptual", ["80", "443", "8080", "53"]],
-    ["DNS UDP port?", "53", "Conceptual", ["53", "67", "123", "25"]],
-    ["stdin file descriptor?", "0", "Conceptual", ["0", "1", "2", "3"]],
-    ["stderr file descriptor?", "2", "Conceptual", ["0", "1", "2", "3"]],
-  ];
-  for (const [question, answer, , choices] of pairs) {
-    items.push(
-      q({
-        question,
-        category: "Commands",
-        difficulty: "Beginner",
-        operatingSystem: ["Linux", "Unix"],
-        tags: ["mcq"],
-        type: "Multiple choice",
-        answer,
-        explanation: "Memorize the common defaults; still verify with ss and documentation on each host.",
-        relatedTopics: ["bash-basics"],
-        choices,
-        correctIndex: choices.indexOf(answer),
-      }),
-    );
-  }
-  return items;
+/**
+ * Multiple-choice bank. These are the questions the quiz engine draws from, so
+ * every distractor is a plausible wrong answer someone actually gives rather
+ * than obvious filler, and each carries its own explanation.
+ */
+type Mcq = {
+  question: string;
+  answer: string;
+  choices: string[];
+  category: string;
+  difficulty: Difficulty;
+  explanation: string;
+  tags: string[];
+  topic: string;
+};
+
+const mcqBank: Mcq[] = [
+  {
+    question: "Which file descriptor number is stderr?",
+    answer: "2",
+    choices: ["0", "1", "2", "3"],
+    category: "Bash",
+    difficulty: "Beginner",
+    explanation: "0 is stdin, 1 is stdout, 2 is stderr. `2>&1` redirects stderr to wherever stdout currently points.",
+    tags: ["file-descriptors", "redirection"],
+    topic: "redirection-pipes",
+  },
+  {
+    question: "What does `2>&1 > file` actually do?",
+    answer: "Sends stderr to the terminal and stdout to the file",
+    choices: [
+      "Sends both stdout and stderr to the file",
+      "Sends stderr to the terminal and stdout to the file",
+      "Sends stdout to the terminal and stderr to the file",
+      "It is a syntax error",
+    ],
+    category: "Bash",
+    difficulty: "Advanced",
+    explanation:
+      "Redirections are applied left to right. `2>&1` copies stdout's current target (the terminal) to fd 2, then `> file` moves only stdout. The order that sends both to the file is `> file 2>&1`.",
+    tags: ["redirection", "order"],
+    topic: "redirection-pipes",
+  },
+  {
+    question: "Which signal cannot be caught, blocked, or ignored?",
+    answer: "SIGKILL (9)",
+    choices: ["SIGTERM (15)", "SIGKILL (9)", "SIGHUP (1)", "SIGINT (2)"],
+    category: "Processes",
+    difficulty: "Beginner",
+    explanation:
+      "SIGKILL and SIGSTOP are handled by the kernel and never delivered to the process, which is why a wedged process cannot trap them. SIGTERM is the polite default `kill` sends.",
+    tags: ["signals", "kill"],
+    topic: "process-control",
+  },
+  {
+    question: "A process shows state Z in `ps`. What will `kill -9` on it do?",
+    answer: "Nothing — it has already exited and is waiting to be reaped",
+    choices: [
+      "Terminate it immediately",
+      "Nothing — it has already exited and is waiting to be reaped",
+      "Restart it under a new PID",
+      "Force its parent to exit",
+    ],
+    category: "Processes",
+    difficulty: "Intermediate",
+    explanation:
+      "A zombie is a dead process whose exit status the parent has not collected with wait(). Signals have nothing left to kill. Fix or restart the parent, or let PID 1 adopt and reap it.",
+    tags: ["zombie", "wait"],
+    topic: "process-control",
+  },
+  {
+    question: "What does the execute bit mean on a directory?",
+    answer: "You may traverse into it and access entries by name",
+    choices: [
+      "You may run the directory as a program",
+      "You may traverse into it and access entries by name",
+      "You may list its contents",
+      "You may create files inside it",
+    ],
+    category: "Permissions",
+    difficulty: "Intermediate",
+    explanation:
+      "On directories, r lists names, w creates and removes entries, and x permits traversal. A directory with r but no x lets you see names but not stat or open what is inside.",
+    tags: ["chmod", "directories"],
+    topic: "permissions-model",
+  },
+  {
+    question: "What is the numeric form of `-rwxr-xr--`?",
+    answer: "754",
+    choices: ["755", "754", "744", "764"],
+    category: "Permissions",
+    difficulty: "Beginner",
+    explanation: "rwx = 4+2+1 = 7, r-x = 4+0+1 = 5, r-- = 4+0+0 = 4.",
+    tags: ["chmod", "octal"],
+    topic: "permissions-model",
+  },
+  {
+    question: "The sticky bit on /tmp means:",
+    answer: "Only a file's owner (or root) may delete it, even though the directory is world-writable",
+    choices: [
+      "Files stay cached in memory",
+      "Only a file's owner (or root) may delete it, even though the directory is world-writable",
+      "Files cannot be modified after creation",
+      "New files inherit the directory's group",
+    ],
+    category: "Permissions",
+    difficulty: "Intermediate",
+    explanation:
+      "Shown as `t` in the others-execute position (drwxrwxrwt). Without it, any user could delete any other user's files in a shared writable directory. Group inheritance is setgid, a different bit.",
+    tags: ["sticky-bit", "tmp"],
+    topic: "special-permissions",
+  },
+  {
+    question: "`df` reports the disk is full but `du -sh /` shows far less. The most likely cause is:",
+    answer: "A deleted file is still held open by a running process",
+    choices: [
+      "The filesystem needs fsck",
+      "A deleted file is still held open by a running process",
+      "du cannot read hidden files",
+      "Disk quotas are misconfigured",
+    ],
+    category: "Storage",
+    difficulty: "Advanced",
+    explanation:
+      "Unlinking a file only removes the name. Blocks are freed when the last file descriptor closes, so df still counts them while du cannot see the path. Find it with `lsof +L1` and restart the holder.",
+    tags: ["df", "du", "lsof"],
+    topic: "disk-usage",
+  },
+  {
+    question: "On a 4-core machine, a load average of 4.00 means:",
+    answer: "Roughly one runnable or uninterruptible task per core — fully busy, not necessarily overloaded",
+    choices: [
+      "CPU usage is 400%",
+      "Roughly one runnable or uninterruptible task per core — fully busy, not necessarily overloaded",
+      "Four processes have crashed",
+      "The machine is idle",
+    ],
+    category: "Performance",
+    difficulty: "Intermediate",
+    explanation:
+      "Linux load counts tasks in R (runnable) and D (uninterruptible, usually I/O) state. A load of 4 on 4 cores is saturation, not overload — and a high load driven by D-state means storage, not CPU.",
+    tags: ["load-average", "uptime"],
+    topic: "performance-basics",
+  },
+  {
+    question: "`free -h` shows very little free memory but plenty available. Is that a problem?",
+    answer: "No — the kernel uses spare RAM as page cache and reclaims it on demand",
+    choices: [
+      "Yes, the machine is about to OOM",
+      "No — the kernel uses spare RAM as page cache and reclaims it on demand",
+      "Yes, swap must be increased",
+      "Only if swap is disabled",
+    ],
+    category: "Performance",
+    difficulty: "Intermediate",
+    explanation:
+      "Unused RAM is wasted RAM. The `available` column is the number that matters: it estimates what a new process could get, counting reclaimable cache.",
+    tags: ["memory", "page-cache"],
+    topic: "performance-basics",
+  },
+  {
+    question: "Which statement about a hard link is true?",
+    answer: "It shares the inode with the original, so it cannot cross filesystems",
+    choices: [
+      "It stores the path of the target as text",
+      "It shares the inode with the original, so it cannot cross filesystems",
+      "It breaks when the original is deleted",
+      "It can point at a directory by default",
+    ],
+    category: "Filesystem",
+    difficulty: "Intermediate",
+    explanation:
+      "A hard link is just another directory entry pointing at the same inode number, which only has meaning within one filesystem. A symlink stores a path string, can dangle, and can cross mounts.",
+    tags: ["inode", "ln"],
+    topic: "inodes-and-links",
+  },
+  {
+    question: "What does an inode NOT store?",
+    answer: "The file's name",
+    choices: ["The file's name", "Permissions and ownership", "Timestamps", "Pointers to data blocks"],
+    category: "Filesystem",
+    difficulty: "Intermediate",
+    explanation:
+      "Names live in directory entries, which map a name to an inode number. That indirection is exactly what makes hard links and atomic renames possible.",
+    tags: ["inode"],
+    topic: "inodes-and-links",
+  },
+  {
+    question: "You can create files in a directory but `df` says there is free space and writes still fail with ENOSPC. Check:",
+    answer: "Inode exhaustion with `df -i`",
+    choices: [
+      "Swap usage with `free`",
+      "Inode exhaustion with `df -i`",
+      "Open descriptors with `ulimit -n`",
+      "Mount options with `findmnt`",
+    ],
+    category: "Storage",
+    difficulty: "Advanced",
+    explanation:
+      "ext4 allocates a fixed inode count at mkfs time. Millions of tiny files (session or cache dirs) can exhaust inodes while blocks remain free.",
+    tags: ["inodes", "enospc"],
+    topic: "disk-usage",
+  },
+  {
+    question: "Why must `cd` be a shell builtin rather than an external program?",
+    answer: "A child process cannot change its parent's working directory",
+    choices: [
+      "It is faster as a builtin",
+      "A child process cannot change its parent's working directory",
+      "It needs root privileges",
+      "It is defined that way by POSIX for no technical reason",
+    ],
+    category: "Bash",
+    difficulty: "Intermediate",
+    explanation:
+      "The cwd is per-process state. An external `cd` would fork, change its own directory, and exit — leaving the shell exactly where it was.",
+    tags: ["builtin", "cd"],
+    topic: "shell-basics",
+  },
+  {
+    question: "In `set -euo pipefail`, what does `pipefail` change?",
+    answer: "A pipeline fails if any command in it fails, not just the last one",
+    choices: [
+      "It aborts on any unset variable",
+      "A pipeline fails if any command in it fails, not just the last one",
+      "It prints each command before running it",
+      "It disables globbing in pipelines",
+    ],
+    category: "Bash",
+    difficulty: "Advanced",
+    explanation:
+      "By default a pipeline's exit status is the last command's, so `false | true` succeeds. `-e` exits on error and `-u` errors on unset variables.",
+    tags: ["set", "error-handling"],
+    topic: "bash-scripting",
+  },
+  {
+    question: "Why should shell variables be quoted, as in `\"$file\"`?",
+    answer: "Unquoted expansion undergoes word splitting and globbing",
+    choices: [
+      "Quoting makes the script run faster",
+      "Unquoted expansion undergoes word splitting and globbing",
+      "Bash requires quotes around all variables",
+      "It prevents the variable from being exported",
+    ],
+    category: "Bash",
+    difficulty: "Intermediate",
+    explanation:
+      "A filename containing a space becomes two arguments unquoted, and one containing `*` can expand against the directory. This is the single most common source of shell bugs.",
+    tags: ["quoting", "word-splitting"],
+    topic: "bash-scripting",
+  },
+  {
+    question: "Which command shows which process is listening on port 8080?",
+    answer: "ss -ltnp",
+    choices: ["ping 8080", "ss -ltnp", "traceroute 8080", "dig -p 8080"],
+    category: "Networking",
+    difficulty: "Beginner",
+    explanation:
+      "`ss -ltnp` lists listening (-l) TCP (-t) sockets numerically (-n) with the owning process (-p, needs root to see other users'). `netstat -ltnp` is the older equivalent.",
+    tags: ["ss", "ports"],
+    topic: "network-troubleshooting",
+  },
+  {
+    question: "`ping` to a host succeeds but `curl http://host` times out. The most likely cause is:",
+    answer: "A firewall or the service is not listening on the HTTP port",
+    choices: [
+      "DNS is broken",
+      "A firewall or the service is not listening on the HTTP port",
+      "The routing table is empty",
+      "The network cable is unplugged",
+    ],
+    category: "Networking",
+    difficulty: "Intermediate",
+    explanation:
+      "ICMP reaching the host proves L3 connectivity and name resolution. A port-specific failure is L4 or above: check `ss -ltnp` on the server and the firewall in between.",
+    tags: ["curl", "firewall", "layers"],
+    topic: "network-troubleshooting",
+  },
+  {
+    question: "Why does a closed TCP connection linger in TIME-WAIT?",
+    answer: "To absorb delayed duplicate segments before the port pair is reused",
+    choices: [
+      "To keep the connection available for reuse",
+      "To absorb delayed duplicate segments before the port pair is reused",
+      "Because the application has not called close()",
+      "To wait for DNS to expire",
+    ],
+    category: "Networking",
+    difficulty: "Advanced",
+    explanation:
+      "The side that closes first waits roughly 2×MSL so stray packets from the old connection cannot be mistaken for part of a new one on the same four-tuple.",
+    tags: ["tcp", "time-wait"],
+    topic: "networking-internals",
+  },
+  {
+    question: "Which is the correct order in the Linux boot chain?",
+    answer: "Firmware → bootloader → kernel → initramfs → PID 1",
+    choices: [
+      "Bootloader → firmware → kernel → PID 1 → initramfs",
+      "Firmware → bootloader → kernel → initramfs → PID 1",
+      "Kernel → firmware → bootloader → initramfs → PID 1",
+      "Firmware → kernel → bootloader → PID 1 → initramfs",
+    ],
+    category: "Linux Fundamentals",
+    difficulty: "Intermediate",
+    explanation:
+      "UEFI/BIOS runs the bootloader, which loads the kernel and initramfs. The initramfs holds just enough drivers to mount the real root, then PID 1 (usually systemd) starts user space.",
+    tags: ["boot", "initramfs"],
+    topic: "boot-and-init",
+  },
+  {
+    question: "What is the defining responsibility of PID 1 besides starting services?",
+    answer: "Reaping orphaned processes",
+    choices: [
+      "Managing virtual memory",
+      "Reaping orphaned processes",
+      "Scheduling CPU time",
+      "Mounting the root filesystem",
+    ],
+    category: "System Administration",
+    difficulty: "Advanced",
+    explanation:
+      "Orphans are re-parented to PID 1, which must wait() on them or they stay zombies forever. This is exactly why containers need a real init or `--init`.",
+    tags: ["init", "systemd", "containers"],
+    topic: "boot-and-init",
+  },
+  {
+    question: "`systemctl status nginx` shows active (running) but the site is down. Best next step:",
+    answer: "Check journalctl -u nginx and whether it is listening on the expected port",
+    choices: [
+      "Reboot the server",
+      "Check journalctl -u nginx and whether it is listening on the expected port",
+      "Reinstall nginx",
+      "Run systemctl daemon-reload",
+    ],
+    category: "Troubleshooting",
+    difficulty: "Intermediate",
+    explanation:
+      "'active (running)' only means the main process is alive. It can be serving errors, bound to the wrong interface, or blocked by a firewall — the logs and `ss -ltnp` tell you which.",
+    tags: ["systemd", "journalctl"],
+    topic: "systemd-services",
+  },
+  {
+    question: "What does `chmod 777 file` actually grant?",
+    answer: "Read, write and execute to the owner, the group, and everyone else",
+    choices: [
+      "Full access for root only",
+      "Read, write and execute to the owner, the group, and everyone else",
+      "Ownership transfer to all users",
+      "The same as chmod +x",
+    ],
+    category: "Permissions",
+    difficulty: "Beginner",
+    explanation:
+      "It is almost never the right fix. If a service cannot read a file, correct the ownership or group instead — 777 makes the file writable by every account on the host.",
+    tags: ["chmod", "security"],
+    topic: "permissions-model",
+  },
+  {
+    question: "Which is true of `sudo` versus logging in as root?",
+    answer: "sudo runs single commands with an audit trail under the invoking user's identity",
+    choices: [
+      "They are functionally identical",
+      "sudo runs single commands with an audit trail under the invoking user's identity",
+      "sudo does not require any configuration",
+      "root login is more secure because it is logged",
+    ],
+    category: "Security",
+    difficulty: "Beginner",
+    explanation:
+      "sudo gives per-command authorisation, logging in /var/log/auth.log or the journal, and policy in /etc/sudoers — none of which a shared root password provides.",
+    tags: ["sudo", "least-privilege"],
+    topic: "linux-security",
+  },
+  {
+    question: "Where does SSH look for a user's authorised public keys by default?",
+    answer: "~/.ssh/authorized_keys",
+    choices: ["~/.ssh/id_rsa", "~/.ssh/authorized_keys", "/etc/ssh/ssh_host_keys", "~/.ssh/known_hosts"],
+    category: "Security",
+    difficulty: "Beginner",
+    explanation:
+      "known_hosts records server keys you have trusted; id_rsa is your private key; host keys identify the server. Wrong permissions on ~/.ssh (must not be group/world writable) silently break key auth.",
+    tags: ["ssh", "keys"],
+    topic: "ssh-remote",
+  },
+  {
+    question: "What do namespaces provide that cgroups do not?",
+    answer: "Isolation of what a process can see",
+    choices: [
+      "Limits on how much CPU and memory a process may use",
+      "Isolation of what a process can see",
+      "Encryption of process memory",
+      "Scheduling priority",
+    ],
+    category: "Kernel",
+    difficulty: "Advanced",
+    explanation:
+      "Namespaces partition visibility (PID, mount, network, UTS, IPC, user, cgroup). cgroups meter and cap resource usage. A container is both, plus a root filesystem.",
+    tags: ["namespaces", "cgroups", "containers"],
+    topic: "containers-and-isolation",
+  },
+  {
+    question: "A system call transitions the CPU from:",
+    answer: "User mode to kernel mode",
+    choices: [
+      "Kernel mode to user mode",
+      "User mode to kernel mode",
+      "Real mode to protected mode",
+      "One process to another",
+    ],
+    category: "Kernel",
+    difficulty: "Intermediate",
+    explanation:
+      "The syscall instruction is the controlled doorway into the privileged kernel. Applications almost always reach it through libc wrappers rather than issuing it directly.",
+    tags: ["syscall", "user-space"],
+    topic: "kernel-and-gnu",
+  },
+  {
+    question: "Which is NOT true of /proc?",
+    answer: "It stores its files on the root disk",
+    choices: [
+      "It is generated by the kernel on demand",
+      "It stores its files on the root disk",
+      "It exposes per-process information under /proc/<pid>",
+      "Tools like ps and free read from it",
+    ],
+    category: "Filesystem",
+    difficulty: "Intermediate",
+    explanation:
+      "procfs is a virtual filesystem — the files have no on-disk backing and are produced when read. That is why their sizes usually show as 0.",
+    tags: ["proc", "virtual-filesystem"],
+    topic: "filesystem-hierarchy",
+  },
+  {
+    question: "`grep -r 'ERROR' .` returns nothing but you know the string is there. Most likely reason:",
+    answer: "The match is in a binary file or the case differs",
+    choices: [
+      "grep cannot search recursively",
+      "The match is in a binary file or the case differs",
+      "You need sudo",
+      "grep only reads the first line of each file",
+    ],
+    category: "Commands",
+    difficulty: "Beginner",
+    explanation:
+      "grep is case-sensitive by default (`-i` fixes that) and skips or summarises binary matches (`-a` treats them as text).",
+    tags: ["grep", "case"],
+    topic: "text-processing",
+  },
+  {
+    question: "Which command safely finds files over 100 MB without following symlinks?",
+    answer: "find . -type f -size +100M",
+    choices: [
+      "ls -lh | grep 100M",
+      "find . -type f -size +100M",
+      "du -a | sort -n",
+      "stat -c %s * | grep 100",
+    ],
+    category: "Commands",
+    difficulty: "Intermediate",
+    explanation:
+      "`-type f` restricts to regular files and find does not follow symlinks unless told to with -L. Parsing `ls` output is fragile with unusual filenames.",
+    tags: ["find", "size"],
+    topic: "finding-files",
+  },
+  {
+    question: "What is the difference between `>` and `>>`?",
+    answer: "`>` truncates the file first; `>>` appends to it",
+    choices: [
+      "`>` writes stdout, `>>` writes stderr",
+      "`>` truncates the file first; `>>` appends to it",
+      "They are identical",
+      "`>>` creates the file, `>` requires it to exist",
+    ],
+    category: "Bash",
+    difficulty: "Beginner",
+    explanation:
+      "Both create the file if it is missing. `>` is the one that silently destroys existing content, which is why `set -o noclobber` exists.",
+    tags: ["redirection"],
+    topic: "redirection-pipes",
+  },
+  {
+    question: "`ls -l` shows a file owned by a numeric UID instead of a name. That means:",
+    answer: "No account in /etc/passwd matches that UID",
+    choices: [
+      "The file is corrupted",
+      "No account in /etc/passwd matches that UID",
+      "The file is owned by root",
+      "The filesystem is mounted read-only",
+    ],
+    category: "Permissions",
+    difficulty: "Advanced",
+    explanation:
+      "Common after copying files between hosts, restoring a backup, or bind-mounting a volume into a container where the UID namespaces differ.",
+    tags: ["uid", "ownership"],
+    topic: "users-and-groups",
+  },
+  {
+    question: "Which is the most portable way to print text in a POSIX shell script?",
+    answer: "printf",
+    choices: ["echo -e", "printf", "echo -n", "cat <<<"],
+    category: "Unix",
+    difficulty: "Intermediate",
+    explanation:
+      "`echo`'s handling of `-e`, `-n` and backslashes varies between the bash builtin, /bin/echo and dash. printf's behaviour is specified by POSIX.",
+    tags: ["posix", "printf", "portability"],
+    topic: "unix-posix",
+  },
+  {
+    question: "What does POSIX standardise?",
+    answer: "System interfaces, a shell language and utilities that conforming systems provide",
+    choices: [
+      "The Linux kernel's internal APIs",
+      "System interfaces, a shell language and utilities that conforming systems provide",
+      "The look of desktop environments",
+      "Which package manager a distribution must use",
+    ],
+    category: "Unix",
+    difficulty: "Intermediate",
+    explanation:
+      "Writing to POSIX rather than to GNU extensions is what makes a script work on Linux, macOS, the BSDs and BusyBox alike.",
+    tags: ["posix", "portability"],
+    topic: "unix-posix",
+  },
+  {
+    question: "`umask 022` results in what default permission for a new regular file?",
+    answer: "644",
+    choices: ["755", "644", "022", "666"],
+    category: "Permissions",
+    difficulty: "Advanced",
+    explanation:
+      "Files are created from base 666 and directories from 777, with the umask bits removed: 666 & ~022 = 644, and directories become 755.",
+    tags: ["umask"],
+    topic: "permissions-model",
+  },
+  {
+    question: "Which package manager belongs to the Red Hat family?",
+    answer: "dnf",
+    choices: ["apt", "dnf", "pacman", "apk"],
+    category: "System Administration",
+    difficulty: "Beginner",
+    explanation: "apt is Debian/Ubuntu, pacman is Arch, apk is Alpine. dnf (formerly yum) drives RPM packages.",
+    tags: ["dnf", "packages"],
+    topic: "package-management",
+  },
+  {
+    question: "Which cron expression runs a job every day at 02:30?",
+    answer: "30 2 * * *",
+    choices: ["2 30 * * *", "30 2 * * *", "* * 2 30 *", "30 2 * * 0"],
+    category: "System Administration",
+    difficulty: "Intermediate",
+    explanation:
+      "Fields are minute, hour, day-of-month, month, day-of-week. `30 2 * * 0` would restrict it to Sundays.",
+    tags: ["cron", "scheduling"],
+    topic: "cron-and-timers",
+  },
+  {
+    question: "A script works when you run it but fails from cron. The usual cause is:",
+    answer: "cron runs with a minimal environment and a different PATH",
+    choices: [
+      "cron cannot run shell scripts",
+      "cron runs with a minimal environment and a different PATH",
+      "cron requires root",
+      "The script must be in /etc/cron.d",
+    ],
+    category: "Troubleshooting",
+    difficulty: "Intermediate",
+    explanation:
+      "cron does not source your shell profile. Use absolute paths, set PATH explicitly at the top of the crontab, and redirect output somewhere you can read it.",
+    tags: ["cron", "environment"],
+    topic: "cron-and-timers",
+  },
+  {
+    question: "Which mount option in /etc/fstab prevents setuid binaries from taking effect?",
+    answer: "nosuid",
+    choices: ["noexec", "nosuid", "nodev", "ro"],
+    category: "Security",
+    difficulty: "Advanced",
+    explanation:
+      "noexec blocks execution entirely, nodev ignores device nodes, ro mounts read-only. On shared or removable media the three are usually combined.",
+    tags: ["fstab", "hardening"],
+    topic: "mounting-filesystems",
+  },
+  {
+    question: "What does `ulimit -n` control?",
+    answer: "The maximum number of open file descriptors for the process",
+    choices: [
+      "The maximum number of processes",
+      "The maximum number of open file descriptors for the process",
+      "The maximum file size",
+      "The nice value",
+    ],
+    category: "Performance",
+    difficulty: "Advanced",
+    explanation:
+      "Busy servers hit this as 'Too many open files'. Sockets count as descriptors, so a connection-heavy service needs it raised in the systemd unit (LimitNOFILE), not just in a login shell.",
+    tags: ["ulimit", "limits"],
+    topic: "performance-basics",
+  },
+  {
+    question: "The OOM killer chose your database process. Why does it target high-RSS processes?",
+    answer: "It scores processes largely by memory footprint to reclaim the most with one kill",
+    choices: [
+      "It always kills the newest process",
+      "It scores processes largely by memory footprint to reclaim the most with one kill",
+      "It kills whatever is using swap",
+      "It kills the process with the lowest PID",
+    ],
+    category: "Performance",
+    difficulty: "Expert",
+    explanation:
+      "The badness score is dominated by resident memory, adjustable per-process via oom_score_adj. Protect critical services by lowering their adj value or capping the memory of noisy neighbours with cgroups.",
+    tags: ["oom", "memory"],
+    topic: "performance-basics",
+  },
+];
+
+function mcqQuestions(): InterviewQuestion[] {
+  return mcqBank.map((m) =>
+    q({
+      question: m.question,
+      category: m.category,
+      difficulty: m.difficulty,
+      operatingSystem: m.category === "Unix" ? ["Linux", "Unix", "POSIX"] : ["Linux"],
+      tags: [...m.tags, "mcq"],
+      type: "Multiple choice",
+      answer: m.answer,
+      explanation: m.explanation,
+      relatedTopics: [m.topic],
+      choices: m.choices,
+      correctIndex: m.choices.indexOf(m.answer),
+    }),
+  );
 }
 
 export const questions: InterviewQuestion[] = [
   ...conceptual.map((x) => q(x)),
   ...extraScenarios.map((x) => q(x)),
   ...famousInterview.map((x) => q(x)),
-  ...levelQuestions(),
   ...commandQuestions(),
   ...topicQuestions(),
-  ...mcqPadding(),
+  ...mcqQuestions(),
 ];
 
 export const questionCategories = [...new Set(questions.map((x) => x.category))].sort();
 export const questionCount = questions.length;
+
+/** Only these feed the quiz engine — a quiz needs real distractors. */
+export const mcqQuestionCount = questions.filter((x) => x.choices?.length).length;

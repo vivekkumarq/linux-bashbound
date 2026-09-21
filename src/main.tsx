@@ -4,19 +4,11 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.tsx";
 import "./styles/global.css";
 import "./styles/appearance.css";
+import "./styles/features.css";
 import { HomePage } from "./pages/HomePage.tsx";
-import { RoadmapPage } from "./pages/RoadmapPage.tsx";
-import { LearnIndexPage } from "./pages/LearnIndexPage.tsx";
-import { TopicPage } from "./pages/TopicPage.tsx";
-import { CommandsPage } from "./pages/CommandsPage.tsx";
-import { InterviewPage } from "./pages/InterviewPage.tsx";
-import { QuizPage } from "./pages/QuizPage.tsx";
-import { ChallengesPage } from "./pages/ChallengesPage.tsx";
-import { CheatSheetsPage } from "./pages/CheatSheetsPage.tsx";
-import { LabsPage } from "./pages/LabsPage.tsx";
-import { ProgressPage } from "./pages/ProgressPage.tsx";
-import { TerminalPage } from "./pages/TerminalPage.tsx";
 
+// Restores the path that public/404.html stashed before GitHub Pages served
+// the SPA shell, so a direct hit on /learn/inodes-and-links lands correctly.
 const redirect = sessionStorage.getItem("bb-spa-redirect");
 if (redirect) {
   sessionStorage.removeItem("bb-spa-redirect");
@@ -25,6 +17,13 @@ if (redirect) {
   window.history.replaceState(null, "", `${base}${path.startsWith("/") ? path : `/${path}`}`);
 }
 
+// Home ships with the shell because it is the entry point for most visits.
+// Every other route is split, so the question bank, command corpus and lesson
+// text are fetched only when someone actually opens them.
+const page = (load: () => Promise<Record<string, React.ComponentType>>, name: string) => async () => ({
+  Component: (await load())[name],
+});
+
 const router = createBrowserRouter(
   [
     {
@@ -32,20 +31,22 @@ const router = createBrowserRouter(
       element: <App />,
       children: [
         { index: true, element: <HomePage /> },
-        { path: "roadmap", element: <RoadmapPage /> },
-        { path: "learn", element: <LearnIndexPage /> },
-        { path: "learn/:slug", element: <TopicPage /> },
-        { path: "commands", element: <CommandsPage /> },
-        { path: "commands/:name", element: <CommandsPage /> },
-        { path: "interview", element: <InterviewPage /> },
-        { path: "interview/:id", element: <InterviewPage /> },
-        { path: "quizzes", element: <QuizPage /> },
-        { path: "challenges", element: <ChallengesPage /> },
-        { path: "cheatsheets", element: <CheatSheetsPage /> },
-        { path: "cheatsheets/:slug", element: <CheatSheetsPage /> },
-        { path: "troubleshooting", element: <LabsPage /> },
-        { path: "progress", element: <ProgressPage /> },
-        { path: "terminal", element: <TerminalPage /> },
+        { path: "roadmap", lazy: page(() => import("./pages/RoadmapPage.tsx"), "RoadmapPage") },
+        { path: "learn", lazy: page(() => import("./pages/LearnIndexPage.tsx"), "LearnIndexPage") },
+        { path: "learn/:slug", lazy: page(() => import("./pages/TopicPage.tsx"), "TopicPage") },
+        { path: "commands", lazy: page(() => import("./pages/CommandsPage.tsx"), "CommandsPage") },
+        { path: "commands/:name", lazy: page(() => import("./pages/CommandsPage.tsx"), "CommandsPage") },
+        { path: "interview", lazy: page(() => import("./pages/InterviewPage.tsx"), "InterviewPage") },
+        { path: "interview/:id", lazy: page(() => import("./pages/InterviewPage.tsx"), "InterviewPage") },
+        { path: "quizzes", lazy: page(() => import("./pages/QuizPage.tsx"), "QuizPage") },
+        { path: "challenges", lazy: page(() => import("./pages/ChallengesPage.tsx"), "ChallengesPage") },
+        { path: "cheatsheets", lazy: page(() => import("./pages/CheatSheetsPage.tsx"), "CheatSheetsPage") },
+        { path: "cheatsheets/:slug", lazy: page(() => import("./pages/CheatSheetsPage.tsx"), "CheatSheetsPage") },
+        { path: "troubleshooting", lazy: page(() => import("./pages/LabsPage.tsx"), "LabsPage") },
+        { path: "troubleshooting/:id", lazy: page(() => import("./pages/LabsPage.tsx"), "LabsPage") },
+        { path: "progress", lazy: page(() => import("./pages/ProgressPage.tsx"), "ProgressPage") },
+        { path: "terminal", lazy: page(() => import("./pages/TerminalPage.tsx"), "TerminalPage") },
+        { path: "*", lazy: page(() => import("./pages/NotFoundPage.tsx"), "NotFoundPage") },
       ],
     },
   ],

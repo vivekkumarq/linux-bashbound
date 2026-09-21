@@ -144,6 +144,14 @@ export interface QuizConfig {
 
 export interface ProgressState {
   completedTopics: string[];
+  /** Topics whose hands-on exercise was completed in the terminal sandbox. */
+  practicedTopics: string[];
+  /** Topics the learner has answered an interview question from. */
+  interviewedTopics: string[];
+  /** Chosen learning track, or null while following the full roadmap. */
+  track: string | null;
+  focusMode: boolean;
+  seenBoot: boolean;
   bookmarkedQuestions: number[];
   masteredQuestions: number[];
   seenQuestions: number[];

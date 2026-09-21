@@ -21,6 +21,10 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) return "vendor";
+          // The question bank is by far the largest dataset and is only needed
+          // by the interview and quiz routes, so it gets its own chunk instead
+          // of riding along with the lesson content.
+          if (id.includes("/src/data/questions")) return "questions";
           if (id.includes("/src/data/")) return "content";
         },
       },

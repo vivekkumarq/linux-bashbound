@@ -6,6 +6,11 @@ export const STORAGE_KEY = "linux-bashbound-v2";
 
 export const defaultProgress = (): ProgressState => ({
   completedTopics: [],
+  practicedTopics: [],
+  interviewedTopics: [],
+  track: null,
+  focusMode: false,
+  seenBoot: false,
   bookmarkedQuestions: [],
   masteredQuestions: [],
   seenQuestions: [],
@@ -13,7 +18,7 @@ export const defaultProgress = (): ProgressState => ({
   challengeDays: [],
   lastVisit: null,
   streak: 0,
-  theme: "light",
+  theme: "system",
   font: "sans",
 });
 
