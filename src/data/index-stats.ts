@@ -52,6 +52,27 @@ export const catalog = {
 };
 
 /**
+ * Every addressable page, for the generated sitemap. Derived from the content
+ * so a new module or command appears without anyone remembering to add it.
+ */
+export const routes: string[] = [
+  "/",
+  "/roadmap",
+  "/learn",
+  "/commands",
+  "/interview",
+  "/quizzes",
+  "/challenges",
+  "/cheatsheets",
+  "/troubleshooting",
+  "/terminal",
+  "/progress",
+  ...topics.map((t) => `/learn/${t.slug}`),
+  ...commands.map((c) => `/commands/${c.name}`),
+  ...cheatSheets.map((s) => `/cheatsheets/${s.slug}`),
+];
+
+/**
  * Integrity problems that would surface as a broken page rather than a build
  * error. Each entry is a human-readable line; a non-empty list fails the build.
  */

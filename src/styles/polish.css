@@ -355,3 +355,21 @@ a.card:hover,
     transform: none;
   }
 }
+
+/* ==========================================================================
+   Tap targets.
+
+   Footer and column links sat well under the 24px minimum spacing WCAG asks
+   for, and were flagged as too small to hit reliably on touch. Padding gives
+   them a real target without changing how the columns look.
+   ========================================================================== */
+
+.footer .stack a {
+  display: inline-block;
+  padding-block: 7px;
+  min-height: 26px;
+}
+
+.toc a {
+  min-height: 24px;
+}

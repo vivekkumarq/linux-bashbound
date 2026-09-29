@@ -42,7 +42,7 @@ export function AppearanceMenu() {
         className="type-btn"
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label="Appearance"
+        aria-label={`Appearance: ${fontLabel(progress.font)} typeface and theme`}
         title="Typeface and theme"
         onClick={() => setOpen((v) => !v)}
       >

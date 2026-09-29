@@ -25,7 +25,7 @@ const { output } = await bundle.generate({ format: "esm" });
 
 const entry = join(mkdtempSync(join(tmpdir(), "bb-stats-")), "entry.mjs");
 writeFileSync(entry, output[0].code);
-const { stats, problems, notes, catalog } = await import(`file://${entry}`);
+const { stats, problems, notes, catalog, routes } = await import(`file://${entry}`);
 
 if (problems.length) {
   console.error(`Content integrity: ${problems.length} problem(s)`);
@@ -56,6 +56,49 @@ writeFileSync(
     `export const catalogLevels: CatalogLevel[] = ${JSON.stringify(catalog.levels, null, 2)};\n`,
 );
 
+// Sitemap and llms.txt, generated from the same content so a new module or
+// command appears in them without anyone remembering to add it.
+const SITE = "https://vivekkumarq.github.io/linux-bashbound";
+const today = new Date().toISOString().slice(0, 10);
+
+writeFileSync(
+  "public/sitemap.xml",
+  `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    routes
+      .map(
+        (route) =>
+          `  <url><loc>${SITE}${route === "/" ? "/" : route}</loc>` +
+          `<lastmod>${today}</lastmod>` +
+          `<priority>${route === "/" ? "1.0" : route.includes("/learn/") ? "0.8" : "0.6"}</priority></url>`,
+      )
+      .join("\n") +
+    `\n</urlset>\n`,
+);
+
+writeFileSync(
+  "public/llms.txt",
+  `# Linux BashBound\n\n` +
+    `> An interactive Linux and Unix learning platform: a ${catalog.levels.length}-level roadmap, ` +
+    `${catalog.topics.length} modules, ${stats.commands} documented commands, ` +
+    `${stats.questions} interview questions, a simulated shell, quizzes and incident labs. ` +
+    `Static site, no account, progress stored in the browser.\n\n` +
+    `## Start here\n\n` +
+    `- [Roadmap](${SITE}/roadmap): the ${catalog.levels.length} levels in dependency order\n` +
+    `- [All modules](${SITE}/learn): the full curriculum index\n` +
+    `- [Command explorer](${SITE}/commands): ${stats.commands} commands with syntax, flags and examples\n` +
+    `- [Interview arena](${SITE}/interview): ${stats.questions} questions with answers and explanations\n` +
+    `- [Terminal sandbox](${SITE}/terminal): a simulated shell; nothing runs on the host\n\n` +
+    `## Curriculum\n\n` +
+    catalog.levels
+      .map((l) => `- [Level ${String(l.id).padStart(2, "0")} — ${l.title}](${SITE}/roadmap): ${l.summary}`)
+      .join("\n") +
+    `\n\n## Modules\n\n` +
+    catalog.topics.map((t) => `- [${t.title}](${SITE}/learn/${t.slug}): ${t.summary}`).join("\n") +
+    `\n`,
+);
+
 for (const line of notes) console.log(`note: ${line}`);
 console.log("content stats:", stats);
 console.log(`catalog: ${catalog.topics.length} topics, ${catalog.levels.length} levels`);
+console.log(`sitemap: ${routes.length} routes`);

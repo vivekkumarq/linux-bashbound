@@ -1,0 +1,7 @@
+# Linux BashBound
+# https://vivekkumarq.github.io/linux-bashbound/
+
+User-agent: *
+Allow: /
+
+Sitemap: https://vivekkumarq.github.io/linux-bashbound/sitemap.xml

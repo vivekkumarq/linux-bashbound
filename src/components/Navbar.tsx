@@ -145,7 +145,7 @@ export function Navbar() {
             </svg>
           )}
         </button>
-        <Link className="brand" to="/" aria-label="Linux BashBound home" onClick={() => setOpen(false)}>
+        <Link className="brand" to="/" onClick={() => setOpen(false)}>
           <Logo />
           <span className="brand-text">
             <strong>

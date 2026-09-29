@@ -13,6 +13,9 @@
   align-items: center;
   padding: clamp(24px, 4vw, 48px) 0 clamp(28px, 4vw, 48px);
   isolation: isolate;
+  /* clip rather than hidden: it contains the glow without creating a scroll
+     container, so the terminal's pooled light can still spill downwards. */
+  overflow-x: clip;
 }
 
 /* A soft aurora anchored behind the headline. Two wide radial gradients at
@@ -21,7 +24,10 @@
 .hero::before {
   content: "";
   position: absolute;
-  inset: -20% -10% -30%;
+  /* Vertically generous, horizontally flush: a negative horizontal inset
+     pushed the layer past the viewport and gave the page a 45px horizontal
+     scroll on phones. The gradient fades out well before the edge anyway. */
+  inset: -20% 0 -30%;
   z-index: -1;
   pointer-events: none;
   background:
@@ -224,6 +230,9 @@
 
 @media (max-width: 980px) {
   .hero {
+    /* This file loads after global.css, so the single-column rule has to be
+       restated here or the two-column hero survives onto phones. */
+    grid-template-columns: minmax(0, 1fr);
     padding-top: var(--space-5);
   }
 
