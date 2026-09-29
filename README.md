@@ -91,7 +91,23 @@ Each level shows its status — locked, available, in progress, completed, maste
 - **Command palette** — <kbd>Ctrl</kbd>+<kbd>K</kbd> searches modules, commands, questions and cheat sheets
 - **Keyboard shortcuts** — <kbd>?</kbd> for the list; <kbd>n</kbd>/<kbd>p</kbd> between modules, <kbd>g</kbd> then a letter to jump, <kbd>r</kbd> for a random question, <kbd>t</kbd> for theme
 - **Seven palettes** — light, paper, dark, midnight, forest, contrast, and system; three type choices
+- **Reading progress** — a scroll-driven bar on lesson pages, and an "on this page" list that tracks the section you are actually reading
 - **Accessibility** — semantic HTML, keyboard-reachable interactive diagrams, visible focus states, and `prefers-reduced-motion` honoured throughout
+
+### Design system
+
+Everything visual resolves to tokens in `src/styles/tokens.css`: a fluid type scale, a 4px spacing rhythm, a radius ladder, and a four-step elevation ladder derived from one per-theme shadow colour — so dark palettes get deep soft shadows and light ones tight crisp shadows without either being hand-tuned. All seven themes inherit the same structure.
+
+### Measured
+
+| | |
+|---|---|
+| Lighthouse (desktop + mobile) | Accessibility **100**, Best practices **100**, SEO **100** |
+| LCP (home, local production build) | **806 ms** |
+| CLS | **0** |
+| First load | 2 chunks. The lesson corpus and question bank build on idle, after first paint |
+
+Most pages never download the corpus at all: the build emits a link-level catalog — 40 modules and 16 levels, no lesson bodies — that the home page, roadmap, dashboard and all progress maths work from. `robots.txt`, `sitemap.xml` (190 routes) and `llms.txt` are generated from the same content, so a new module appears in them automatically.
 
 Destructive tools — `rm`, `dd`, `mkfs`, `fdisk`, `chmod -R`, `rsync --delete` — carry warnings and safe examples. The sandbox refuses `rm -rf /` the way a real system does.
 
