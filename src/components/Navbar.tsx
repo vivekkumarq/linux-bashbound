@@ -3,11 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Logo } from "./Logo";
 import { AppearanceMenu } from "./Appearance";
 import { useStore } from "../hooks/useStore";
-import { commands } from "../data/commands";
-import { topics } from "../data/topics";
-import { questions } from "../data/questions";
-import { cheatSheets } from "../data/cheatsheets";
 import { scoreMatch } from "../utils/search";
+import { useSearchCorpus } from "../hooks/useSearchCorpus";
 import { usePalette } from "../lib/paletteContext";
 
 const links = [
@@ -30,27 +27,21 @@ export function Navbar() {
   const searchRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
+  const corpus = useSearchCorpus();
+
   const results = useMemo(() => {
-    if (q.trim().length < 2) return [];
+    if (q.trim().length < 2 || !corpus) return [];
     const hits: { href: string; title: string; kind: string; score: number }[] = [];
-    for (const t of topics) {
-      const s = scoreMatch(q, `${t.title} ${t.summary} ${t.slug}`);
-      if (s) hits.push({ href: `/learn/${t.slug}`, title: t.title, kind: "Topic", score: s });
-    }
-    for (const c of commands) {
-      const s = scoreMatch(q, `${c.name} ${c.summary} ${c.purpose}`);
-      if (s) hits.push({ href: `/commands/${c.name}`, title: c.name, kind: "Command", score: s + 1 });
-    }
-    for (const sheet of cheatSheets) {
-      const s = scoreMatch(q, `${sheet.title} ${sheet.description}`);
-      if (s) hits.push({ href: `/cheatsheets/${sheet.slug}`, title: sheet.title, kind: "Cheat sheet", score: s });
-    }
-    for (const qu of questions.slice(0, 400)) {
-      const s = scoreMatch(q, qu.question + qu.tags.join(" "));
-      if (s > 4) hits.push({ href: `/interview/${qu.id}`, title: qu.question, kind: "Interview", score: s });
+    for (const entry of corpus) {
+      const score = scoreMatch(q, entry.haystack);
+      if (!score) continue;
+      // Interview questions are the largest slice of the corpus; requiring a
+      // stronger match keeps them from crowding out modules and commands.
+      if (entry.kind === "Interview" && score <= 4) continue;
+      hits.push({ href: entry.href, title: entry.title, kind: entry.kind, score: score + entry.bonus });
     }
     return hits.sort((a, b) => b.score - a.score).slice(0, 10);
-  }, [q]);
+  }, [q, corpus]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

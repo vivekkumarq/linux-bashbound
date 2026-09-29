@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.tsx";
+import "./styles/tokens.css";
 import "./styles/global.css";
 import "./styles/appearance.css";
 import "./styles/features.css";
@@ -11,6 +12,8 @@ import "./styles/sidepanel.css";
 import "./styles/shortcuts.css";
 import "./styles/arena.css";
 import "./styles/quiz.css";
+import "./styles/polish.css";
+import "./styles/hero.css";
 import { HomePage } from "./pages/HomePage.tsx";
 
 // Restores the path that public/404.html stashed before GitHub Pages served

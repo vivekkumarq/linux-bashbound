@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { levels } from "../data/roadmap";
-import { topicMap } from "../data/topics";
 import { useStore } from "../hooks/useStore";
-import { levelCompletion, levelStatus, nextTopic, type LevelStatus } from "../lib/learning";
+import {
+  levelCompletion,
+  levelStatus,
+  levels,
+  nextTopic,
+  topicBySlug,
+  type LevelStatus,
+} from "../lib/learning";
 
 const STATUS_HINT: Record<LevelStatus, string> = {
   Locked: "Prerequisite levels are unfinished. Nothing stops you opening it anyway if you already know the material.",
@@ -18,7 +23,7 @@ export function RoadmapPage() {
   const [open, setOpen] = useState<number | null>(null);
 
   const up = useMemo(() => nextTopic(progress), [progress]);
-  const currentLevel = up ? topicMap.get(up.slug)?.level : undefined;
+  const currentLevel = up ? topicBySlug.get(up.slug)?.level : undefined;
 
   const totalDone = progress.completedTopics.length;
   const totalTopics = levels.reduce((n, l) => n + l.topics.length, 0);
@@ -110,7 +115,7 @@ export function RoadmapPage() {
 
                 <ul className="rm-topics">
                   {level.topics.map((slug) => {
-                    const topic = topicMap.get(slug);
+                    const topic = topicBySlug.get(slug);
                     const isDone = progress.completedTopics.includes(slug);
                     return (
                       <li key={slug}>

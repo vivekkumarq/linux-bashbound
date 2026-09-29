@@ -2,11 +2,16 @@ import { Link } from "react-router-dom";
 import { Terminal } from "../components/Terminal";
 import { ArchDiagram } from "../components/Diagrams";
 import { HeroTerminal } from "../components/HeroTerminal";
-import { topics } from "../data/topics";
-import { levels } from "../data/roadmap";
 import { stats } from "../data/stats.generated";
 import { useStore } from "../hooks/useStore";
-import { coursePosition, levelCompletion, nextTopic, overallPercent } from "../lib/learning";
+import {
+  courseTopics,
+  coursePosition,
+  levelCompletion,
+  levels,
+  nextTopic,
+  overallPercent,
+} from "../lib/learning";
 
 export function HomePage() {
   const { progress } = useStore();
@@ -131,7 +136,7 @@ export function HomePage() {
         <p className="kicker">Start where you are</p>
         <h2>Popular modules</h2>
         <ul className="topic-list">
-          {topics.slice(0, 8).map((t) => {
+          {courseTopics.slice(0, 8).map((t) => {
             const { position, total } = coursePosition(t.slug);
             const done = progress.completedTopics.includes(t.slug);
             return (

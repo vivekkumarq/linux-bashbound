@@ -1,0 +1,237 @@
+/* ==========================================================================
+   Home hero and section rhythm.
+
+   The hero is the one place worth spending real visual effort: it sets the
+   expectation for everything below it. Everything here composites — gradients
+   and transforms only, no filters on scroll, no layout animation.
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  grid-template-columns: 1.02fr 0.98fr;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(24px, 4vw, 48px) 0 clamp(28px, 4vw, 48px);
+  isolation: isolate;
+}
+
+/* A soft aurora anchored behind the headline. Two wide radial gradients at
+   low alpha — enough to give the area depth without becoming a gradient
+   "hero banner". */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% -30%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      42% 46% at 18% 28%,
+      color-mix(in srgb, var(--accent) 26%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      38% 42% at 82% 18%,
+      color-mix(in srgb, var(--accent-2) 22%, transparent),
+      transparent 66%
+    );
+  opacity: 0.8;
+  animation: hero-drift 22s var(--ease-in-out) infinite alternate;
+}
+
+[data-theme="light"] .hero::before,
+[data-theme="paper"] .hero::before {
+  opacity: 0.4;
+}
+
+@keyframes hero-drift {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 1.5%, 0) scale(1.06);
+  }
+}
+
+.hero h1 {
+  font-size: clamp(38px, 4.6vw, 60px);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin-bottom: var(--space-3);
+}
+
+/* The wordmark gets a gradient rather than a flat accent — the one place in
+   the app where that is worth doing. */
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(
+    100deg,
+    var(--accent) 0%,
+    var(--accent-2) 55%,
+    color-mix(in srgb, var(--accent) 70%, var(--accent-3)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Fallback for any engine that ignores background-clip: text. */
+  -webkit-text-fill-color: transparent;
+}
+
+.hero .tagline {
+  font-size: var(--step-1);
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 var(--space-3);
+}
+
+.hero-copy {
+  font-size: var(--step-0);
+  line-height: var(--leading-relaxed);
+  max-width: 52ch;
+}
+
+.hero-actions {
+  margin-top: var(--space-5);
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+}
+
+.hero-actions .btn {
+  padding: 11px 18px;
+  font-size: var(--step--1);
+  white-space: nowrap;
+}
+
+/* The third action is a destination, not a decision — it should not compete
+   with the two that are. */
+.hero-actions .btn-ghost {
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.hero-actions .btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.hero-hint {
+  margin-top: var(--space-5);
+  font-size: var(--step--1);
+  color: var(--faint);
+}
+
+/* ---- Hero terminal ------------------------------------------------------- */
+
+.hero-term {
+  position: relative;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-4), var(--ring-top);
+  transform: perspective(1200px) rotateY(-3deg) rotateX(1.5deg);
+  transition: transform var(--dur-slower) var(--ease-out);
+}
+
+.hero-term:hover {
+  transform: perspective(1200px) rotateY(0deg) rotateX(0deg);
+}
+
+/* Glow pooled under the terminal so it appears to sit above the page. */
+.hero-term::after {
+  content: "";
+  position: absolute;
+  inset: auto 8% -14% 8%;
+  height: 60px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    color-mix(in srgb, var(--accent) 40%, transparent),
+    transparent 70%
+  );
+  filter: blur(22px);
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-term {
+    transform: none;
+  }
+}
+
+/* ---- Section rhythm ------------------------------------------------------ */
+
+.home-section {
+  margin-top: var(--section-gap);
+}
+
+.home-section > .kicker {
+  margin-bottom: var(--space-2);
+}
+
+.home-section > h2 {
+  font-size: var(--step-3);
+  margin-bottom: var(--space-3);
+}
+
+/* Kickers read as system labels rather than small headings. */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+/* ---- Corpus stats -------------------------------------------------------- */
+
+.stat-row {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.stat-row li {
+  padding: var(--space-5) var(--space-4);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.stat-row li:hover {
+  background: var(--surface-2);
+}
+
+.stat-row strong {
+  font-size: var(--step-2);
+  letter-spacing: -0.03em;
+}
+
+/* ---- Level rail ---------------------------------------------------------- */
+
+.level-chip {
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-1);
+}
+
+/* ---- Continue strip ------------------------------------------------------ */
+
+.continue {
+  border-radius: var(--radius-lg);
+  border-left-width: 3px;
+}
+
+.continue-title {
+  font-size: var(--step-1);
+}
+
+@media (max-width: 980px) {
+  .hero {
+    padding-top: var(--space-5);
+  }
+
+  .hero h1 {
+    font-size: clamp(34px, 9vw, 52px);
+  }
+
+  .hero-term {
+    transform: none;
+  }
+}

@@ -1,0 +1,357 @@
+/* ==========================================================================
+   Polish layer.
+
+   Loaded after global.css and appearance.css. Everything here is a refinement
+   of components that already exist — it changes how they feel, not what they
+   do. Uses only the tokens from tokens.css.
+   ========================================================================== */
+
+/* ---- Typography details -------------------------------------------------- */
+
+h1,
+h2,
+h3 {
+  /* Stops a heading leaving one orphaned word on its own line. */
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+h1 {
+  font-size: var(--step-4);
+  letter-spacing: -0.04em;
+  line-height: var(--leading-tight);
+}
+
+h2 {
+  font-size: var(--step-2);
+}
+
+h3 {
+  font-size: var(--step-1);
+}
+
+/* Figures that change (counters, scores, timers) must not jitter as digits
+   swap width. */
+.mono-meta,
+.stat-row strong,
+.arena-hero-stats strong,
+.quiz-results h1,
+.mastery-percent,
+.arena-topic-count,
+.side-panel-meta,
+.progress-chip {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text);
+}
+
+/* ---- Focus --------------------------------------------------------------
+   One visible, consistent ring. The offset keeps it clear of the element's
+   own border so it reads on both light and dark surfaces. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* ---- Scrollbars ---------------------------------------------------------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border: 3px solid transparent;
+  border-radius: var(--radius-full);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--faint);
+  background-clip: content-box;
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+
+.btn {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+/* A real press. Without it a button feels like a picture of a button. */
+.btn:active,
+.chip-btn:active,
+.arena-chip:active,
+.quiz-choice:not(:disabled):active,
+.side-panel-toggle:active,
+.arena-nav-toggle:active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+.btn-primary {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 92%, white) 0%,
+    var(--accent) 100%
+  );
+  box-shadow: var(--elev-2), var(--ring-top);
+}
+
+.btn-primary:hover {
+  box-shadow: var(--elev-3), var(--ring-top);
+}
+
+.btn-secondary,
+.btn-ghost {
+  box-shadow: var(--elev-1);
+}
+
+.btn-secondary:hover,
+.btn-ghost:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--elev-2);
+}
+
+/* ---- Surfaces ------------------------------------------------------------
+   The inset top highlight is the single detail that makes a panel read as a
+   lit surface rather than a filled rectangle. */
+
+.card,
+.panel,
+.arena-card,
+.arena-row,
+.quiz-explain,
+.lesson-box,
+.mastery,
+.perm-builder,
+.flow,
+.fstree,
+.side-panel,
+.hero-term,
+.terminal,
+.codeblock,
+.stat-row,
+.continue {
+  box-shadow: var(--elev-1), var(--ring-top);
+}
+
+.arena-hero {
+  box-shadow: var(--elev-2), var(--ring-top);
+}
+
+/* Interactive surfaces lift on hover, and only transform/opacity animate so
+   the compositor can do it without a repaint. */
+a.card,
+.level-chip,
+.arena-row,
+.lesson-nav-btn,
+.topic-row {
+  transition: transform var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  will-change: transform;
+}
+
+a.card:hover,
+.level-chip:hover,
+.lesson-nav-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--elev-3), var(--ring-top);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.arena-row:hover {
+  box-shadow: var(--elev-2), var(--ring-top);
+}
+
+.arena-row.is-open {
+  box-shadow: var(--elev-3), var(--ring-top);
+}
+
+/* ---- Inputs -------------------------------------------------------------- */
+
+.input,
+.select,
+.arena-search input,
+.field input {
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.input:hover,
+.select:hover,
+.arena-search input:hover {
+  border-color: var(--border-strong);
+}
+
+/* ---- Links --------------------------------------------------------------- */
+
+.prose a,
+.arena-answer a,
+.fstree-detail a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color var(--dur-fast) var(--ease-out);
+}
+
+.prose a:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* ---- Badges -------------------------------------------------------------- */
+
+.badge {
+  border-radius: var(--radius-full);
+  letter-spacing: 0.01em;
+}
+
+/* ==========================================================================
+   Route transitions.
+
+   The shell already remounts <main> on every route change, so the entry
+   animation just needs to be good: a short rise and fade, composited, with
+   the header excluded so it never appears to jump.
+
+   The native View Transitions API is deliberately not used here — it only
+   applies to cross-document navigation, and this is a single-page app.
+   ========================================================================== */
+
+.page-enter {
+  animation: page-enter var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Scroll performance.
+
+   The arena renders 25 question rows at a time and the command explorer 128
+   links. content-visibility lets the browser skip layout and paint for the
+   ones that are off screen; contain-intrinsic-size keeps the scrollbar from
+   jumping as they are skipped.
+   ========================================================================== */
+
+.arena-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 58px;
+}
+
+.command-list a,
+.sidebar-nav a {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 34px;
+}
+
+.concept-block {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* ==========================================================================
+   Reading progress bar (lesson pages).
+   ========================================================================== */
+
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 60;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  /* Driven by a scroll-timeline where supported, so it never runs JS on
+     scroll; the React fallback sets --read-progress instead. */
+  transform: scaleX(var(--read-progress, 0));
+  transition: transform 80ms linear;
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  .read-progress {
+    transform: scaleX(0);
+    transition: none;
+    animation: read-progress linear;
+    animation-timeline: scroll(root block);
+  }
+
+  @keyframes read-progress {
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* ==========================================================================
+   "On this page" active-section highlight.
+   ========================================================================== */
+
+.toc a {
+  position: relative;
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  transition: color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.toc a.is-current {
+  color: var(--accent-text);
+  border-left-color: var(--accent);
+}
+
+/* ==========================================================================
+   Entry animation for content that arrives on scroll.
+   Applied via [data-reveal] from a shared observer.
+   ========================================================================== */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+}
+
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}

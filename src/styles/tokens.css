@@ -1,0 +1,179 @@
+/* ==========================================================================
+   Design tokens.
+
+   Loaded before everything else. This file defines the *system* — type scale,
+   spacing rhythm, radii, elevation, motion — while appearance.css keeps
+   defining the per-theme palette. Nothing here names a colour directly, so
+   all seven palettes inherit the same structure.
+   ========================================================================== */
+
+:root {
+  /* ---- Type scale -------------------------------------------------------
+     A fluid modular scale (1.2 minor third on mobile, 1.25 on desktop).
+     Every heading and label in the app should pick a step rather than a
+     hand-picked pixel value. */
+  --step--2: clamp(0.69rem, 0.67rem + 0.09vw, 0.75rem);
+  --step--1: clamp(0.83rem, 0.8rem + 0.14vw, 0.9rem);
+  --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  --step-1: clamp(1.2rem, 1.14rem + 0.29vw, 1.38rem);
+  --step-2: clamp(1.44rem, 1.33rem + 0.53vw, 1.8rem);
+  --step-3: clamp(1.73rem, 1.55rem + 0.88vw, 2.34rem);
+  --step-4: clamp(2.07rem, 1.79rem + 1.4vw, 3.05rem);
+  --step-5: clamp(2.49rem, 2.05rem + 2.17vw, 3.96rem);
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  --tracking-tight: -0.035em;
+  --tracking-normal: -0.011em;
+  --tracking-wide: 0.08em;
+
+  /* ---- Spacing ----------------------------------------------------------
+     4px base. Using the scale instead of arbitrary values is what makes
+     vertical rhythm feel deliberate rather than accidental. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  /* Section rhythm scales with the viewport so long pages breathe. */
+  --section-gap: clamp(3rem, 7vw, 5.5rem);
+
+  /* ---- Radii ------------------------------------------------------------ */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-full: 999px;
+
+  /* ---- Elevation --------------------------------------------------------
+     A four-step ladder built from one per-theme shadow colour, so dark
+     themes get deep soft shadows and light themes get tight crisp ones
+     without either being hand-tuned twice.
+
+     Each level pairs a tight contact shadow with a wider ambient one, which
+     is what stops shadows reading as a grey smudge. */
+  --shadow-rgb: 16 18 24;
+  --shadow-a: 0.06;
+  --shadow-b: 0.1;
+
+  --elev-1: 0 1px 2px rgb(var(--shadow-rgb) / var(--shadow-a)),
+    0 1px 3px -1px rgb(var(--shadow-rgb) / var(--shadow-a));
+  --elev-2: 0 1px 2px rgb(var(--shadow-rgb) / var(--shadow-a)),
+    0 6px 16px -6px rgb(var(--shadow-rgb) / var(--shadow-b));
+  --elev-3: 0 2px 4px rgb(var(--shadow-rgb) / var(--shadow-a)),
+    0 14px 32px -12px rgb(var(--shadow-rgb) / var(--shadow-b));
+  --elev-4: 0 4px 8px rgb(var(--shadow-rgb) / var(--shadow-a)),
+    0 28px 60px -20px rgb(var(--shadow-rgb) / var(--shadow-b));
+
+  /* A ring that reads as a hairline highlight on the top edge — the detail
+     that makes a surface look lit rather than filled. */
+  --ring-top: inset 0 1px 0 rgb(255 255 255 / 4%);
+
+  /* ---- Motion -----------------------------------------------------------
+     Named by intent. The rule of thumb: anything the user initiated should
+     land in under 200ms; anything ambient can take longer. */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+  --dur-slower: 640ms;
+
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Overshoots slightly — for things that appear, never for things that move
+     under the pointer. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Back-compat: older rules reference --ease and --radius. */
+  --ease: var(--ease-out);
+  --radius: var(--radius-md);
+
+  /* ---- Layout ------------------------------------------------------------ */
+  --measure: 68ch;
+  --page-max: 1120px;
+  --page-wide: 1400px;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+}
+
+/* Dark palettes want a pure-black shadow with more spread; a tinted shadow on
+   a dark surface reads as haze. */
+[data-theme="dark"],
+[data-theme="midnight"],
+[data-theme="forest"],
+[data-theme="contrast"] {
+  --shadow-rgb: 0 0 0;
+  --shadow-a: 0.3;
+  --shadow-b: 0.45;
+  --ring-top: inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+[data-theme="paper"] {
+  --shadow-rgb: 61 44 24;
+  --shadow-a: 0.07;
+  --shadow-b: 0.12;
+}
+
+/* ==========================================================================
+   Texture.
+
+   A single grain layer over the whole page at very low opacity. It is what
+   keeps large flat areas from looking like dead colour, and it costs one
+   composited element. Generated as an inline SVG so there is no image
+   request.
+   ========================================================================== */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"] body::after,
+[data-theme="paper"] body::after {
+  opacity: 0.018;
+}
+
+/* The app shell must sit above the grain. */
+.app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Motion preferences.
+
+   One place that honours prefers-reduced-motion for the whole app. Note it
+   keeps opacity transitions: fading is not what makes people motion-sick,
+   and killing it outright makes state changes ambiguous.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0.01ms;
+    --dur-fast: 0.01ms;
+    --dur-base: 0.01ms;
+    --dur-slow: 0.01ms;
+    --dur-slower: 0.01ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

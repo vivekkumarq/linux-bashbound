@@ -21,6 +21,11 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) return "vendor";
+          // The generated index and counts are what lets most pages avoid the
+          // corpus entirely, so they must not be swept into it.
+          if (id.includes("/src/data/catalog.generated") || id.includes("/src/data/stats.generated")) {
+            return undefined;
+          }
           // The question bank is by far the largest dataset and is only needed
           // by the interview and quiz routes, so it gets its own chunk instead
           // of riding along with the lesson content.

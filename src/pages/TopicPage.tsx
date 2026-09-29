@@ -5,13 +5,17 @@ import { CodeBlock } from "../components/CodeBlock";
 import { visualsForTopic } from "../components/interactive/forTopic";
 import { MasteryBar } from "../components/MasteryBar";
 import { SidePanel } from "../components/SidePanel";
+import { ReadingProgress } from "../components/ReadingProgress";
 import { useStore } from "../hooks/useStore";
 import { extractRunnable, usePalette } from "../lib/paletteContext";
 import { coursePosition, lessonNeighbours } from "../lib/learning";
+import { useScrollSpy } from "../hooks/useScrollSpy";
 
 export function TopicPage() {
   const { slug = "" } = useParams();
   const topic = getTopic(slug);
+  // Hooks must run before the not-found early return below.
+  const activeSection = useScrollSpy(topic?.concepts.map((c) => c.id) ?? []);
   const nav = useNavigate();
   const { progress, setProgress } = useStore();
   const pal = usePalette();
@@ -54,6 +58,7 @@ export function TopicPage() {
 
   return (
     <div className="learn-layout">
+      <ReadingProgress />
       <SidePanel
         title={`Level ${topic.level} · ${level?.title ?? ""}`}
         summary={`${levelTopics.length} modules`}
@@ -239,7 +244,12 @@ export function TopicPage() {
       <aside className="on-page toc" aria-label="On this page">
         <p className="kicker">On this page</p>
         {topic.concepts.map((c) => (
-          <a key={c.id} href={`#${c.id}`}>
+          <a
+            key={c.id}
+            href={`#${c.id}`}
+            className={activeSection === c.id ? "is-current" : undefined}
+            aria-current={activeSection === c.id ? "true" : undefined}
+          >
             {c.title}
           </a>
         ))}

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePalette } from "../lib/paletteContext";
-import { commands } from "../data/commands";
-import { topics } from "../data/topics";
 import { scoreMatch } from "../utils/search";
+import { useSearchCorpus } from "../hooks/useSearchCorpus";
 import { SIMULATED } from "../lib/terminalEngine";
 import { Terminal } from "./Terminal";
 
@@ -38,19 +37,21 @@ export function CommandPalette() {
     return () => document.removeEventListener("keydown", onKey);
   }, [pal]);
 
+  const corpus = useSearchCorpus();
+
   const hits = useMemo(() => {
-    if (q.trim().length < 1) return [];
+    if (q.trim().length < 1 || !corpus) return [];
     const out: { href: string; title: string; kind: string; score: number }[] = [];
-    for (const t of topics) {
-      const s = scoreMatch(q, `${t.title} ${t.summary} ${t.slug}`);
-      if (s) out.push({ href: `/learn/${t.slug}`, title: t.title, kind: "Lesson", score: s });
-    }
-    for (const c of commands) {
-      const s = scoreMatch(q, `${c.name} ${c.summary}`);
-      if (s) out.push({ href: `/commands/${c.name}`, title: c.name, kind: "Command", score: s + 1 });
+    for (const entry of corpus) {
+      // The palette is for jumping to a place, so it searches destinations
+      // rather than the question bank.
+      if (entry.kind === "Interview") continue;
+      const score = scoreMatch(q, entry.haystack);
+      if (!score) continue;
+      out.push({ href: entry.href, title: entry.title, kind: entry.kind, score: score + entry.bonus });
     }
     return out.sort((a, b) => b.score - a.score).slice(0, 8);
-  }, [q]);
+  }, [q, corpus]);
 
   if (!pal.open) return null;
 

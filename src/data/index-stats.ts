@@ -22,6 +22,36 @@ export const stats = {
 };
 
 /**
+ * A light index of the curriculum: what every page needs to *link* to a
+ * module, without the concept bodies that make up the bulk of topics.ts.
+ *
+ * The home page, roadmap, dashboard and the progress maths all work from
+ * this, so only an actual lesson page pays to download the full corpus.
+ */
+export const catalog = {
+  topics: topics.map((t) => ({
+    slug: t.slug,
+    title: t.title,
+    summary: t.summary,
+    difficulty: t.difficulty,
+    minutes: t.minutes,
+    level: t.level,
+    concepts: t.concepts.length,
+  })),
+  levels: levels.map((l) => ({
+    id: l.id,
+    slug: l.slug,
+    title: l.title,
+    subtitle: l.subtitle,
+    summary: l.summary,
+    difficulty: l.difficulty,
+    hours: l.hours,
+    topics: l.topics,
+    prerequisites: l.prerequisites,
+  })),
+};
+
+/**
  * Integrity problems that would surface as a broken page rather than a build
  * error. Each entry is a human-readable line; a non-empty list fails the build.
  */
