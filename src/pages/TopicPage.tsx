@@ -1,10 +1,9 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getTopic, topics } from "../data/topics";
+import { getTopic } from "../data/topics";
 import { levels } from "../data/roadmap";
 import { CodeBlock } from "../components/CodeBlock";
 import { visualsForTopic } from "../components/interactive/forTopic";
 import { MasteryBar } from "../components/MasteryBar";
-import { SidePanel } from "../components/SidePanel";
 import { ReadingProgress } from "../components/ReadingProgress";
 import { useStore } from "../hooks/useStore";
 import { extractRunnable, usePalette } from "../lib/paletteContext";
@@ -38,7 +37,6 @@ export function TopicPage() {
   const { position, total } = coursePosition(slug);
   const { previous: prev, next } = lessonNeighbours(slug);
   const level = levels.find((l) => l.id === topic.level);
-  const levelTopics = topics.filter((t) => t.level === topic.level);
   const complete = progress.completedTopics.includes(slug);
   const practised = progress.practicedTopics.includes(slug);
 
@@ -59,21 +57,6 @@ export function TopicPage() {
   return (
     <div className="learn-layout">
       <ReadingProgress />
-      <SidePanel
-        title={`Level ${topic.level} · ${level?.title ?? ""}`}
-        summary={`${levelTopics.length} modules`}
-        label="Modules in this level"
-      >
-        <nav className="sidebar-nav">
-          <p className="kicker side-panel-kicker">Level {topic.level}</p>
-          {levelTopics.map((t) => (
-            <Link key={t.slug} to={`/learn/${t.slug}`} className={t.slug === slug ? "active" : ""}>
-              {progress.completedTopics.includes(t.slug) ? "✓ " : ""}
-              {t.title}
-            </Link>
-          ))}
-        </nav>
-      </SidePanel>
 
       <article>
         <p className="kicker">

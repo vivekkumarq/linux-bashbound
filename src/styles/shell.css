@@ -314,3 +314,189 @@
     font-size: 9px;
   }
 }
+
+/* ==========================================================================
+   Curriculum tree in the rail.
+
+   Sixteen levels that expand to their modules. The level you are reading
+   opens itself, so moving between modules never means going back to an index
+   page first.
+   ========================================================================== */
+
+.rail-group-head .rail-count {
+  margin-left: 6px;
+}
+
+.lvl {
+  margin-bottom: 1px;
+}
+
+.lvl-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.lvl-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.lvl-btn.is-current {
+  color: var(--text);
+}
+
+.lvl-num {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.lvl-btn.is-current .lvl-num {
+  color: var(--accent-text);
+}
+
+.lvl-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lvl-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.lvl-chev {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--faint);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.lvl.is-open .lvl-chev {
+  transform: rotate(90deg);
+}
+
+/* Animating grid-template-rows between 0fr and 1fr expands to the content's
+   real height without measuring it in JavaScript. */
+.lvl-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-base) var(--ease-out);
+}
+
+.lvl.is-open .lvl-body {
+  grid-template-rows: 1fr;
+}
+
+.lvl-body > div {
+  overflow: hidden;
+}
+
+.lvl-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 6px 10px 6px 12px;
+  margin-left: 14px;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.lvl-link:hover {
+  color: var(--text);
+  border-left-color: var(--border-strong);
+  text-decoration: none;
+}
+
+.lvl-link.is-active {
+  color: var(--accent-text);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-weight: 600;
+}
+
+.lvl-tick {
+  flex: none;
+  margin-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.lvl-link.is-active .lvl-tick {
+  color: var(--accent-text);
+}
+
+/* A completed module keeps its tick green even when it is not the open one. */
+.lvl-link:not(.is-active) .lvl-tick:not(:empty) {
+  color: inherit;
+}
+
+.lvl-link-label {
+  min-width: 0;
+}
+
+@media (max-width: 1040px) {
+  /* More room per row where the rail is a full drawer. */
+  .lvl-link {
+    padding-block: 9px;
+    font-size: 13.5px;
+  }
+
+  .lvl-btn {
+    padding-block: 10px;
+    font-size: 13.5px;
+  }
+}
+
+/* ==========================================================================
+   Lesson and explorer columns.
+
+   The rail now carries the curriculum, so the lesson page no longer needs its
+   own copy of the level's modules. Two columns: the lesson, and where you are
+   inside it.
+   ========================================================================== */
+
+.learn-layout {
+  grid-template-columns: minmax(0, 1fr) 210px;
+}
+
+@media (max-width: 1240px) {
+  .learn-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .learn-layout .on-page {
+    display: none;
+  }
+}

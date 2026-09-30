@@ -1,7 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { stats } from "../data/stats.generated";
 import { useStore } from "../hooks/useStore";
-import { overallPercent } from "../lib/learning";
+import { courseTopics, levels, overallPercent } from "../lib/learning";
 
 /**
  * The primary navigation.
@@ -11,8 +12,13 @@ import { overallPercent } from "../lib/learning";
  * search field and the controls have taken their share. A rail has vertical
  * room, so every destination can carry an icon and its real count.
  *
- * Below the layout breakpoint it becomes a slide-in drawer (see shell.css),
- * and the bottom bar covers the common destinations.
+ * The curriculum is part of it. Sixteen levels and forty modules are what
+ * people actually navigate between, and burying them behind a page you have
+ * to visit first means every module change is two clicks and a scroll. Here
+ * the level containing whatever you are reading opens itself, so the next
+ * module is always one click away.
+ *
+ * Below the layout breakpoint the whole rail becomes a slide-in drawer.
  */
 
 interface NavItem {
@@ -23,17 +29,12 @@ interface NavItem {
   end?: boolean;
 }
 
-interface NavGroup {
-  heading: string;
-  items: NavItem[];
-}
-
-const GROUPS: NavGroup[] = [
+const GROUPS: { heading: string; items: NavItem[] }[] = [
   {
     heading: "Learn",
     items: [
       { to: "/roadmap", label: "Roadmap", icon: "map", count: `${stats.levels}` },
-      { to: "/learn", label: "Modules", icon: "book", count: `${stats.topics}` },
+      { to: "/learn", label: "Beginner path", icon: "book", end: true },
       { to: "/terminal", label: "Terminal", icon: "terminal" },
     ],
   },
@@ -78,7 +79,24 @@ function NavIcon({ name }: { name: string }) {
 
 export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const { progress } = useStore();
+  const { pathname } = useLocation();
   const percent = overallPercent(progress);
+
+  // Which module is open right now, if any.
+  const activeSlug = pathname.startsWith("/learn/") ? pathname.slice("/learn/".length) : null;
+  const activeLevel = activeSlug ? courseTopics.find((t) => t.slug === activeSlug)?.level ?? null : null;
+
+  const [openLevel, setOpenLevel] = useState<number | null>(activeLevel);
+
+  // Follow the reader: opening a module expands the level it belongs to, while
+  // still letting the level headers be toggled by hand. Adjusting during render
+  // rather than in an effect means the tree is never painted in the old state
+  // first.
+  const [seenLevel, setSeenLevel] = useState(activeLevel);
+  if (seenLevel !== activeLevel) {
+    setSeenLevel(activeLevel);
+    if (activeLevel !== null) setOpenLevel(activeLevel);
+  }
 
   return (
     <aside className={`rail${open ? " is-open" : ""}`} aria-label="Sections">
@@ -107,6 +125,56 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
               ))}
             </div>
           ))}
+
+          <div className="rail-group">
+            <p className="rail-group-head">
+              Curriculum <span className="rail-count">{stats.topics}</span>
+            </p>
+
+            {levels.map((level) => {
+              const modules = courseTopics.filter((t) => t.level === level.id);
+              const done = modules.filter((m) => progress.completedTopics.includes(m.slug)).length;
+              const isOpen = openLevel === level.id;
+
+              return (
+                <div className={`lvl${isOpen ? " is-open" : ""}`} key={level.id}>
+                  <button
+                    type="button"
+                    className={`lvl-btn${activeLevel === level.id ? " is-current" : ""}`}
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenLevel(isOpen ? null : level.id)}
+                  >
+                    <span className="lvl-num">{String(level.id).padStart(2, "0")}</span>
+                    <span className="lvl-name">{level.title}</span>
+                    <span className="lvl-count">
+                      {done}/{modules.length}
+                    </span>
+                    <svg className="lvl-chev" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  <div className="lvl-body">
+                    <div>
+                      {modules.map((m) => (
+                        <NavLink
+                          key={m.slug}
+                          to={`/learn/${m.slug}`}
+                          className={({ isActive }) => `lvl-link${isActive ? " is-active" : ""}`}
+                          onClick={onNavigate}
+                        >
+                          <span className="lvl-tick" aria-hidden="true">
+                            {progress.completedTopics.includes(m.slug) ? "✓" : "○"}
+                          </span>
+                          <span className="lvl-link-label">{m.title}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="rail-foot">

@@ -231,3 +231,91 @@ a.dstat:hover {
     grid-template-rows: repeat(7, 9px);
   }
 }
+
+/* ==========================================================================
+   Learn index: the beginner path.
+   ========================================================================== */
+
+.learn-lede {
+  max-width: 62ch;
+}
+
+.learn-status {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin: 20px 0 18px;
+}
+
+.learn-cta {
+  margin-bottom: 8px;
+}
+
+.path-list {
+  list-style: none;
+  counter-reset: none;
+  margin: 28px 0 0;
+  padding: 0;
+}
+
+.path-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+
+.path-item:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.path-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--faint);
+  padding-top: 3px;
+}
+
+.path-item.is-done .path-num {
+  color: var(--ok);
+}
+
+.path-body h3 {
+  margin: 0 0 4px;
+  font-size: var(--step-1);
+}
+
+.path-summary {
+  margin: 0 0 8px;
+  max-width: 68ch;
+}
+
+.path-done {
+  color: var(--ok);
+  font-size: 16px;
+  padding-top: 2px;
+}
+
+.learn-after {
+  margin-top: var(--section-gap);
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.learn-after p {
+  max-width: 62ch;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 620px) {
+  .path-item {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 15px 0;
+  }
+
+  .path-body h3 {
+    font-size: var(--step-0);
+  }
+}
