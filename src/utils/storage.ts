@@ -16,6 +16,7 @@ export const defaultProgress = (): ProgressState => ({
   seenQuestions: [],
   quizHistory: [],
   challengeDays: [],
+  activeDays: [],
   lastVisit: null,
   streak: 0,
   theme: "system",
@@ -52,5 +53,8 @@ export function updateStreak(state: ProgressState): ProgressState {
   yesterday.setDate(yesterday.getDate() - 1);
   const y = yesterday.toISOString().slice(0, 10);
   const streak = state.lastVisit === y ? state.streak + 1 : 1;
-  return { ...state, lastVisit: today, streak };
+  // Roughly a year of history is plenty for a twelve-week heatmap and keeps
+  // the stored object small.
+  const activeDays = [...new Set([...(state.activeDays ?? []), today])].slice(-400);
+  return { ...state, lastVisit: today, streak, activeDays };
 }

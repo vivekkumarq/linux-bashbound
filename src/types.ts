@@ -167,6 +167,8 @@ export interface ProgressState {
     topics?: string[];
   }[];
   challengeDays: string[];
+  /** Days the app was opened, as YYYY-MM-DD. Feeds the activity heatmap. */
+  activeDays: string[];
   lastVisit: string | null;
   streak: number;
   theme: "dark" | "midnight" | "forest" | "light" | "paper" | "contrast" | "system";

@@ -15,6 +15,7 @@ import "./styles/quiz.css";
 import "./styles/polish.css";
 import "./styles/hero.css";
 import "./styles/shell.css";
+import "./styles/dash.css";
 import "./styles/mobile.css";
 import { HomePage } from "./pages/HomePage.tsx";
 

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Terminal } from "../components/Terminal";
 import { ArchDiagram } from "../components/Diagrams";
 import { HeroTerminal } from "../components/HeroTerminal";
+import { ProgressDash } from "../components/ProgressDash";
 import { stats } from "../data/stats.generated";
 import { useStore } from "../hooks/useStore";
 import {
@@ -10,7 +11,6 @@ import {
   levelCompletion,
   levels,
   nextTopic,
-  overallPercent,
 } from "../lib/learning";
 
 export function HomePage() {
@@ -50,7 +50,25 @@ export function HomePage() {
         <HeroTerminal />
       </section>
 
-      {started && up ? <ContinueStrip slug={up.slug} title={up.title} percent={overallPercent(progress)} /> : null}
+      <section className="home-dash">
+        <div>
+          <p className="kicker">Where you are</p>
+          <h2>Your progress lives in this browser</h2>
+          <p className="muted">
+            No account and no server — everything below is read from what you have actually done on this device, so a
+            fresh visit honestly shows zeroes.
+          </p>
+          <div className="row" style={{ marginTop: 18 }}>
+            <Link className="btn btn-primary" to={up ? `/learn/${up.slug}` : "/learn"}>
+              {started ? "Continue learning" : "Start the first module"}
+            </Link>
+            <Link className="btn btn-secondary" to="/progress">
+              Full dashboard
+            </Link>
+          </div>
+        </div>
+        <ProgressDash />
+      </section>
 
       {/* Deliberately not cards: three short claims read better as a list with
           a rule between them than as three boxes competing for attention. */}
@@ -221,31 +239,5 @@ export function HomePage() {
         </div>
       </section>
     </div>
-  );
-}
-
-function ContinueStrip({ slug, title, percent }: { slug: string; title: string; percent: number }) {
-  const { position, total } = coursePosition(slug);
-  return (
-    <section className="continue" aria-label="Continue learning">
-      <div className="continue-main">
-        <p className="kicker">Welcome back</p>
-        <p className="continue-title">{title}</p>
-        <p className="muted mono-meta">
-          <span>
-            module {position} of {total}
-          </span>
-          <span>{percent}% of the roadmap</span>
-        </p>
-      </div>
-      <div className="continue-side">
-        <div className="progress-bar" aria-hidden="true">
-          <span style={{ width: `${percent}%` }} />
-        </div>
-        <Link className="btn btn-primary" to={`/learn/${slug}`}>
-          Continue learning →
-        </Link>
-      </div>
-    </section>
   );
 }

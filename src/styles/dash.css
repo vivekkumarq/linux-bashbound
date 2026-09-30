@@ -1,0 +1,233 @@
+/* ==========================================================================
+   Home progress panel: completion ring, stat tiles, activity heatmap.
+   ========================================================================== */
+
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-elev) 82%, transparent);
+  box-shadow: var(--elev-2), var(--ring-top);
+}
+
+.dash-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---- Ring ---------------------------------------------------------------- */
+
+.dash-ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+}
+
+.dash-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke-width: 4;
+}
+
+.dash-ring .dr-bg {
+  stroke: var(--surface-2);
+}
+
+.dash-ring .dr-fg {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--dur-slower) var(--ease-out);
+}
+
+.dash-ring b {
+  position: absolute;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-sum {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dash-sum b {
+  font-size: 15px;
+}
+
+.dash-sum span {
+  font-size: 12.5px;
+  color: var(--faint);
+}
+
+/* ---- Stat tiles ---------------------------------------------------------- */
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.dstat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+a.dstat:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.dstat strong {
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.dstat span {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+/* ---- Activity heatmap ----------------------------------------------------
+   Twelve weeks, one column per week, Sunday at the top. Everything it shows
+   comes from recorded activity — an untouched profile is legitimately blank.
+   ========================================================================== */
+
+.dash-heat {
+  display: grid;
+  gap: 8px;
+}
+
+.heat {
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+
+.hm {
+  display: block;
+  border-radius: 2px;
+  background: var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.hm.l1 {
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface-2));
+}
+
+.hm.l2 {
+  background: color-mix(in srgb, var(--accent) 50%, var(--surface-2));
+}
+
+.hm.l3 {
+  background: color-mix(in srgb, var(--accent) 74%, var(--surface-2));
+}
+
+.hm.l4 {
+  background: var(--accent);
+}
+
+.hm.is-today {
+  outline: 1.5px solid var(--accent-2);
+  outline-offset: 1px;
+}
+
+/* Days that have not happened yet read as absent, not as inactive. */
+.hm.is-future {
+  opacity: 0.35;
+  border-style: dashed;
+}
+
+.heat-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.heat-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.heat-scale .hm {
+  width: 10px;
+  height: 10px;
+}
+
+/* ---- Next up ------------------------------------------------------------- */
+
+.dash-next {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.dash-next-label {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.dash-next-link {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.dash-next-meta {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* ---- Placement ------------------------------------------------------------
+   Sits beside the hero copy on wide screens, below it on narrow ones.
+   ========================================================================== */
+
+.home-dash {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 34px);
+  align-items: stretch;
+  margin-top: var(--section-gap);
+}
+
+@media (max-width: 860px) {
+  .home-dash {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heat {
+    grid-template-rows: repeat(7, 9px);
+  }
+}
