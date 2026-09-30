@@ -1,0 +1,233 @@
+/* ==========================================================================
+   Mobile refinement.
+
+   Loaded last. Phone layout is not a narrower desktop: the constraint is
+   vertical space and thumb reach, so this file spends screen on content and
+   takes it away from chrome, labels and decoration.
+   ========================================================================== */
+
+@media (max-width: 980px) {
+  /* ---- The floating shell button --------------------------------------
+     It is fixed, so on a phone it permanently covers a strip of whatever
+     you are reading — a question row, a code block, an answer. The drawer
+     already offers both the terminal page and live bash, so on mobile it is
+     pure obstruction and goes away. */
+  .live-fab {
+    display: none;
+  }
+
+  /* ---- Rhythm ----------------------------------------------------------
+     Desktop section gaps are luxurious; on a phone they turn into scrolling
+     past nothing. */
+  :root {
+    --section-gap: clamp(2.25rem, 8vw, 3rem);
+  }
+
+  .main {
+    padding: 20px 0 64px;
+  }
+
+  .home-section {
+    margin-top: var(--section-gap);
+  }
+}
+
+/* ==========================================================================
+   Lesson reading.
+   ========================================================================== */
+
+@media (max-width: 720px) {
+  /* The concept sub-headings were nearly the size of the concept title, so
+     a lesson read as a flat wall of bold text. As small caps labels they
+     recede into structure and give back a lot of vertical space. */
+  .concept-block h3 {
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--faint);
+    margin: 22px 0 6px;
+  }
+
+  .concept-block h2 {
+    font-size: var(--step-2);
+    margin-top: 8px;
+  }
+
+  .concept-block p {
+    margin-bottom: 14px;
+  }
+
+  /* One clear reading measure rather than edge-to-edge text. */
+  .learn-layout article p,
+  .learn-layout article li {
+    line-height: 1.62;
+  }
+
+  .lesson-box {
+    padding: 14px 15px;
+  }
+
+  .lesson-box h3 {
+    font-size: var(--step--2);
+  }
+}
+
+/* ==========================================================================
+   Interview arena rows.
+
+   The desktop row is a wide bar with a dot, a lot of empty middle, then two
+   controls. On a phone that empty middle is the scarce resource. The row
+   becomes: a difficulty stripe down the edge, the question, a chevron. The
+   bookmark moves into the opened row, where there is space for it and where
+   it is actually wanted.
+   ========================================================================== */
+
+@media (max-width: 720px) {
+  .arena-list {
+    gap: 6px;
+  }
+
+  .arena-row {
+    position: relative;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Difficulty as an edge stripe instead of a dot — same information, no
+     horizontal budget. */
+  .arena-row::before {
+    content: "";
+    position: absolute;
+    inset: 8px auto 8px 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--faint);
+  }
+
+  .arena-row:has(.d-beginner)::before {
+    background: var(--ok);
+  }
+
+  .arena-row:has(.d-intermediate)::before {
+    background: var(--accent-3);
+  }
+
+  .arena-row:has(.d-advanced)::before {
+    background: var(--accent);
+  }
+
+  .arena-row:has(.d-expert)::before {
+    background: var(--danger);
+  }
+
+  .arena-row-dot {
+    display: none;
+  }
+
+  .arena-row-btn {
+    grid-template-columns: 1fr 18px;
+    gap: 10px;
+    padding: 13px 10px 13px 16px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  /* The bookmark is not worth a permanent column on a 390px screen. */
+  .arena-row:not(.is-open) .arena-star {
+    display: none;
+  }
+
+  .arena-row.is-open .arena-star {
+    width: 40px;
+  }
+
+  .arena-row-body {
+    padding: 4px 16px 16px;
+  }
+
+  /* The panel toggle above already names the topic; repeating it as a
+     heading wasted a whole row. */
+  .arena-heading {
+    display: none;
+  }
+
+  .arena-main-head {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .arena-hero {
+    padding: 22px 18px;
+  }
+
+  .arena-hero-body h1 {
+    font-size: var(--step-2);
+  }
+
+  .arena-hero-stats {
+    gap: 8px 18px;
+    margin-top: 14px;
+  }
+
+  .arena-hero-stats strong {
+    font-size: var(--step-1);
+  }
+}
+
+/* ==========================================================================
+   Touch targets and controls.
+   ========================================================================== */
+
+@media (pointer: coarse) {
+  /* Anything you tap gets a real target, without changing how it looks. */
+  .btn,
+  .chip-btn,
+  .arena-chip,
+  .quiz-choice,
+  .arena-subfilter,
+  .badge[aria-pressed] {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .arena-star,
+  .icon-btn,
+  .type-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Hover lifts are meaningless without a pointer and cause a stuck
+     "hovered" state after a tap. */
+  a.card:hover,
+  .level-chip:hover,
+  .lesson-nav-btn:hover,
+  .arena-row:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Code and terminals on small screens.
+   ========================================================================== */
+
+@media (max-width: 620px) {
+  .codeblock pre,
+  .terminal-body,
+  .arena-example {
+    font-size: 12.5px;
+  }
+
+  .codeblock-head {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Long command lines scroll on their own rather than forcing the page to. */
+  .codeblock pre {
+    overflow-x: auto;
+  }
+}
