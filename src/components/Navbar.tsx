@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "./Logo";
 import { AppearanceMenu } from "./Appearance";
 import { useStore } from "../hooks/useStore";
@@ -7,20 +7,10 @@ import { scoreMatch } from "../utils/search";
 import { useSearchCorpus } from "../hooks/useSearchCorpus";
 import { usePalette } from "../lib/paletteContext";
 
-const links = [
-  { to: "/learn", label: "Learn" },
-  { to: "/roadmap", label: "Roadmap" },
-  { to: "/commands", label: "Commands" },
-  { to: "/interview", label: "Interview" },
-  { to: "/quizzes", label: "Quizzes", wide: true },
-  { to: "/challenges", label: "Challenges", wide: true },
-  { to: "/cheatsheets", label: "Cheat Sheets", wide: true },
-] as const;
 
-export function Navbar() {
+export function Navbar({ onMenu }: { onMenu: () => void }) {
   const { progress } = useStore();
   const pal = usePalette();
-  const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const nav = useNavigate();
@@ -53,7 +43,6 @@ export function Navbar() {
       }
       if (e.key === "Escape") {
         setSearchOpen(false);
-        setOpen(false);
         searchRef.current?.blur();
       }
     }
@@ -89,7 +78,6 @@ export function Navbar() {
           onKeyDown={(e) => {
             if (e.key === "Enter" && results[0]) {
               nav(results[0].href);
-              setOpen(false);
               setSearchOpen(false);
               setQ("");
             }
@@ -111,7 +99,6 @@ export function Navbar() {
                   onClick={() => {
                     setSearchOpen(false);
                     setQ("");
-                    setOpen(false);
                   }}
                 >
                   <span className="badge">{r.kind}</span>
@@ -130,22 +117,15 @@ export function Navbar() {
       <div className="nav-inner">
         <button
           type="button"
-          className="icon-btn ghost-icon mobile-only"
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
+          className="icon-btn ghost-icon menu-toggle"
+          aria-label="Toggle navigation"
+          onClick={onMenu}
         >
-          {open ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 6h18M3 12h18M3 18h18" />
-            </svg>
-          )}
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
         </button>
-        <Link className="brand" to="/" onClick={() => setOpen(false)}>
+        <Link className="brand" to="/" >
           <Logo />
           <span className="brand-text">
             <strong>
@@ -154,21 +134,11 @@ export function Navbar() {
             <small>From first command to mastery</small>
           </span>
         </Link>
-        <nav className="nav-links" aria-label="Primary">
-          {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={({ isActive }) => `${"wide" in l && l.wide ? "wide " : ""}${isActive ? "active" : ""}`}>
-              {l.label}
-            </NavLink>
-          ))}
-        </nav>
         <div className="nav-actions">
           {renderSearch()}
           <button type="button" className="type-btn hide-sm" onClick={() => pal.openBash()} title="Live bash (Ctrl+`)">
             <span className="mono" style={{ fontWeight: 700 }}>$</span>
             <span className="font-name">Bash</span>
-          </button>
-          <button type="button" className="type-btn hide-sm" onClick={pal.openJump} title="Jump (Ctrl+K)">
-            <span className="font-name">Ctrl+K</span>
           </button>
           <Link className="progress-chip" to="/progress" title="My learning">
             {progress.completedTopics.length}
@@ -177,28 +147,6 @@ export function Navbar() {
           <AppearanceMenu />
         </div>
       </div>
-      {open ? (
-        <div className="drawer">
-          {renderSearch(true)}
-          {links.map((l) => (
-            <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)}>
-              {l.label}
-            </NavLink>
-          ))}
-          <NavLink to="/troubleshooting" onClick={() => setOpen(false)}>
-            Troubleshooting
-          </NavLink>
-          <NavLink to="/progress" onClick={() => setOpen(false)}>
-            My learning
-          </NavLink>
-          <NavLink to="/terminal" onClick={() => setOpen(false)}>
-            Terminal
-          </NavLink>
-          <button type="button" className="drawer-bash" onClick={() => { setOpen(false); pal.openBash(); }}>
-            Open live bash
-          </button>
-        </div>
-      ) : null}
     </header>
   );
 }

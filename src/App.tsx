@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
+import { Sidebar } from "./components/Sidebar";
+import { BottomNav } from "./components/BottomNav";
 import { Footer } from "./components/Footer";
 import { CommandPalette } from "./components/CommandPalette";
 import { Shortcuts } from "./components/Shortcuts";
@@ -18,6 +20,7 @@ export default function App() {
   const [palTab, setPalTab] = useState<"jump" | "bash">("jump");
   const [palSeed, setPalSeed] = useState<string | null>(null);
   const [palNonce, setPalNonce] = useState(0);
+  const [railOpen, setRailOpen] = useState(false);
   const loc = useLocation();
 
   useEffect(() => {
@@ -109,12 +112,23 @@ export default function App() {
         </a>
         <div className="atmosphere" aria-hidden="true" />
         <div className="app-shell">
-          <Navbar />
-          <main id="main" className="main page-enter" key={loc.pathname}>
-            <Outlet />
-          </main>
-          <Footer />
+          <Navbar onMenu={() => setRailOpen((v) => !v)} />
+          <div className="layout">
+            <Sidebar open={railOpen} onNavigate={() => setRailOpen(false)} />
+            <div
+              className={`rail-scrim${railOpen ? " is-on" : ""}`}
+              onClick={() => setRailOpen(false)}
+              aria-hidden="true"
+            />
+            <div className="layout-main">
+              <main id="main" className="main page-enter" key={loc.pathname}>
+                <Outlet />
+              </main>
+              <Footer />
+            </div>
+          </div>
         </div>
+        <BottomNav onMenu={() => setRailOpen((v) => !v)} />
         <CommandPalette />
         <Shortcuts />
         <button type="button" className="live-fab" onClick={() => paletteApi.openBash()} title="Live bash (Ctrl+`)">

@@ -1,0 +1,316 @@
+/* ==========================================================================
+   App shell: slim topbar, persistent navigation rail, mobile bottom bar.
+
+   Navigation moved out of the header for a structural reason. A header row
+   has a fixed width budget shared with the brand, the search field and the
+   controls; past a certain width the links simply clip, and no breakpoint
+   fixes that reliably. A rail has vertical room, so every destination can
+   carry an icon and its real count and nothing is ever cut off.
+   ========================================================================== */
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+  min-height: calc(100vh - var(--nav-h));
+}
+
+.layout-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Rail ---------------------------------------------------------------- */
+
+.rail {
+  flex: none;
+  width: 264px;
+  border-right: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.rail-inner {
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Mobile browsers shrink the viewport as their toolbar hides; dvh tracks
+   that, vh does not. */
+@supports (height: 100dvh) {
+  .rail-inner {
+    height: calc(100dvh - var(--nav-h));
+  }
+}
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.rail-pill {
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.rail-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 12px;
+  scrollbar-width: thin;
+}
+
+.rail-group {
+  margin-bottom: 14px;
+}
+
+.rail-group-head {
+  margin: 10px 0 4px;
+  padding: 0 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.rail-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 2px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.rail-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+  transform: translateX(2px);
+}
+
+.rail-link.is-active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.rail-icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rail-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail-link.is-active .rail-count {
+  color: var(--accent-text);
+}
+
+.rail-foot {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.rail-scrim {
+  display: none;
+}
+
+/* ---- Topbar -------------------------------------------------------------- */
+
+.menu-toggle {
+  display: none;
+}
+
+/* The search field is the topbar's centre of gravity now that the links have
+   moved out. */
+.nav .search-wrap {
+  flex: 1;
+  max-width: 560px;
+  margin-left: auto;
+}
+
+/* ---- Main ---------------------------------------------------------------- */
+
+.layout-main .main {
+  width: min(1060px, calc(100% - 48px));
+}
+
+/* ---- Bottom bar ---------------------------------------------------------- */
+
+.bottombar {
+  display: none;
+}
+
+@media (max-width: 1040px) {
+  .menu-toggle {
+    display: grid;
+  }
+
+  /* The rail becomes a drawer. */
+  .rail {
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    bottom: 0;
+    z-index: 110;
+    width: min(288px, 86vw);
+    border-right: 1px solid var(--border-strong);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease-out);
+    box-shadow: var(--elev-4);
+  }
+
+  .rail.is-open {
+    transform: none;
+  }
+
+  .rail-scrim {
+    display: block;
+    position: fixed;
+    inset: var(--nav-h) 0 0;
+    z-index: 105;
+    background: rgb(0 0 0 / 50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .rail-scrim.is-on {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .layout-main .main {
+    width: min(100% - 32px, 1060px);
+  }
+
+  /* Quick navigation within thumb reach. */
+  .bottombar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 95;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--bg-elev) 84%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+    border-top: 1px solid var(--border);
+  }
+
+  .bb-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 50px;
+    padding: 0 2px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--faint);
+    font-family: inherit;
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .bb-item svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform var(--dur-base) var(--ease-spring);
+  }
+
+  .bb-item b {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .bb-item:hover {
+    text-decoration: none;
+  }
+
+  .bb-item:active svg {
+    transform: scale(0.88);
+  }
+
+  .bb-item.is-on {
+    color: var(--accent-text);
+    background: var(--accent-soft);
+  }
+
+  /* Room for the bar so it never covers the last line of a page, or the
+     rail's own footer link. */
+  .footer {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .rail-inner {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* The bottom bar carries a Shell button, so the floating one is redundant
+     as well as in the way. */
+  .live-fab {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .bb-item b {
+    font-size: 9px;
+  }
+}
