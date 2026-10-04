@@ -10,7 +10,13 @@
 
 .layout {
   display: flex;
-  align-items: flex-start;
+  /* The rail must stretch to the full height of the layout, not just to its
+     own content. A sticky element can only stay put inside its parent's box,
+     so with align-items: flex-start the rail was 840px tall on a 7500px page
+     and the navigation scrolled out of sight a third of the way down. Default
+     stretch keeps it on screen for the whole page, which is the entire point
+     of having a persistent rail. */
+  align-items: stretch;
   min-height: calc(100vh - var(--nav-h));
 }
 
