@@ -4,13 +4,21 @@
     <meta charset="utf-8" />
     <title>Linux BashBound</title>
     <script>
+      // GitHub Pages has no server-side routing: a direct hit on /glossary finds
+      // no such file and is served this page instead. Stash where the visitor
+      // meant to go, bounce to the app, and let src/main.tsx restore the path
+      // before the router mounts.
+      //
+      // The site is served from its own domain at the root, so the app is always
+      // at "/". This used to derive the base from the first path segment, which
+      // was correct only while the site lived under /linux-bashbound/. At the
+      // root that guess turns /glossary into /glossary/, which is another 404,
+      // and the two bounce off each other.
       sessionStorage.setItem(
         "bb-spa-redirect",
         location.pathname + location.search + location.hash,
       );
-      var parts = location.pathname.split("/").filter(Boolean);
-      var base = parts.length ? "/" + parts[0] + "/" : "/";
-      location.replace(base);
+      location.replace("/");
     </script>
   </head>
   <body></body>
