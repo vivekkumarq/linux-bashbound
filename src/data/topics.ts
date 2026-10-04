@@ -30,7 +30,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "os",
         title: "What is an operating system?",
-        simple: "An operating system is the software that sits between your programs and the hardware. It shares the CPU, memory, disk, and network fairly and safely.",
+        simple:
+          "An operating system is the layer between the programs you run and the physical machine. Without one, every program would have to drive the hardware itself, know the exact model of your disk, and somehow agree with every other program about who gets the processor. The operating system does all of that centrally: it decides which program runs next, hands out memory and takes it back, presents every storage device through the same set of file operations, and keeps programs from reading each other's memory. Programs stop talking to hardware and start making requests instead.",
         technical: "A general-purpose OS provides process isolation, virtual memory, a filesystem interface, device drivers, and system calls. User programs should not program the hardware directly.",
         analogy: "The OS is the building manager: applications are tenants. Tenants request electricity and water; they do not rewire the mains.",
         example: {
@@ -85,7 +86,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "linux-kernel",
         title: "The Linux kernel",
-        simple: "The kernel is the privileged program that owns the hardware and offers system calls such as open, read, write, fork, and mmap.",
+        simple:
+          "The kernel is the one program with real power over the machine. It is loaded at boot and runs until shutdown, and it alone may command the hardware directly. Everything else — your shell, your browser, the login screen — runs with restricted privilege and has to ask it for anything real. The things it does are the things no program can be trusted to do for itself: deciding which process gets the processor next, handing out and reclaiming memory, reading and writing disks, moving network packets. Linux is one such kernel, and it is specifically this program that the name refers to.",
         technical: "Linux is a monolithic kernel with loadable modules. It implements process scheduling, virtual memory, filesystems, networking stacks, and drivers. It is licensed under GPLv2-only.",
         analogy: "If user programs are cars, the kernel is the road network and traffic law — you travel by calling well-known intersections (system calls).",
         example: {
@@ -102,7 +104,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "distro",
         title: "Distributions make a usable system",
-        simple: "A distribution chooses a kernel, installer, init system, package manager, default shell, and support policy.",
+        simple:
+          "A kernel on its own is not something you can use. A distribution is the work of assembling everything else into a system that installs and boots: which shell you get, which commands are present, how software is installed and updated, what starts at boot, and how long you will receive security fixes. Those choices are what make Ubuntu feel different from Fedora even though both run Linux. The support policy is the one people underestimate — it determines whether a machine you build today is still receiving patches in three years, which matters more than any technical difference.",
         technical: "Debian, Fedora, RHEL, Arch, SUSE, and others differ in release cadence, packaging (deb/rpm/pkg), init (almost all systemd on servers), and commercial support. The kernel can be similar while userland policies differ.",
         analogy: "The kernel is an engine. A distro is the whole car: gearbox, dashboard, dealer warranty.",
         example: {
@@ -258,7 +261,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "families",
         title: "Major families",
-        simple: "Debian family uses .deb and APT. Red Hat family uses RPM and DNF. Arch uses pacman and rolling releases. SUSE uses RPM and zypper.",
+        simple:
+          "There are hundreds of distributions and only a handful of families, and everything inside a family works much the same way. The Debian family — Ubuntu, Mint, Raspberry Pi OS — installs software from .deb packages using apt. The Red Hat family — Fedora, RHEL, Rocky, Alma — uses .rpm packages and dnf. Arch uses pacman and ships changes continuously rather than in numbered releases. SUSE uses rpm packages like Red Hat but drives them with zypper. Learning one member of a family gets you most of the way with the rest, which is why the family matters far more than the individual name.",
         technical: "Enterprise distros (RHEL, Ubuntu LTS, SLES) promise long support. Fedora and Debian Testing move faster. Immutable/ostree systems change how you think about packages.",
         analogy: "Same engine (Linux), different dealerships and service manuals.",
         example: {
@@ -414,7 +418,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "spaces",
         title: "User space and kernel space",
-        simple: "Your programs run in user space with limited privilege. The kernel runs in kernel space and enforces the rules.",
+        simple:
+          "The processor itself can run code in two modes, and the hardware enforces the difference. Your programs run in the restricted mode, called user space: they can do arithmetic and use their own memory, but they cannot read a disk, send a network packet, or look into another program's memory. The kernel runs in the privileged mode, where all of that is permitted. This is the most important structural fact about the system. It is why one crashing program does not take the machine with it, why permissions cannot be sidestepped by writing clever code, and why every real action a program takes is a request rather than an instruction.",
         technical: "A system call traps into the kernel (syscall instruction). Returning to user space restores unprivileged execution. Shared libraries (glibc) wrap syscalls in C functions.",
         analogy: "User space is the lobby. Kernel space is the vault. You pass a request form (syscall); you do not walk into the vault.",
         example: {
@@ -445,7 +450,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "boot",
         title: "From firmware to PID 1",
-        simple: "Power on → firmware (UEFI) → bootloader (GRUB) → kernel + initramfs → mount real root → execute init as PID 1.",
+        simple:
+          "Starting a Linux machine is a chain of handoffs, each stage loading the next and then stepping aside. Pressing the power button runs firmware built into the motherboard, which looks for something bootable. It finds a bootloader, whose only job is to load the kernel into memory and start it. The kernel brings up the hardware but still cannot reach the real disk, so it uses a small temporary filesystem held in memory to find and unlock it. Once the real root filesystem is mounted, it starts the first proper program, which receives process number 1 and launches everything else.",
         technical: "UEFI loads an EFI binary. GRUB loads vmlinuz and initrd. The kernel unpacks initramfs, runs /init there to find the root disk, switch_root, then execs /sbin/init. On most distros that is systemd.",
         analogy: "Opening a shop: unlock the building (firmware), turn on lights (bootloader), start the manager (kernel), manager hires the floor supervisor (PID 1).",
         example: {
@@ -476,7 +482,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "fhs",
         title: "The tree",
-        simple: "/ is the root. Everything is mounted somewhere under it. There are no drive letters.",
+        simple:
+          "Everything on a Linux system hangs off a single tree starting at /. There are no drive letters: a second disk, a USB stick, or a network share does not get its own namespace, it is attached at some directory inside the existing tree and its contents appear there. This is why the same path means the same thing regardless of which physical device holds it, and why moving data to a bigger disk can be invisible to every program using it. The layout below / is a published convention, which is what lets you find your way around a machine you have never logged into before.",
         technical: "FHS defines /bin, /sbin, /usr, /etc, /var, /tmp, /home, /opt, /boot, /dev, /proc, /sys, /run. Merged-/usr layouts put /bin → /usr/bin.",
         analogy: "A city map: /etc city hall records, /var warehouses, /home houses, /tmp leftover flyers, /proc a live dashboard not stored on disk.",
         example: {
@@ -506,7 +513,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "mansec",
         title: "Manual sections",
-        simple: "man ls opens the command page. man 5 passwd opens the file format, not the passwd command.",
+        simple:
+          "The manual is divided into numbered sections, because the same name can mean several different things. Section 1 holds commands you type. Section 2 holds the kernel's system calls. Section 5 describes file formats. Section 8 holds administrative tools. So there is a page for the passwd command and a separate page for the passwd file, both legitimately called passwd, and asking for the wrong one is a routine source of confusion. Giving the section number picks the one you meant, and the number shown in parentheses after a name — printf(3) — is how documentation tells you which it is referring to.",
         technical: "1 user commands, 2 syscalls, 3 library, 4 devices, 5 file formats, 6 games, 7 overview/misc, 8 admin commands.",
         analogy: "A library with numbered wings. Same title, different wing.",
         example: {
@@ -536,7 +544,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "tty",
         title: "Terminal vs shell",
-        simple: "A terminal emulator (GNOME Terminal, iTerm, Windows Terminal, SSH) draws text. Bash or Zsh reads a line and runs programs.",
+        simple:
+          "Two separate programs are involved when you type a command, and keeping them distinct removes a lot of confusion. The terminal is the window: it draws text, captures your keystrokes, and knows nothing about Linux commands at all. The shell is a program running inside it that reads what you typed, works out which command you meant, runs it, and prints the result. They communicate through a channel the kernel provides. This separation is why you can swap either one — a different terminal application, or a different shell — without the other noticing, and why an SSH session behaves the same as a local window.",
         technical: "Linux exposes terminals as tty/pts devices. SSH allocates a pty. The shell's stdin is that pty. Programs like vim take over the tty for raw input.",
         analogy: "The terminal is the telephone. The shell is the person on the line. Programs you launch are specialists the person calls.",
         example: {
@@ -566,7 +575,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "argv",
         title: "Commands, options, arguments",
-        simple: "ls -l /tmp means: program ls, option -l, argument /tmp. Options change behavior; arguments are usually files or names.",
+        simple:
+          "Everything you type on a command line is split into words and handed to the program as a list. The first word names the program; the rest are its arguments. By convention, words beginning with a dash are options that change behaviour, and the remaining words are what the command should act on — usually files. The program receives them as plain text and decides for itself what they mean, which has an important consequence: the shell has already finished its work by then. Any pattern or variable in what you typed was expanded before the program saw anything, so it never knows you typed a wildcard.",
         technical: "The kernel receives an argv array. GNU tools accept short -a and long --all. POSIX often specifies only short options. End of options can be marked with --.",
         analogy: "A restaurant order: dish (command), modifiers (options), table number (arguments).",
         example: {
@@ -596,7 +606,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "path",
         title: "PATH lookup",
-        simple: "When you type python3, the shell looks through PATH directories for an executable file of that name, unless you typed a slash path.",
+        simple:
+          "When you type a command name, the shell has to find a program with that name somewhere on the disk. It searches a list of directories held in PATH, in order, and runs the first match it finds. This explains several everyday things. A program can be installed and still report 'command not found', because its directory is not on the list. Two versions of the same tool can both exist, and which one runs depends entirely on the order. And typing a name containing a slash skips the search completely, which is why running something in the current directory requires ./ in front of it.",
         technical: "PATH is colon-separated. An empty PATH component means the current directory on some Unixes — dangerous. hashed locations can stale after installs; hash -r in Bash.",
         analogy: "PATH is a list of workshops. The shell walks the list until it finds a tool with the right name.",
         example: {
@@ -626,7 +637,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "quotes",
         title: "Single vs double quotes",
-        simple: "Single quotes preserve every character. Double quotes still expand $variables and $(commands). Backslash escapes the next character.",
+        simple:
+          "The shell rewrites your command before running it — expanding variables, replacing patterns with filenames, splitting words apart. Quoting is how you control how much of that happens. Single quotes stop all of it: what is inside is passed through exactly as typed. Double quotes stop the pattern matching and word splitting but still substitute variables and command output, which is almost always the behaviour you want. A backslash protects just the next character. Getting this wrong is the most common source of shell bugs, because unquoted text behaves correctly right up until a value contains a space or a special character.",
         technical: "Word splitting and globbing happen after expansion unless the result is quoted. set -f disables globbing. IFS controls splitting.",
         analogy: "Quotes are packaging. Unquoted $files is an opened box whose contents spill on the floor (split and glob).",
         example: {
@@ -656,7 +668,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "inode",
         title: "The inode",
-        simple: "The inode stores metadata and knows where the data blocks are. The name lives in a directory.",
+        simple:
+          "A file is two separate things, and separating them explains a lot of otherwise strange behaviour. The inode is the record holding everything about the file except its name: its size, owner, permissions, timestamps, and the locations of its data on disk. The name lives in a directory and is simply a pointer to an inode. Because the name and the file are distinct, one file can have several names, renaming is instantaneous regardless of file size, and deleting a name does not necessarily delete anything — the data survives until the last name, and the last program using it, is gone.",
         technical: "stat shows inode number, link count, mode, ownership, size, timestamps. When link count hits 0 and no process has the file open, data can be freed. Directories are files too.",
         analogy: "The inode is a library book. The directory is the card catalog. Two cards can point at the same book (hard links).",
         example: {
@@ -686,7 +699,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "mount",
         title: "Attaching a filesystem",
-        simple: "mount device dir attaches that filesystem's tree onto dir. The previous contents of dir are hidden until umount.",
+        simple:
+          "Mounting attaches a filesystem to a directory, so that its contents appear at that point in the tree. Before mounting, the directory is an ordinary empty folder; afterwards, looking inside it shows what is on the device. One detail surprises people: anything that was already in that directory does not get deleted, it becomes invisible, hidden underneath the mounted filesystem until it is unmounted again. This occasionally explains a disk that is mysteriously full — files were written into a directory while nothing was mounted there, and are now hidden beneath the filesystem that was mounted later.",
         technical: "The kernel VFS multiplexes filesystems. Bind mounts remount a tree elsewhere. findmnt shows the mount table. fstab describes persistent mounts.",
         analogy: "Hanging a new room onto a doorway. The doorway still has the same name in the hallway.",
         example: {
@@ -716,7 +730,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "specialfs",
         title: "/proc, /sys, /dev, /run",
-        simple: "/dev is device nodes. /proc is process and kernel info. /sys is a structured kernel/driver tree. /run is tmpfs for PID files and locks.",
+        simple:
+          "Several directories look like ordinary folders and are not stored on any disk. /dev holds entries representing hardware, so that talking to a device is a matter of reading and writing a file. /proc is generated by the kernel on demand and shows what every running process is doing. /sys describes the hardware the kernel knows about and what it is configured to do. /run holds information about the currently running system and exists only in memory, so it is empty again at every boot. Reading them is how tools like ps and lsof work; writing to some of them changes the machine immediately.",
         technical: "procfs and sysfs are pseudo filesystems. Writing some files is a configuration API (sysctl via /proc/sys). Device nodes are char/block with major/minor numbers.",
         analogy: "/proc is a live spreadsheet of the OS. /dev is labeled doors to hardware. /run is sticky notes that vanish on reboot.",
         example: {
@@ -746,7 +761,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "uid",
         title: "UID, GID, passwd, shadow",
-        simple: "Users live in /etc/passwd (public) and /etc/shadow (password hashes, root-only). Groups in /etc/group.",
+        simple:
+          "The system identifies users by number, not by name. The names exist for your benefit and are looked up when needed. Account details live in /etc/passwd, which is readable by everyone because many programs need to turn a number back into a name. Passwords are not there — that file was world-readable for too long and the hashes were being cracked — so they live in /etc/shadow, which only root can read. Groups work the same way and let one permission rule cover many people. On a machine joined to a company directory, most real accounts are in neither file.",
         technical: "passwd fields: name, x, UID, GID, GECOS, home, shell. NSS can pull users from LDAP/SSSD. Root is UID 0 regardless of name.",
         analogy: "Your employee badge number (UID) matters more than the printed name. Two names with one UID are the same principal.",
         example: {

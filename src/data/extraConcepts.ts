@@ -44,7 +44,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "kernel-vs-userspace-plain",
       title: "How a keystroke becomes work",
-      simple: "You type a command. The shell is just a program. It asks the kernel to start another program. The kernel is the only piece allowed to talk to the CPU, disk, and network on behalf of everyone.",
+      simple:
+        "Follow what happens when you type a command. The shell is an ordinary program with no special powers; it cannot start another program by itself, read a file, or touch the disk. What it can do is ask. It makes a request to the kernel, which checks whether you are allowed, then does the work and returns the result. Every single thing that touches hardware goes through that one gate. This is why a buggy program cannot corrupt another one's memory, why permissions cannot be bypassed by clever code, and why 'Permission denied' comes from the kernel rather than from the command you ran.",
       technical: "The shell calls fork and execve. Those are system calls: a controlled door into kernel mode. Device drivers and the scheduler live on the other side of that door. Android, Ubuntu, and a Raspberry Pi image all share this split.",
       analogy: "The kernel is air traffic control. Apps are planes. They file a flight plan (a syscall); they do not taxi across the runway whenever they like.",
       command: "strace -e trace=process ls >/dev/null",
@@ -62,7 +63,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "why-servers-love-linux",
       title: "Why servers, phones, and clouds run it",
-      simple: "Linux is free to copy, runs on tiny boards and huge machines, and can run for years without a reboot. That combination made it the default in data centers and on Android.",
+      simple:
+        "Several practical reasons compound. It costs nothing to install on a thousand machines, which matters enormously at scale. It runs on hardware ranging from a credit-card-sized board to a supercomputer, with the same commands and the same skills on both. It can run for years without rebooting, so maintenance is planned rather than forced. The source is available, so a problem can be investigated rather than reported and waited on. And because so much runs on it, almost any software you need already has a well-tested Linux version. Each reason alone would be a point in its favour; together they made it the default.",
       technical: "The kernel is GPLv2. Hardware vendors ship drivers as modules. Cloud images are just a kernel, an init system, and a package set. Containers share one kernel, which is why Linux hosts almost all container platforms.",
       analogy: "A public highway standard: many car brands (distros), one road code (syscalls), and you can pave it on a dirt lot or a city.",
       command: "cat /proc/version",
@@ -83,7 +85,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "posix-in-plain-words",
       title: "POSIX in plain words",
-      simple: "POSIX is a promise: 'this command and this C function should behave the same on many Unix-like systems.' Linux mostly keeps that promise, then adds extra flags.",
+      simple:
+        "POSIX is a document that writes down what a Unix-like system must provide, so that a program written for one will work on another. It specifies which commands exist and what their essential options do, how the shell language behaves, and which functions are available to C programs. It is not software — there is nothing to install and nothing to run. Its practical value is that it defines the portable subset: stay inside it and your script runs on Linux, macOS and BSD alike. Step outside and you have written something that works on the system you tested and possibly nowhere else.",
       technical: "POSIX.1 covers the shell language, utilities (ls, cp, sh), and syscalls. GNU coreutils extend POSIX (ls --color). BSD tools extend it differently. Portable scripts stick to POSIX sh and POSIX options.",
       analogy: "POSIX is a recipe that says 'use salt.' GNU says 'use Himalayan pink salt, toasted.' Both cook; only one travels.",
       command: "man 1p printf 2>/dev/null | head -n 4 || echo 'Install manpages-posix to see POSIX pages'",
@@ -101,7 +104,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "bsd-sysv-linux-map",
       title: "BSD, System V, and Linux — the family map",
-      simple: "Old Unix split into two styles. BSD gave us sockets and many macOS commands. System V gave us a different ps and init. Linux borrowed from both and then invented systemd.",
+      simple:
+        "Early Unix split into two camps that did many things differently, and the split is still visible. Berkeley's version gave the world network sockets, the way almost all network programming is still done, and a family of command-line conventions that macOS inherited. AT&T's System V went its own way on process listing and on how services start at boot. Linux arrived later and borrowed from both, which is why some commands accept flags from either tradition and some documentation explains two ways of doing the same thing. It then added things neither had, systemd being the most consequential.",
       technical: "ps aux is BSD syntax; ps -ef is System V. Linux ps accepts both. macOS is BSD userland + XNU. Solaris was System V. Linux init used to look SysV (runlevels); now targets.",
       analogy: "Two school districts with different report cards. Linux accepts both report cards, then added its own app (systemd).",
       command: "ps -ef | head -n 2; ps aux | head -n 2",
@@ -121,7 +125,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "how-to-pick-a-distro",
       title: "How to pick a distro without religion",
-      simple: "For learning, use whatever you can install quickly (Ubuntu, Fedora, or a cloud image). For work, pick what your team already knows how to patch.",
+      simple:
+        "People argue about distributions the way they argue about football teams, and almost none of it should affect your choice. If you are learning, use whatever you can install in ten minutes — Ubuntu or Fedora on a spare machine, or any cloud image. The skills transfer almost completely. If you are choosing for work, the question is not which is best but which your team can operate: who knows how to patch it, how long it receives security updates, and whether your vendors support it. A distribution nobody on the team can troubleshoot at 3am is a worse choice than a boring one everybody knows.",
       technical: "LTS/enterprise: Ubuntu LTS, RHEL, SLES, Debian stable. Fast: Fedora, Arch. Minimal: Alpine (musl, apk). Immutable: Fedora CoreOS, Ubuntu Core. Amazon Linux is Fedora/RHEL-like for AWS.",
       analogy: "Do not buy a truck because a forum likes trucks. Buy what the warehouse already stocks parts for.",
       command: "grep -E '^(NAME|VERSION|ID)=' /etc/os-release",
@@ -139,7 +144,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "same-kernel-different-tools",
       title: "Same kernel, different tools",
-      simple: "Two machines can run kernel 6.8 and still feel alien: one uses apt and systemd, another uses apk and OpenRC, another uses busybox.",
+      simple:
+        "Two machines can run exactly the same kernel version and still feel like different operating systems. One installs software with apt and manages services with systemd; another uses apk and OpenRC; a third replaces most of its commands with a single small program called BusyBox, so its ls is not really the same ls at all. Android goes furthest, running the Linux kernel with none of the usual tools and no ordinary shell. This is why experience does not always transfer cleanly between systems, and why a program compiled on one can refuse to start on another despite both being Linux.",
       technical: "Userland is independent: glibc vs musl, GNU coreutils vs busybox, systemd vs OpenRC vs runit. Android uses the Linux kernel with Bionic libc and no GNU userland.",
       analogy: "Same engine, different dashboard. The speedometer (syscalls) is similar; the buttons (apt vs dnf) are not.",
       command: "ldd --version 2>&1 | head -n 1; ls /bin/ls; readlink -f /bin/sh",
@@ -159,7 +165,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "licenses-you-will-be-asked",
       title: "Licenses you will actually be asked about",
-      simple: "Linux the kernel is GPL v2 only. Many userland tools are GPL v3 or LGPL. You can run Linux in a company without paying a license fee, but you cannot hide GPL kernel changes if you ship the kernel.",
+      simple:
+        "The kernel is licensed under version 2 of the GPL, and most of the commands around it are GPL or a more permissive variant. What that means in practice has two parts, and people usually only know the first. You may run Linux anywhere, for anything, commercially, without paying anyone — that part is simple. The second part applies only when you distribute software to others: if you ship a product containing a modified kernel, you must make those modifications available. Running a modified kernel on your own servers triggers nothing at all, because you have not distributed it.",
       technical: "GPLv2 copyleft for kernel (including many drivers). CDDL, MIT, Apache appear in userland. Binary-only modules are legally and technically fraught (tainted kernel).",
       analogy: "The kitchen recipe (kernel) must stay open if you serve the dish. The restaurant name (your app) can still be yours.",
       command: "uname -r; cat /proc/sys/kernel/tainted",
@@ -177,7 +184,8 @@ export const extraConcepts: Record<string, Concept[]> = {
     cx({
       id: "gnu-coreutils-vs-busybox",
       title: "GNU coreutils versus BusyBox",
-      simple: "On Ubuntu, ls is a full GNU program with long flags. On Alpine and many routers, ls is BusyBox: one binary pretending to be many commands, with shorter help.",
+      simple:
+        "The everyday commands are not part of the system; they are programs, and more than one group has written versions of them. On a mainstream distribution they are the GNU versions, which are full-featured and accept long descriptive options. On Alpine, on routers, and inside small container images they are usually BusyBox: a single program that pretends to be about four hundred commands, each a trimmed-down version with the common options and not much else. It exists because it fits in a few hundred kilobytes rather than tens of megabytes, and that trade-off is why scripts can fail there.",
       technical: "BusyBox applets are size-optimized. Flags differ (no ls --group-directories-first). Buildroot and embedded Linux default to BusyBox. Distroless images may have almost no shell.",
       analogy: "A Swiss Army knife versus a full toolbox. Both cut; the toolbox has extra bits.",
       command: "ls --version 2>&1 | head -n 1",
