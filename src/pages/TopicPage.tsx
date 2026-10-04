@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { getTopic } from "../data/topics";
 import { levels } from "../data/roadmap";
 import { CodeBlock } from "../components/CodeBlock";
+import { Prose } from "../components/Prose";
 import { visualsForTopic } from "../components/interactive/forTopic";
 import { MasteryBar } from "../components/MasteryBar";
 import { ReadingProgress } from "../components/ReadingProgress";
@@ -86,11 +87,11 @@ export function TopicPage() {
           </p>
         ) : null}
 
-        <p>{topic.summary}</p>
+        <Prose text={topic.summary} />
 
         <div className="callout">
           <strong>Why this matters. </strong>
-          {topic.why}
+          <Prose as="span" text={topic.why} />
         </div>
 
         <MasteryBar slug={slug} />
@@ -103,27 +104,29 @@ export function TopicPage() {
             {c.takeaway ? (
               <p className="takeaway">
                 <strong>In one line. </strong>
-                {c.takeaway}
+                <Prose as="span" text={c.takeaway} />
               </p>
             ) : null}
             <h3>Simple explanation</h3>
-            <p>{c.simple}</p>
+            <Prose text={c.simple} />
             <h3>Technical explanation</h3>
-            <p>{c.technical}</p>
+            <Prose text={c.technical} />
             <h3>Real-world analogy</h3>
-            <p>{c.analogy}</p>
+            <Prose text={c.analogy} />
             <h3>Example</h3>
             <CodeBlock
               code={`$ ${c.example.command}\n${c.example.output}`}
               onTry={(code) => pal.openBash(extractRunnable(code))}
             />
-            <p className="muted">{c.example.explanation}</p>
+            <Prose className="muted" text={c.example.explanation} />
             {c.whereUsed?.length ? (
               <>
                 <h3>Where you see this</h3>
                 <ul>
                   {c.whereUsed.map((w) => (
-                    <li key={w}>{w}</li>
+                    <li key={w}>
+                      <Prose as="span" text={w} />
+                    </li>
                   ))}
                 </ul>
               </>
@@ -131,31 +134,35 @@ export function TopicPage() {
             <h3>Common mistakes</h3>
             <ul>
               {c.mistakes.map((m) => (
-                <li key={m}>{m}</li>
+                <li key={m}>
+                  <Prose as="span" text={m} />
+                </li>
               ))}
             </ul>
             <h3>Best practices</h3>
             <ul>
               {c.practices.map((m) => (
-                <li key={m}>{m}</li>
+                <li key={m}>
+                  <Prose as="span" text={m} />
+                </li>
               ))}
             </ul>
 
             <div className="lesson-box">
               <h3>Practical exercise</h3>
-              <p>{c.exercise.prompt}</p>
+              <Prose text={c.exercise.prompt} />
               <details>
                 <summary>Show approach</summary>
-                <p>{c.exercise.solution}</p>
+                <Prose text={c.exercise.solution} />
               </details>
             </div>
 
             <div className="lesson-box lesson-box-interview">
               <h3>Interview relevance</h3>
-              <p className="lesson-question">{c.interview.question}</p>
+              <Prose className="lesson-question" text={c.interview.question} />
               <details>
                 <summary>Reveal answer</summary>
-                <p>{c.interview.answer}</p>
+                <Prose text={c.interview.answer} />
               </details>
             </div>
 

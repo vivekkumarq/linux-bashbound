@@ -21,7 +21,8 @@ const baseTopics: Topic[] = [
     level: 0,
     difficulty: "Beginner",
     minutes: 18,
-    summary: "Linux is a kernel, and a Linux system is that kernel plus userland tools, libraries, and a package-managed distribution.",
+    summary:
+      "Linux itself is only the kernel — the part that drives the hardware. A usable system is that kernel plus everything around it: the shell, the commands, the libraries, packaged together as a distribution.",
     why: "Every later topic assumes you know what the kernel does versus what a distro ships around it.",
     prerequisites: [],
     references: [kernelRef, { label: "GNU Operating System", href: "https://www.gnu.org/" }],
@@ -43,6 +44,43 @@ const baseTopics: Topic[] = [
         interview: { question: "Is Linux an operating system or a kernel?", answer: "Strictly, Linux is a kernel. A complete system is Linux plus userland (often GNU) packaged as a distribution. In casual speech people say 'Linux' for the whole system." },
         related: ["linux-vs-unix", "kernel-and-gnu"],
         whereUsed: ["Every server, phone (Android), container host, and supercomputer running a Linux kernel."],
+      }),
+      concept({
+        id: "kernel-vs-userland",
+        title: "Kernel, userland, distribution",
+        takeaway: "The kernel talks to hardware. Userland is everything else you can run. A distribution is somebody's chosen combination of the two.",
+        simple:
+          "These three words get used constantly and are rarely defined, so here they are plainly. The kernel is the single program that is allowed to drive the hardware — it shares the processor between your programs, hands out memory, and owns the disks and the network card. Userland is everything else: the shell you type into, commands like ls and cp, the libraries programs rely on, the login screen. A distribution is a particular kernel and a particular userland, picked and packaged by someone so the whole thing installs and boots. Ubuntu is a distribution. Linux is the kernel inside it.",
+        technical:
+          "The reason the vocabulary exists is that the two halves really are independent, and the same kernel appears under wildly different userlands. Ubuntu pairs it with GNU tools and glibc. Alpine pairs it with BusyBox and musl, which is why an Ubuntu-built binary often will not start there. Android pairs it with neither and has no ordinary shell by default. All three are the Linux kernel. If somebody says a program runs on Linux, that statement is incomplete until you know which userland, because the kernel interface is stable and the userland is not.",
+        analogy:
+          "The kernel is the engine and the gearbox: essential, and you never touch it directly. Userland is the dashboard, pedals, radio and seats — everything you actually operate. A distribution is the finished car a manufacturer decided to sell, with its own choice of each.",
+        example: {
+          command: "ls /boot/vmlinuz-* && which ls",
+          output: "/boot/vmlinuz-6.8.0-40-generic\n/usr/bin/ls",
+          explanation:
+            "The first path is the kernel itself — one compressed file that the bootloader loads. The second is an ordinary program sitting in an ordinary directory, which you could delete. That is the whole distinction in two lines: one file runs the machine, everything else is replaceable software.",
+        },
+        mistakes: [
+          "Using the word Linux for all three meanings in one sentence and confusing everybody, including yourself.",
+          "Expecting a binary built on one distribution to run on any Linux. It depends on the userland, especially the C library.",
+        ],
+        practices: [
+          "When reporting a problem, state the distribution and version, not just Linux — the kernel is rarely the part that differs.",
+          "Keep the three words distinct when you speak: it is the fastest way to sound like you have administered a system rather than only read about one.",
+        ],
+        exercise: {
+          prompt: "Run uname -r for the kernel and cat /etc/os-release for the distribution. Then run which bash to find a userland program on disk.",
+          solution:
+            "uname -r gives a kernel release such as 6.8.0-40-generic; os-release names the distribution, for example Ubuntu 24.04; and bash turns up at /usr/bin/bash, an ordinary file. Kernel, distribution, userland — one command each.",
+        },
+        interview: {
+          question: "What is the difference between the kernel and userland?",
+          answer:
+            "The kernel runs in privileged mode and owns the hardware — scheduling, memory, drivers, filesystems. Userland is every program outside it, running unprivileged and reaching the hardware only by making system calls. They are separable, which is why Ubuntu, Alpine and Android can all run the Linux kernel with entirely different userlands.",
+        },
+        related: ["architecture", "kernel-and-gnu"],
+        whereUsed: ["Explaining to a colleague why their Ubuntu binary exits instantly inside an Alpine container."],
       }),
       concept({
         id: "linux-kernel",
@@ -87,27 +125,122 @@ const baseTopics: Topic[] = [
     level: 0,
     difficulty: "Beginner",
     minutes: 16,
-    summary: "Unix is a family of operating systems and a design culture. Linux is a Unix-like kernel that is not derived from AT&T Unix source.",
-    why: "Interviewers and man pages mix Unix, POSIX, BSD, and Linux. You need the distinctions.",
+    summary:
+      "Unix is the system built at Bell Labs in 1969 and the family that grew from it. Linux is a kernel written from scratch twenty years later that copied the design without using any of the code.",
+    why: "Manuals, interviewers and error messages mix the words Unix, POSIX, BSD and Linux as though you already know which is which. They mean four different things.",
     prerequisites: ["what-is-linux"],
     references: [posixRef, { label: "The Unix Heritage Society", href: "https://www.tuhs.org/" }],
     concepts: [
       concept({
         id: "unix-family",
-        title: "Unix is a lineage",
-        simple: "Unix began at Bell Labs. Descendants include BSD, System V, AIX, HP-UX, Solaris, and macOS (Darwin/BSD userland with a different kernel).",
-        technical: "Trademarked UNIX systems are certified against the Single UNIX Specification. Linux is Unix-like and largely POSIX compatible but is not a UNIX-certified kernel in typical distributions.",
-        analogy: "Unix is a language family. Linux is a widely spoken related language with its own accent (procfs, systemd, GNU flags).",
+        title: "Where Unix came from",
+        takeaway: "Unix is a real system from 1969 and a family descended from it. Linux copied its design, not its code.",
+        simple:
+          "In 1969, two engineers at Bell Labs built a small operating system called Unix. It was unusually good, and because the source code was shared with universities, people learned from it, modified it, and built their own versions. Those versions became a family: BSD came out of the University of California, Berkeley; AT&T sold its own line called System V; companies shipped their own branded ones, such as Sun's Solaris and IBM's AIX. In 1991 a student named Linus Torvalds wrote a new kernel that behaved like Unix but shared none of its code. That kernel is Linux.",
+        technical:
+          "The split matters legally, not just historically. AT&T's Unix was licensed source, and derived systems inherited those licence terms — which is what the lawsuits of the early 1990s were about. Linux was written independently and released under the GPL, so it carried no AT&T claim. The UNIX trademark is now held by The Open Group, and a system may only be called UNIX if it is certified against the Single UNIX Specification, a paid process. macOS is certified. Linux distributions, almost without exception, are not — so the accurate term for Linux is Unix-like.",
+        analogy:
+          "Unix is a language family. The old systems are languages that descend from a common parent and share vocabulary by inheritance. Linux is a language someone built deliberately to be mutually intelligible with the rest — same grammar, same words, no shared ancestry.",
+        example: {
+          command: "uname -s",
+          output: "Linux",
+          explanation:
+            "uname reports the kernel name. It prints Linux here, Darwin on a Mac, and FreeBSD on FreeBSD. All three are Unix-like and all three will run most of the same commands, which is exactly the point of the family resemblance.",
+        },
+        mistakes: [
+          "Saying Linux is Unix in the trademark sense. It behaves like Unix but has never been certified as UNIX, and an interviewer may be checking whether you know the difference.",
+          "Thinking macOS is built on Linux. It is not — it descends from BSD, which is a separate branch of the same family.",
+        ],
+        practices: [
+          "Say Unix-like when you mean the behaviour, and UNIX only when you mean the certification.",
+          "When documentation says a feature is a GNU extension, read that as: this will not be there on a Mac or a BSD server.",
+        ],
+        exercise: {
+          prompt: "Run uname -s on every machine you have access to, including a Mac if you have one. Note what each prints.",
+          solution:
+            "Linux on any Linux distribution, Darwin on macOS, FreeBSD or OpenBSD on those systems. Different kernels, same family, and the same shell commands will mostly work on all of them.",
+        },
+        interview: {
+          question: "Is Linux a Unix?",
+          answer:
+            "Linux is Unix-like. It implements the same interfaces and follows the same design, but it contains no code descended from the original Bell Labs Unix, and ordinary Linux distributions are not certified against the Single UNIX Specification, so they cannot be called UNIX in the trademark sense. In normal conversation people say Unix loosely and mean the family.",
+        },
+        related: ["unix-posix", "kernel-and-gnu"],
+        whereUsed: ["Any time a manual, a job advert or a Stack Overflow answer says Unix and you have to work out whether it includes Linux. It usually does."],
+      }),
+      concept({
+        id: "posix-standard",
+        title: "POSIX: the agreement that keeps them compatible",
+        takeaway: "POSIX is a document, not software. It says what a Unix-like system must provide, so programs can move between them.",
+        simple:
+          "Once there were many versions of Unix, the same program would not build on all of them — each had drifted. So the IEEE wrote down a specification saying what any system calling itself Unix-like must provide: these commands must exist, the shell must behave this way, these functions must be available to C programs. That document is POSIX. It is not a piece of software you can install; it is a written agreement that system builders follow. When they do, code written for one system compiles and runs on the next.",
+        technical:
+          "POSIX stands for Portable Operating System Interface, and the current revision is POSIX.1-2017. It specifies the C API, the shell command language, and a set of required utilities with their mandatory options. Linux follows it very closely but has never been through certification, so the right phrase is POSIX-compatible rather than POSIX-certified. The practical consequence shows up in manuals: when a page marks an option as a GNU extension or notes that behaviour is unspecified by POSIX, it is telling you that option is not guaranteed anywhere else.",
+        analogy:
+          "POSIX is the rule book, not a team. It says what a legal serve looks like, so a player trained in one country can walk onto a court in another and still play. It does not play any matches itself.",
         example: {
           command: "man 1p printf",
-          output: "(POSIX printf page if installed)",
-          explanation: "The 1p section, when present, documents POSIX commands as distinct from Linux GNU variants.",
+          output: "PRINTF(1P)   POSIX Programmer's Manual   PRINTF(1P)",
+          explanation:
+            "Sections ending in p are the POSIX pages, documenting what the standard guarantees. Compare it with man 1 printf, the GNU version on your machine, which has extra options. Anything in the second page but not the first may be missing elsewhere.",
         },
-        mistakes: ["Saying 'Linux is Unix' in a certification sense.", "Assuming GNU long options exist on macOS BSD tools."],
-        practices: ["Check whether a flag is POSIX, BSD, or GNU.", "Test portable scripts with dash or busybox sh."],
-        exercise: { prompt: "Compare ls --version on Linux vs macOS. What happens?", solution: "GNU ls prints version. BSD ls typically errors on --version or treats it as files named --version." },
-        interview: { question: "Is Linux a Unix?", answer: "Linux is Unix-like: it implements many POSIX interfaces. It is not historically derived from AT&T Unix source. Some GNU/Linux systems can pursue UNIX certification, but everyday Linux is not 'UNIX' in the trademark sense." },
-        related: ["unix-posix", "kernel-and-gnu"],
+        mistakes: [
+          "Treating POSIX as a program or a package. There is nothing to install — it is a specification document.",
+          "Assuming that because a flag works on your machine it is portable. Your machine is almost certainly running the GNU versions, which are the most generous.",
+        ],
+        practices: [
+          "If a script has to run anywhere, start it with #!/bin/sh and test it with dash or busybox sh, which refuse most non-standard syntax.",
+          "Check man 1p before relying on an option in a script you will ship to unknown systems.",
+        ],
+        exercise: {
+          prompt: "Compare man 1 printf with man 1p printf if the POSIX pages are installed. List one option present in the GNU page and absent from the POSIX one.",
+          solution:
+            "GNU printf offers --help and --version, which POSIX does not require. On a system where the 1p pages are missing, install the manpages-posix package, or read the specification online.",
+        },
+        interview: {
+          question: "What is POSIX and why would you care?",
+          answer:
+            "A standard describing the interfaces a Unix-like system must provide: the C API, the shell language, and the required utilities. You care because it defines the portable subset. If a script uses only POSIX features it will run on Linux, macOS and BSD alike; once it uses GNU extensions it is tied to GNU systems.",
+        },
+        related: ["unix-posix", "bash-scripting"],
+        whereUsed: ["Writing install scripts that must run on an unknown machine, and any CI pipeline that builds on both Linux and macOS."],
+      }),
+      concept({
+        id: "gnu-vs-bsd-tools",
+        title: "Why the same command behaves differently",
+        takeaway: "Most Linux commands are the GNU versions; macOS ships the BSD ones. Same names, different options.",
+        simple:
+          "The commands you type are not part of the kernel — they are ordinary programs, and more than one group has written them. Linux systems almost always ship the GNU versions. Macs and BSD systems ship the BSD versions. They have the same names and do the same jobs, but they accept different options. This is why a command copied from a tutorial works on your laptop and fails on a colleague's Mac, with an error that looks like the command is missing when it is simply a different edition of it.",
+        technical:
+          "The usual casualties are sed -i, which takes a mandatory suffix argument on BSD and an optional one on GNU; date, where GNU uses -d and BSD uses -v with different syntax entirely; readlink -f, missing on older macOS; and the long-form double-dash options, which GNU provides broadly and BSD largely does not. Installing GNU coreutils on a Mac through Homebrew gives you both, with the GNU ones prefixed by g — gsed, gdate — unless you put the gnubin directory on your PATH.",
+        analogy:
+          "Two manufacturers both make a device called a drill. Both drill holes. The bits are not interchangeable, and the manual from one will not help you operate the other.",
+        example: {
+          command: "sed --version | head -1",
+          output: "sed (GNU sed) 4.9",
+          explanation:
+            "On Linux this prints a GNU version string. On macOS the same command fails, because BSD sed does not understand --version and reports it as an illegal option. That failure is the quickest way to tell which edition you are on.",
+        },
+        mistakes: [
+          "Debugging a script for an hour on a Mac before realising the tool is a different implementation, not a broken installation.",
+          "Writing sed -i in a script meant to be portable. It is the single most common portability break between Linux and macOS.",
+        ],
+        practices: [
+          "Before blaming your syntax on an unfamiliar machine, run the command with --version to find out which implementation you are talking to.",
+          "In portable scripts, prefer sed -i.bak and delete the backup afterwards, which works on both.",
+        ],
+        exercise: {
+          prompt: "Run ls --version. Then look up what the equivalent would print on a BSD system.",
+          solution:
+            "GNU ls prints a version banner. BSD ls treats --version as an unknown option, prints a usage error, and exits non-zero — it does not have a version flag at all.",
+        },
+        interview: {
+          question: "A script works on your Linux box and fails on a Mac. Where do you look first?",
+          answer:
+            "At which implementation of the tools is being used. Linux ships GNU coreutils, macOS ships the BSD ones, and they differ in option syntax — sed -i and date are the usual offenders. I would check with --version, then either rewrite to the portable subset or install the GNU tools on the Mac.",
+        },
+        related: ["kernel-and-gnu", "bash-scripting"],
+        whereUsed: ["Any build script, Makefile or CI job that is expected to run on both Linux runners and macOS runners."],
       }),
     ],
   }),
@@ -148,27 +281,122 @@ const baseTopics: Topic[] = [
     level: 0,
     difficulty: "Beginner",
     minutes: 15,
-    summary: "A typical Linux system is GNU userland plus the Linux kernel, licensed as free and open source software.",
-    why: "Explains why flags differ, why man pages mention GNU, and why you can read the source.",
+    summary:
+      "The programs you type are not part of the kernel. Most of them came from a project called GNU, and the licence they carry is the reason you can read, change and redistribute the whole system.",
+    why: "It explains why manuals keep saying GNU, why command options differ between systems, and why anyone is allowed to give this away for free.",
     prerequisites: ["what-is-linux"],
     references: [{ label: "GNU/Linux FAQ (FSF)", href: "https://www.gnu.org/gnu/gnu-linux-faq.html" }],
     concepts: [
       concept({
         id: "gnu",
-        title: "GNU/Linux",
-        simple: "GNU provides many userland programs: bash, coreutils (ls, cp), gcc, glibc on many distros. Linux provides the kernel.",
-        technical: "The FSF calls the system GNU/Linux. Alpine uses musl and busybox instead of glibc and GNU coreutils — still Linux, different userland.",
-        analogy: "Kernel is the engine; GNU coreutils are the dashboard switches you actually press.",
+        title: "What GNU is, and why people write GNU/Linux",
+        takeaway: "GNU built the programs; Linux is the kernel. Neither was usable without the other.",
+        simple:
+          "In 1983 Richard Stallman announced a project to build a complete Unix-like system that anybody would be free to use, read, change and share. He called it GNU. Over the following years the project produced an enormous amount of software: the bash shell, the C compiler, the text utilities you use constantly — ls, cp, grep, cat. What it never finished was the kernel. Meanwhile Linus Torvalds had written a working kernel and nothing to run on it. The two halves fitted together, and the combination is what everybody now calls Linux. Because most of the programs came from GNU, some people insist the honest name is GNU/Linux.",
+        technical:
+          "The naming argument is a real disagreement, not pedantry, and knowing it is worth one sentence in an interview. The Free Software Foundation, which runs the GNU project, argues that the userland is the larger part of the work and should be named. Most of the industry says Linux for the whole system and moves on. The useful part for you is the technical claim underneath: userland and kernel are genuinely separable. Alpine Linux replaces GNU coreutils with BusyBox and glibc with musl. Android replaces almost all of it. All three are the Linux kernel with completely different userlands, and a program built for one may not run on another.",
+        analogy:
+          "One company built the engine, another built the entire rest of the car — the seats, the steering wheel, every control you touch. Arguing about whose name goes on the badge is reasonable. Driving it requires both.",
         example: {
           command: "ls --version | head -n 1",
           output: "ls (GNU coreutils) 9.4",
-          explanation: "On GNU systems, ls identifies itself as GNU coreutils. BusyBox ls would look different.",
+          explanation:
+            "The program tells you which family it belongs to. On Alpine the same command prints a BusyBox banner instead, and on a Mac it fails entirely, because BSD ls has no --version flag. Three systems, three editions of the same command.",
         },
-        mistakes: ["Assuming every Linux has GNU ls long options.", "Assuming glibc is the only C library."],
-        practices: ["For containers, know if the image is glibc or musl.", "Read LICENSE files when you vendor binaries."],
-        exercise: { prompt: "Run `type ls` and `ls --help | head` on your system. Is it GNU?", solution: "GNU ls prints long help. BusyBox prints a short option list." },
-        interview: { question: "What does GNU/Linux refer to?", answer: "A system combining the GNU userland with the Linux kernel. Not all Linux systems use GNU userland (Android, Alpine)." },
-        related: ["linux-vs-unix"],
+        mistakes: [
+          "Assuming every Linux system has the GNU long options such as --help. Minimal container images often do not.",
+          "Assuming glibc is the only C library. Alpine uses musl, which is the usual reason a binary that runs on Ubuntu exits immediately in an Alpine container.",
+        ],
+        practices: [
+          "When you choose a container base image, know whether it is glibc or musl before you compile anything against it.",
+          "If a command behaves oddly on an unfamiliar machine, ask which implementation it is before assuming you typed it wrong.",
+        ],
+        exercise: {
+          prompt: "Run ls --version and bash --version. Then run the same thing inside an Alpine container if you have Docker available.",
+          solution:
+            "On a mainstream distribution both report GNU. Alpine reports BusyBox for ls and may not have bash at all, only the smaller ash shell — which is why scripts beginning #!/bin/bash fail there.",
+        },
+        interview: {
+          question: "What does GNU/Linux refer to?",
+          answer:
+            "A system made of the GNU userland — the shell, compiler and core utilities — running on the Linux kernel. The name exists because the two came from separate projects and were combined. It is a meaningful distinction, because systems like Android and Alpine use the Linux kernel with a non-GNU userland.",
+        },
+        related: ["linux-vs-unix", "what-is-linux"],
+        whereUsed: ["Choosing a Docker base image, and debugging why a binary built on one distribution will not start on another."],
+      }),
+      concept({
+        id: "free-software",
+        title: "What open source actually gives you",
+        takeaway: "Free means freedom to use, read, change and share — not price. Most of it is also sold commercially.",
+        simple:
+          "Free software does not mean software that costs nothing. It means software you are allowed to do four things with: run it for any purpose, read how it works, change it, and pass copies on. The price is a separate question — Red Hat sells Linux for a great deal of money, entirely legitimately. The confusion comes from English, where free means both at no cost and unrestricted. Some people say open source instead, partly to avoid exactly that ambiguity.",
+        technical:
+          "Open source and free software describe nearly the same set of licences with different emphasis: the Free Software Foundation frames it as a matter of user rights, the Open Source Initiative frames it as a development method producing better software. In practice the licence list overlaps almost entirely, and the combined abbreviation FOSS is common. What matters operationally is that the source for everything on a stock Linux system is obtainable, which means you can read the code when a tool misbehaves rather than guessing at it, and you can patch and rebuild without asking anyone.",
+        analogy:
+          "A restaurant that publishes its recipes. You can still pay for the meal, and often you will. The point is that nothing stops you cooking it yourself, or changing the seasoning.",
+        example: {
+          command: "apt-get source coreutils",
+          output: "Reading package lists... Done\nNeed to get 5,796 kB of source archives.",
+          explanation:
+            "On Debian and Ubuntu this downloads the actual source of the commands you use every day. There is no sign-up and no licence key. That is the practical meaning of the word free here.",
+        },
+        mistakes: [
+          "Reading free as zero-cost and concluding that commercial Linux support is somehow a contradiction.",
+          "Assuming open source means you may do anything at all. Every licence has conditions, and ignoring them in a product you ship is a real legal problem.",
+        ],
+        practices: [
+          "Read the LICENSE file before bundling someone else's binary or library into something you distribute.",
+          "When a tool behaves in a way the manual does not explain, remember the source is available — that is often faster than guessing.",
+        ],
+        exercise: {
+          prompt: "Find the licence of a package installed on your system, for example with dpkg -s bash or rpm -qi bash.",
+          solution:
+            "bash is GPLv3. The package metadata names the licence, and the full text is usually under /usr/share/doc/<package>/copyright or /usr/share/licenses.",
+        },
+        interview: {
+          question: "Does open source mean the software is free of charge?",
+          answer:
+            "No. It means you can run, read, modify and redistribute it. Price is separate — commercial distributions charge for support and certification. The word free refers to freedom, which is why many people prefer the term open source, or say free as in speech rather than free as in beer.",
+        },
+        related: ["package-managers"],
+        whereUsed: ["Any time your employer asks whether a library may be used in a shipped product."],
+      }),
+      concept({
+        id: "gpl-vs-permissive",
+        title: "GPL and BSD: the clause that split the industry",
+        takeaway: "GPL requires you to pass on the same freedoms. BSD-style licences do not. That difference decided who built what.",
+        simple:
+          "There are two broad kinds of open source licence. The GPL, which the Linux kernel uses, says: do what you like, but if you distribute a modified version, you must release your changes under the same terms. The BSD and MIT licences say: do what you like, just credit us — you may take this into a closed, commercial product and never publish anything back. Both are genuinely open source. They simply disagree about whether the freedom should be compulsory for the next person.",
+        technical:
+          "This single clause explains a surprising amount of computing history. Apple built macOS on BSD-derived code precisely because the licence allowed a closed product; it could not have done the same with the Linux kernel without publishing its changes. Router and phone manufacturers that ship Linux must publish their kernel modifications, which is why you can often find the source for your home router. The requirement is called copyleft, a deliberate inversion of copyright. Note the boundary: the GPL triggers on distribution, not on use, so running a modified kernel on your own servers obliges you to publish nothing.",
+        analogy:
+          "Two people lend you a recipe. One asks only that you mention where you got it. The other says you may change it freely, but if you hand the new version to anyone else, they must be as free to change it as you were.",
+        example: {
+          command: "head -n 4 /usr/share/doc/linux-base/copyright",
+          output: "This package was debianized by...\nLicense: GPL-2",
+          explanation:
+            "The kernel is GPL version 2 specifically, not later versions. That precision matters in licence compatibility arguments, which is why the documentation states the version rather than just saying GPL.",
+        },
+        mistakes: [
+          "Believing the GPL forces you to publish code you only run internally. It applies when you distribute the software to someone else.",
+          "Treating all open source licences as interchangeable when choosing a dependency for a commercial product. They are not, and the difference is the whole point.",
+        ],
+        practices: [
+          "Check the licence of a dependency before it is embedded in something you ship, not after.",
+          "If you modify the kernel or a GPL tool and ship a device containing it, plan to publish those changes — it is a condition, not a courtesy.",
+        ],
+        exercise: {
+          prompt: "Look up the licence of the Linux kernel and of FreeBSD. Write one sentence on what a company shipping a closed product could do with each.",
+          solution:
+            "Linux is GPLv2: a company shipping a modified kernel must publish its modifications. FreeBSD uses a permissive licence: a company may take the code into a closed product and publish nothing, which is broadly what Apple and Sony did.",
+        },
+        interview: {
+          question: "What is the practical difference between the GPL and the BSD licence?",
+          answer:
+            "The GPL is copyleft: if you distribute a modified version, your changes must carry the same licence. BSD and MIT are permissive and allow the code to be taken into closed products. It is why Apple could base macOS on BSD code, and why device manufacturers shipping Linux must publish their kernel patches.",
+        },
+        related: ["linux-security"],
+        whereUsed: ["Licence review before shipping any product that embeds Linux, which includes most consumer hardware."],
       }),
     ],
   }),

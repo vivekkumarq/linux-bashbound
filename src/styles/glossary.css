@@ -1,0 +1,164 @@
+/* ==========================================================================
+   Inline glossary terms.
+
+   A marked term has to be noticeable enough to be worth clicking and quiet
+   enough to read past, because some paragraphs carry three of them. A dotted
+   underline is the long-standing convention for "there is a definition here"
+   and does not compete with real links, which are solid and coloured.
+   ========================================================================== */
+
+.term-wrap {
+  display: inline;
+}
+
+.term {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: help;
+  border-bottom: 1px dashed var(--border-strong);
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.term:hover,
+.term:focus-visible {
+  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 2px;
+}
+
+/* ---- The definition panel ------------------------------------------------
+   Positioned from JS because popovers render in the top layer, where an
+   ancestor cannot position them.
+   ========================================================================== */
+
+.term-pop {
+  position: fixed;
+  margin: 0;
+  display: none;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 15px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-elev);
+  color: var(--text);
+  box-shadow: var(--elev-4);
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.term-pop:popover-open {
+  display: flex;
+}
+
+.term-pop b {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+/* The etymology is the part that stops a name feeling arbitrary, but it is
+   support, not the definition — so it reads a step quieter. */
+.term-why {
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.term-link {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.term-pop::backdrop {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .term-pop:popover-open {
+    animation: term-in var(--dur-fast) var(--ease-out);
+  }
+}
+
+@keyframes term-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ==========================================================================
+   The glossary page.
+   ========================================================================== */
+
+.gloss-list {
+  display: grid;
+  gap: 2px;
+  margin-top: 26px;
+}
+
+.gloss-item {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: calc(var(--nav-h) + 16px);
+}
+
+.gloss-item:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.gloss-term {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.gloss-aka {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.gloss-def {
+  margin: 0;
+}
+
+.gloss-why {
+  margin: 9px 0 0;
+  padding-left: 13px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.gloss-why b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.gloss-more {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+}
+
+@media (max-width: 680px) {
+  .gloss-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 16px 0;
+  }
+}

@@ -8,6 +8,7 @@ import { levels } from "./roadmap";
 import { challenges } from "./challenges";
 import { labs } from "./labs";
 import { cheatSheets } from "./cheatsheets";
+import { glossary } from "./glossary";
 
 export const stats = {
   questions: questions.length,
@@ -19,6 +20,7 @@ export const stats = {
   challenges: challenges.length,
   labs: labs.length,
   cheatSheets: cheatSheets.length,
+  glossary: glossary.length,
 };
 
 /**
@@ -69,6 +71,7 @@ export const routes: string[] = [
   "/progress",
   ...topics.map((t) => `/learn/${t.slug}`),
   ...commands.map((c) => `/commands/${c.name}`),
+  "/glossary",
   ...cheatSheets.map((s) => `/cheatsheets/${s.slug}`),
 ];
 
@@ -117,6 +120,15 @@ for (const topic of topics) {
 // The bank de-duplicates itself on export, so a duplicate reaching here would
 // mean that guard stopped working.
 {
+  for (const entry of glossary) {
+    if (entry.topic && !topics.some((t) => t.slug === entry.topic)) {
+      problems.push(`Glossary term "${entry.term}" points at unknown module "${entry.topic}"`);
+    }
+    if (entry.definition.length < 40) {
+      problems.push(`Glossary term "${entry.term}" has a definition too short to be useful`);
+    }
+  }
+
   const seen = new Set<string>();
   for (const q of questions) {
     const key = q.question.trim().toLowerCase();

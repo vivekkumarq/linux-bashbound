@@ -7,20 +7,20 @@ export const catalogTopics: CatalogTopic[] = [
   {
     "slug": "what-is-linux",
     "title": "What is Linux?",
-    "summary": "Linux is a kernel, and a Linux system is that kernel plus userland tools, libraries, and a package-managed distribution.",
+    "summary": "Linux itself is only the kernel — the part that drives the hardware. A usable system is that kernel plus everything around it: the shell, the commands, the libraries, packaged together as a distribution.",
     "difficulty": "Beginner",
     "minutes": 30,
     "level": 0,
-    "concepts": 5
+    "concepts": 6
   },
   {
     "slug": "linux-vs-unix",
     "title": "Linux vs Unix",
-    "summary": "Unix is a family of operating systems and a design culture. Linux is a Unix-like kernel that is not derived from AT&T Unix source.",
+    "summary": "Unix is the system built at Bell Labs in 1969 and the family that grew from it. Linux is a kernel written from scratch twenty years later that copied the design without using any of the code.",
     "difficulty": "Beginner",
     "minutes": 28,
     "level": 0,
-    "concepts": 3
+    "concepts": 5
   },
   {
     "slug": "distributions",
@@ -34,11 +34,11 @@ export const catalogTopics: CatalogTopic[] = [
   {
     "slug": "kernel-and-gnu",
     "title": "Kernel, GNU, and open source",
-    "summary": "A typical Linux system is GNU userland plus the Linux kernel, licensed as free and open source software.",
+    "summary": "The programs you type are not part of the kernel. Most of them came from a project called GNU, and the licence they carry is the reason you can read, change and redistribute the whole system.",
     "difficulty": "Beginner",
     "minutes": 27,
     "level": 0,
-    "concepts": 3
+    "concepts": 5
   },
   {
     "slug": "architecture",

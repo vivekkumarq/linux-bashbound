@@ -16,6 +16,7 @@ import "./styles/polish.css";
 import "./styles/hero.css";
 import "./styles/shell.css";
 import "./styles/dash.css";
+import "./styles/glossary.css";
 import "./styles/mobile.css";
 import { HomePage } from "./pages/HomePage.tsx";
 
@@ -55,6 +56,7 @@ const router = createBrowserRouter(
         { path: "interview/:id", lazy: page(() => import("./pages/InterviewPage.tsx"), "InterviewPage") },
         { path: "quizzes", lazy: page(() => import("./pages/QuizPage.tsx"), "QuizPage") },
         { path: "challenges", lazy: page(() => import("./pages/ChallengesPage.tsx"), "ChallengesPage") },
+        { path: "glossary", lazy: page(() => import("./pages/GlossaryPage.tsx"), "GlossaryPage") },
         { path: "cheatsheets", lazy: page(() => import("./pages/CheatSheetsPage.tsx"), "CheatSheetsPage") },
         { path: "cheatsheets/:slug", lazy: page(() => import("./pages/CheatSheetsPage.tsx"), "CheatSheetsPage") },
         { path: "troubleshooting", lazy: page(() => import("./pages/LabsPage.tsx"), "LabsPage") },

@@ -52,6 +52,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
     items: [
       { to: "/commands", label: "Commands", icon: "command", count: `${stats.commands}` },
       { to: "/cheatsheets", label: "Cheat sheets", icon: "list", count: `${stats.cheatSheets}` },
+      { to: "/glossary", label: "Glossary", icon: "book", count: `${stats.glossary}` },
     ],
   },
 ];
