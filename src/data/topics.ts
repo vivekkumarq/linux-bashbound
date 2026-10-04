@@ -793,7 +793,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "rwx",
         title: "Reading a mode string",
-        simple: "-rwxr-xr-- means a file, owner rwx, group r-x, others r--.",
+        simple:
+          "The permission string at the start of a long listing is four pieces read left to right. The first character says what kind of thing it is — a dash for an ordinary file, d for a directory, l for a symbolic link. The remaining nine are three groups of three: what the owner may do, what members of the file's group may do, and what everyone else may do. Within each group the letters always appear in the same order, read, write and execute, with a dash where the permission is absent. So rwxr-xr-- is a file its owner may read, write and run, the group may read and run, and others may only read.",
         technical: "Directories use x as 'enter/search'. Without x on a directory, you cannot resolve names inside even if you have r. Numeric 755 is 111 101 101.",
         analogy: "Three locks on a door: owner key, team key, public key. Execute on a directory is permission to walk through.",
         example: {
@@ -823,7 +824,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "special",
         title: "Special bits",
-        simple: "setuid on an executable runs as the file owner. setgid on a directory makes new files inherit the directory group. sticky on a directory means only the owner can delete their files (/tmp).",
+        simple:
+          "Three permission bits sit outside the ordinary read, write and execute scheme, and each solves a specific problem. Setuid on a program makes it run as the file's owner rather than as you, which is how changing your own password can write to a file only root may touch. Setgid on a directory makes new files inside it inherit that directory's group, which is what makes shared project folders work. The sticky bit on a directory means you may only delete your own files there, however open the directory is — it is the reason /tmp can be writable by everyone without users deleting each other's work.",
         technical: "Modes 4xxx setuid, 2xxx setgid, 1xxx sticky. Linux ignores setuid on scripts for security. Capabilities can replace some setuid binaries.",
         analogy: "setuid is a sealed company stamp: the program can sign as the owner. Sticky /tmp is a shared fridge where you can only throw out your own lunch.",
         example: {
@@ -853,7 +855,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "pcb",
         title: "PID, PPID, fork, exec",
-        simple: "Starting a program usually means: the shell forks a copy of itself, then the child execs the new program image.",
+        simple:
+          "Running a command is two operations rather than one. The shell first makes a copy of itself — a new process, identical to its parent, with the same open files and the same environment. That copy then replaces its own contents with the program you asked for, keeping the same process number. The parent waits for it to finish before showing you another prompt. This two-step design is why a program inherits the environment of the shell that started it, and why nothing a program does to its own directory or variables can reach back and affect the shell you are typing into.",
         technical: "fork duplicates the process (copy-on-write). execve replaces the memory image. PID is allocated by the kernel. PPID is the parent. PID 1 is init/systemd.",
         analogy: "A restaurant photocopies a waiter (fork) then the copy puts on a chef hat (exec) and starts a new job.",
         example: {
@@ -884,7 +887,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "sig",
         title: "Signals you must know",
-        simple: "SIGINT (Ctrl-C) asks to interrupt. SIGTERM asks to exit. SIGKILL forces exit and cannot be caught. SIGHUP historically meant the terminal hung up.",
+        simple:
+          "Signals are short messages the kernel delivers to a running process, and the differences between them matter. The interrupt sent by Ctrl-C asks the program to stop, and a well-written one may clean up first or even decline. The terminate signal is the polite request used by shutdown and service management, giving the program a chance to finish writing and close its files. The kill signal cannot be received, caught or ignored at all — the kernel simply removes the process, with nothing flushed and nothing tidied. The hangup signal dates from terminals physically disconnecting and still fires when an SSH session drops.",
         technical: "Signals can be default, ignored, or handled. SIGKILL and SIGSTOP cannot be caught. kill -l lists names. Process groups and sessions matter for job control.",
         analogy: "Email vs eviction: TERM is a polite email. KILL is the building demolished with you inside — no cleanup.",
         example: {
@@ -914,7 +918,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "zomb",
         title: "Zombies and orphans",
-        simple: "A zombie is already dead; it waits for the parent to read its exit status. An orphan is alive with parent PID 1 (or a subreaper).",
+        simple:
+          "Two states sound alarming and mean different things. A zombie is a process that has already finished: it holds nothing but its exit code, waiting for its parent to collect it, using no memory and no processor time. It persists only because the parent has not asked how the child ended. An orphan is the opposite — still running, but its parent has exited, so it is adopted by process 1, which will collect it properly when it finishes. Neither is a problem in itself. A growing list of zombies points at one parent process that never collects its children, and that parent is what needs attention.",
         technical: "After exit, the process becomes a Z state until waitpid. Leaking zombies means a parent is not reaping. systemd as PID 1 reaps orphans.",
         analogy: "A zombie is a closed ticket still on the parent's desk. An orphan is a living worker reassigned to the site manager.",
         example: {
@@ -944,7 +949,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "stack",
         title: "Addresses and ports",
-        simple: "An IP address finds a machine (or interface). A port finds a process on that machine. TCP 22 is conventionally SSH.",
+        simple:
+          "Reaching a program over a network takes two pieces of information, and separating them clarifies most networking. The address identifies a machine, or more precisely one of its network interfaces — it gets your traffic to the right computer. The port identifies which program on that machine should receive it, because one machine runs many services at once. Certain port numbers are conventions rather than rules: web traffic on 443, SSH on 22. Nothing enforces this, and a service can listen anywhere, which is why specifying a non-standard port is routine and why scanning for open ports reveals what a machine is running.",
         technical: "IPv4 is 32-bit; IPv6 is 128-bit. Sockets are (protocol, local IP, local port, remote IP, remote port) for TCP. Listening sockets omit a connected peer. localhost is 127.0.0.1 / ::1 on the loopback interface.",
         analogy: "IP is the street address. Port is the apartment number. TCP is a phone call; UDP is a postcard.",
         example: {
@@ -974,7 +980,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "dns",
         title: "Name resolution on Linux",
-        simple: "Applications call libc, which may use /etc/nsswitch.conf, /etc/hosts, then DNS via resolv.conf or systemd-resolved.",
+        simple:
+          "Turning a name into an address is not a single lookup. A program asks the system, and the system works through a configured list of sources in order. It normally checks the local hosts file first, so an entry there overrides everything with no query ever leaving the machine. Only then does it ask a DNS server, which may itself be a local service that caches answers before forwarding them. Each stage can cache, and that is why a changed record can take effect on one machine and not another, and why the diagnostic tools that query DNS directly can disagree with what your applications actually see.",
         technical: "getent hosts name uses NSS. dig @server bypasses NSS and queries a nameserver directly — useful, but not what every app does.",
         analogy: "hosts file is your personal address book. DNS is the public directory. nsswitch chooses the order.",
         example: {
@@ -1004,7 +1011,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "ssh",
         title: "SSH essentials",
-        simple: "ssh user@host opens a shell. Authentication should use private keys stored with mode 600. Never disable host key checking in production.",
+        simple:
+          "SSH gives you an encrypted connection to a shell on another machine, and two of its security properties are worth understanding rather than clicking past. Authentication should use a key pair: a private key that never leaves your machine and a public key copied to each server, so no secret is ever transmitted and nothing can be guessed. The second is the host key. The first time you connect, the server's identity is recorded, and a warning on later connections means the server is not the one you spoke to before. That warning is the only protection against someone impersonating the server, so it should never be routinely bypassed.",
         technical: "sshd_config controls password vs pubkey, PermitRootLogin, AllowUsers. ssh-copy-id installs a public key into authorized_keys. Tunnels: -L -R -D.",
         analogy: "SSH is a locked corridor between buildings. The host key is the building's fingerprint; your user key is your badge.",
         example: {
@@ -1035,7 +1043,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "repo",
         title: "Repositories and dependencies",
-        simple: "apt update refreshes the index. apt install reads the index, fetches debs, and unpacks them with dpkg. Dependencies are other packages required to work.",
+        simple:
+          "A package manager works from a catalogue of what is available and where to download it. That catalogue is a local copy of what the distribution's servers published, and it goes out of date. Installing involves reading the catalogue, working out what else the package needs, downloading all of it, and unpacking it in the right order. Dependency resolution is the part doing the real work: asking for one package can bring in dozens, each because something else required it. This is also why installing software by hand into the same directories causes trouble later — the package manager has no record of it.",
         technical: "A repository is a URL with metadata (Packages/repodata). Pinning, holds, and version locks matter in production. RPM and DEB both separate high-level solvers from low-level unpackers.",
         analogy: "A repo is a grocery chain. The solver is your shopping list expanding into ingredients. dpkg/rpm is putting items in the cupboard.",
         example: {
@@ -1065,7 +1074,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "script",
         title: "A safe-enough script skeleton",
-        simple: "Start with a shebang, enable nounset, quote variables, check command success, and write to stderr for errors.",
+        simple:
+          "A shell script is a file of commands run in order, and there are a few things that separate one that works from one that fails quietly. It starts with a line naming the interpreter, so the right shell runs it. It should stop when something fails, because the default is to carry on to the next line regardless — a script whose first step failed will otherwise happily proceed to delete or deploy. Variables should be quoted, because unquoted values split apart at spaces. And errors belong on the error stream, so that piping the output somewhere does not swallow the explanation of what went wrong.",
         technical: "#!/usr/bin/env bash. set -euo pipefail helps but has pitfalls (conditionals, pipelines). Prefer explicit error handling for critical paths. Exit codes: 0 success, non-zero failure. POSIX vs Bash: arrays and [[ ]] are Bash.",
         analogy: "A script is a recipe card. Shebang chooses the chef. set -u refuses missing ingredients instead of silently cooking air.",
         example: {
@@ -1095,7 +1105,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "fd",
         title: "Descriptors and pipes",
-        simple: "ls > f writes stdout to a file. ls 2> e writes stderr. ls | grep x connects two processes.",
+        simple:
+          "Every process starts with three channels already open, and they are numbered. Zero is input, where a command reads from when you do not name a file. One is normal output. Two is error output, deliberately kept separate so that error messages still reach you when the real output is being redirected somewhere else. Redirection and pipes are both just ways of reattaching those numbered channels to something other than your terminal: to a file, or to another process. This numbering is why redirecting errors is written with a 2 in front — it is the channel number, not an arbitrary piece of syntax.",
         technical: "The kernel pipe has a buffer. Writers block when full; readers block when empty. 2>&1 duplicates stderr onto stdout. Process substitution <(cmd) is Bash, not POSIX.",
         analogy: "Pipes are plumbing. Redirects are valves to tanks (files). 2>&1 dumps the error pipe into the same tank as output.",
         example: {
@@ -1125,7 +1136,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "backup",
         title: "Backup with tar (safe pattern)",
-        simple: "Create a dated tarball of a directory using relative paths, write next to a staging path, then move into place.",
+        simple:
+          "A backup script looks trivial and has several details that decide whether it is useful when you need it. Archive with relative paths, so the contents can be restored somewhere other than exactly where they came from. Include the date in the filename, so you can tell versions apart and expire old ones. Write to a temporary name and move it into place only when complete, because a move within one filesystem is atomic — that way a backup interrupted halfway never appears as a finished file. And the step everyone skips: restore one, because an untested backup is a belief rather than a backup.",
         technical: "tar -C src . -czf dest.tar.gz avoids absolute paths. Check tar's exit code. Do not tar / without excludes. For hosts, real backup tools (restic, borg, vendor snapshots) are better than homemade tar alone.",
         analogy: "Pack a suitcase from inside the room (relative paths) so unpacking does not recreate /home/you on someone else's machine accidentally at the root.",
         example: {
@@ -1155,7 +1167,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "unit",
         title: "Units",
-        simple: "A service unit says how to start a process, when to restart it, and what it needs (network, disks).",
+        simple:
+          "A service definition is a short text file answering the questions the system needs to start something reliably. What command runs it. What must already be working before it starts — the network, a mounted disk, a database. What should happen if it exits: leave it alone, or restart it, and how often before giving up. Which user it runs as, and what limits apply to it. The value is that all of this is declared rather than scripted, so the system can start services in the right order, restart what fails, and tell you honestly whether something is running.",
         technical: "Types: .service .socket .timer .mount .target. [Unit] After/Requires/Wants. [Service] Type=simple|forking|notify, ExecStart, User. Override with systemctl edit which writes /etc/systemd/system/unit.d/.",
         analogy: "A unit is an employee handbook page: who to hire, what they need on the desk, what to do if they faint.",
         example: {
@@ -1186,7 +1199,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "journal",
         title: "journalctl and cron",
-        simple: "journalctl -u nginx -f follows nginx logs. crontab -e edits your user's table. systemd timers are units with calendar events.",
+        simple:
+          "Two jobs that used to need separate tools are now part of the same system. Logs from every service go into one indexed store, so you query it by service, by time, or by severity rather than guessing which file to read and grepping it. Scheduled work can likewise be defined as a unit with a timer, which means its output lands in the same log and a failure leaves evidence instead of vanishing. The older cron is still perfectly good and is portable to systems without systemd — but a cron job that fails silently is the classic problem the newer approach was designed to remove.",
         technical: "Journals may be volatile in /run or persistent in /var/log/journal. Rate limiting exists. Cron uses a minimal environment. Timers can Persistent=true to catch up after downtime.",
         analogy: "journalctl is the black box recorder. cron is a paper alarm clock. timers are calendar invites that systemd actually honors after a reboot if you ask.",
         example: {
@@ -1216,7 +1230,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "identity",
         title: "Host identity",
-        simple: "hostnamectl sets the name. timedatectl sets timezone and NTP. sshd_config decides who can log in.",
+        simple:
+          "A handful of settings define what a machine is and who may reach it, and each has a dedicated tool rather than a file to edit by hand. The hostname is what the machine calls itself in logs and on the network. Time configuration covers both the timezone and whether the clock is being kept synchronised — the second matters far more than it sounds, because certificates are only valid within a time window and a drifting clock breaks secure connections in ways that blame the certificate. The SSH daemon's configuration decides who can log in and how, which is the one to change most carefully.",
         technical: "Static hostname persists in /etc/hostname. Wrong time breaks TLS validation and log correlation. Locale affects sort order and decimal commas — use C.UTF-8 in servers when you want predictability.",
         analogy: "A shop sign (hostname), a wall clock (NTP), a language on the forms (locale), and the lock on the back door (sshd).",
         example: {
@@ -1246,7 +1261,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "block",
         title: "lsblk before you touch anything",
-        simple: "lsblk -f shows disks, sizes, filesystem types, UUIDs, and mountpoints. Use it before fdisk or mkfs.",
+        simple:
+          "Before doing anything to a disk you need to know exactly which device you are about to write to, and device names are less predictable than tutorials suggest — the first disk is sda on some systems, nvme0n1 on others, vda on virtual machines. Listing the block devices shows each one's size, what filesystem is on it, its unique identifier, and crucially whether it is currently mounted. That last column is the check that matters, because commands which partition or format do not ask for confirmation and cannot be undone. If the device you were about to format has a mount point, stop.",
         technical: "NVMe names like /dev/nvme0n1p2 vs SCSI /dev/sda2 vs virtio /dev/vda. GPT supports large disks and many partitions; MBR is legacy 2 TiB-ish with 4 primary slots. ext4 is the common general-purpose FS; XFS is common on RHEL data volumes; Btrfs adds snapshots.",
         analogy: "A warehouse (disk), painted lanes (partitions), shelving system (filesystem). Formatting is throwing out the old shelving.",
         example: {
@@ -1276,7 +1292,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "lvm",
         title: "Capacity tools",
-        simple: "df answers 'how full is this mount?'. du answers 'which directory is using space?'. Inodes can exhaust independently (df -i).",
+        simple:
+          "Two different questions about disk space need two different commands, used in that order. The first reports each mounted filesystem's capacity and usage, which tells you which filesystem is full — a machine has several and usually only one is the problem. The second adds up what directories are consuming, which tells you where the space went. Running the second first is how people spend twenty minutes measuring a filesystem that was never full. There is also a second way to run out: a filesystem can exhaust its supply of file records while still reporting free space, so creating a file fails for no visible reason.",
         technical: "LVM: PV → VG → LV. Grow PV, lvextend, then xfs_growfs or resize2fs. fstab fields: device, mountpoint, type, options, dump, pass.",
         analogy: "df is the fuel gauge. du is opening compartments to find the bowling ball.",
         example: {
@@ -1306,7 +1323,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "mac",
         title: "Defense in layers",
-        simple: "Unix permissions are DAC. SELinux/AppArmor add mandatory policy even for root in targeted ways. Firewalls limit the network. SSH keys limit who can log in.",
+        simple:
+          "There are several independent layers deciding whether an action is allowed, and a refusal from any one of them looks much the same. The familiar layer is ownership and permission bits, which the file's owner can change at will. On top of that, most enterprise systems run a mandatory policy — SELinux or AppArmor — that constrains what each program may do regardless of who runs it, and which even root cannot simply override. Separately, the firewall decides what can reach the machine, and the SSH configuration decides who may log in. Diagnosing an access problem means knowing which layer said no.",
         technical: "SELinux labels (type enforcement) vs AppArmor path-based profiles. Capabilities split root powers. seccomp filters syscalls. Auditd records security events.",
         analogy: "Locks on doors (DAC), building rules that apply even to the owner (MAC), a fence (firewall), and a guest list (SSH).",
         example: {
@@ -1337,7 +1355,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "load",
         title: "Load, memory, I/O",
-        simple: "Load average is the number of threads wanting CPU plus those in uninterruptible wait, averaged. Memory 'used' includes cache, which is reclaimable. Disk latency (await) hurts more than throughput for many apps.",
+        simple:
+          "Three numbers are commonly misread. Load average is not a percentage: it counts tasks running or waiting, so it means nothing until compared with the processor count, and on Linux it also includes tasks stuck waiting for a slow disk. Memory marked as used includes the cache of file contents, which is given back the instant anything needs it, so a server reporting almost all memory used is usually healthy. And for most applications, how long each disk operation takes matters far more than how much data per second the disk can move — a fast disk with high latency still feels slow.",
         technical: "On Linux, /proc/loadavg. free's available is the better 'can I allocate' number. vmstat 1: r (run queue), si/so swap, wa I/O wait. iostat await and %util. Context switches in vmstat cs.",
         analogy: "A supermarket: load is how many people are in line plus those frozen at a broken card reader (D state). Cache is stock on the shelf, not trash.",
         example: {
@@ -1367,7 +1386,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "tcp",
         title: "TCP states on Linux",
-        simple: "LISTEN means a server wait. ESTAB is a live connection. TIME-WAIT is a closed connection lingering to catch delayed packets.",
+        simple:
+          "A connection passes through states, and three of them are what you see most often. Listening means a server is waiting and nothing has connected yet. Established is a live connection with traffic flowing. Time-wait is a connection that has closed but is being remembered for a couple of minutes, so that a delayed packet from it cannot be mistaken for part of a new connection reusing the same ports. The last one is correct behaviour rather than a leak, and seeing thousands after a load test is expected — it only matters if the volume exhausts the supply of local port numbers.",
         technical: "Three-way handshake SYN, SYN-ACK, ACK. Connection refused: no listener (RST). Timeout: filter drop. ss -tmi shows TCP_INFO. ephemeral ports can exhaust.",
         analogy: "LISTEN is an open ticket window. TIME-WAIT is staying at the counter for a moment so a delayed letter does not open a new conversation with the wrong meaning.",
         example: {
@@ -1397,7 +1417,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "ns",
         title: "Isolation vs virtualization",
-        simple: "A namespace changes what a process sees (PID tree, mounts, net stack, users). A cgroup limits what it can burn (CPU, memory, I/O).",
+        simple:
+          "Containers are built from two separate kernel features that are easy to confuse. Namespaces control what a process can see: give it its own process namespace and it sees only its own processes, numbered from one, with the rest of the machine invisible. The same applies to the filesystem, the network and user accounts. Control groups are about consumption rather than visibility: how much processor time, memory and disk throughput this group of processes may use. Seeing less and using less are different mechanisms, and most container behaviour becomes predictable once you know which of the two is responsible.",
         technical: "Namespaces: pid, mnt, net, uts, ipc, user, cgroup, time. User namespaces map UIDs. cgroup v2 is a unified hierarchy. capabilities drop from the bounding set. seccomp reduces syscalls.",
         analogy: "Namespaces are different window views of the same city. cgroups are the electricity meter. A VM is a different building.",
         example: {
@@ -1428,7 +1449,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "vm",
         title: "Pages, cache, IPC",
-        simple: "RAM holds process pages and the page cache of file data. Pipes and Unix sockets are IPC. mmap maps files or anonymous memory into the address space.",
+        simple:
+          "Memory does more than hold running programs. A large part of it caches the contents of files that have been read, so reading the same file again never touches the disk — this is why a repeated command is dramatically faster and why a server showing most of its memory in use is usually healthy. Separately, processes that need to exchange data have several ways to do it without going through a file: pipes for a simple stream, sockets for something more structured, or mapping the same region of memory into both so they are quite literally looking at the same bytes.",
         technical: "OOM killer scores processes when reclaim fails. Dirty pages must be written back. epoll waits on many fds efficiently. POSIX shm and System V shm still exist; Unix sockets are preferred for many local RPC cases.",
         analogy: "Virtual memory is a huge desk overlay; physical RAM is the real desktop. The page cache is reference books left open. Pipes are speaking tubes.",
         example: {
@@ -1458,7 +1480,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "posix",
         title: "POSIX and cousins",
-        simple: "POSIX specifies shells, utilities, and APIs. A POSIX script using /bin/sh is the most portable. GNU and BSD utilities extend POSIX differently.",
+        simple:
+          "POSIX is a written standard describing what a Unix-like system must provide: the shell language, a set of utilities with their required options, and the functions available to C programs. Its practical value is that it defines the portable subset. A script with #!/bin/sh using only standard features will run on Linux, macOS and BSD without modification. The complication is that the GNU tools on Linux and the BSD tools on macOS both extend the standard, in different directions — so a script that works on the machine you wrote it on tells you nothing about whether it is portable.",
         technical: "System V vs BSD showed different ps flags, print subsystems, and init. Linux adopted a mix (systemd is neither). macOS: BSD commands, launchd, APFS, not systemd, not GNU coreutils by default.",
         analogy: "POSIX is the constitution. Distros and BSDs are states with extra laws. GNU flags are popular amendments not everyone ratified.",
         example: {
@@ -1488,7 +1511,8 @@ const baseTopics: Topic[] = [
       concept({
         id: "prod",
         title: "How production differs from a laptop",
-        simple: "You log in less, automate more, assume failure, and never 'just chmod 777' on a Friday.",
+        simple:
+          "Running systems that matter changes your habits more than your knowledge. You log into machines less, because a change made by hand exists nowhere else and is lost at the next rebuild. You automate more, so the same change applies identically everywhere and is written down by definition. You assume things will fail and ask what happens when they do, rather than hoping. And you make changes you can reverse — knowing the specific undo before you start, because the moment you need it is the moment you are least able to work it out.",
         technical: "Immutable images, configuration management, central logs/metrics/traces, health checks, rolling restarts via systemd or orchestrators, secrets not in git, time sync, and tested restore. Cloud Linux is still Linux: same syscalls, extra metadata services.",
         analogy: "A home kitchen vs a restaurant: same knives, health code, tickets, and a prep list.",
         example: {
