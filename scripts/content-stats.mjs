@@ -58,7 +58,7 @@ writeFileSync(
 
 // Sitemap and llms.txt, generated from the same content so a new module or
 // command appears in them without anyone remembering to add it.
-const SITE = "https://vivekkumarq.github.io/linux-bashbound";
+const SITE = "https://linuxbashbound.duckdns.org";
 const today = new Date().toISOString().slice(0, 10);
 
 writeFileSync(

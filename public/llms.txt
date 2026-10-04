@@ -1,73 +1,73 @@
 # Linux BashBound
 
-> An interactive Linux and Unix learning platform: a 16-level roadmap, 40 modules, 128 documented commands, 1282 interview questions, a simulated shell, quizzes and incident labs. Static site, no account, progress stored in the browser.
+> An interactive Linux and Unix learning platform: a 16-level roadmap, 40 modules, 128 documented commands, 1301 interview questions, a simulated shell, quizzes and incident labs. Static site, no account, progress stored in the browser.
 
 ## Start here
 
-- [Roadmap](https://vivekkumarq.github.io/linux-bashbound/roadmap): the 16 levels in dependency order
-- [All modules](https://vivekkumarq.github.io/linux-bashbound/learn): the full curriculum index
-- [Command explorer](https://vivekkumarq.github.io/linux-bashbound/commands): 128 commands with syntax, flags and examples
-- [Interview arena](https://vivekkumarq.github.io/linux-bashbound/interview): 1282 questions with answers and explanations
-- [Terminal sandbox](https://vivekkumarq.github.io/linux-bashbound/terminal): a simulated shell; nothing runs on the host
+- [Roadmap](https://linuxbashbound.duckdns.org/roadmap): the 16 levels in dependency order
+- [All modules](https://linuxbashbound.duckdns.org/learn): the full curriculum index
+- [Command explorer](https://linuxbashbound.duckdns.org/commands): 128 commands with syntax, flags and examples
+- [Interview arena](https://linuxbashbound.duckdns.org/interview): 1301 questions with answers and explanations
+- [Terminal sandbox](https://linuxbashbound.duckdns.org/terminal): a simulated shell; nothing runs on the host
 
 ## Curriculum
 
-- [Level 00 — Linux Fundamentals](https://vivekkumarq.github.io/linux-bashbound/roadmap): Operating systems, distributions, kernel vs user space, boot, and the filesystem map.
-- [Level 01 — Terminal & Shell](https://vivekkumarq.github.io/linux-bashbound/roadmap): Terminal vs shell, prompts, arguments, PATH, quoting, history, and expansion.
-- [Level 02 — Filesystem](https://vivekkumarq.github.io/linux-bashbound/roadmap): Inodes, links, descriptors, mount points, and the FHS directories you will live in.
-- [Level 03 — Users & Permissions](https://vivekkumarq.github.io/linux-bashbound/roadmap): Users, groups, sudo, mode bits, umask, special bits, and ACLs.
-- [Level 04 — Processes](https://vivekkumarq.github.io/linux-bashbound/roadmap): PID, fork/exec, jobs, signals, priorities, zombies, and daemons.
-- [Level 05 — Networking](https://vivekkumarq.github.io/linux-bashbound/roadmap): IP, TCP/UDP, DNS, routing, SSH, and the commands you will use daily.
-- [Level 06 — Package Management](https://vivekkumarq.github.io/linux-bashbound/roadmap): APT, DNF, Pacman, RPM/DEB, repositories, and dependencies.
-- [Level 07 — Bash Scripting](https://vivekkumarq.github.io/linux-bashbound/roadmap): Variables, control flow, pipes, redirection, functions, and production scripts.
-- [Level 08 — System Administration](https://vivekkumarq.github.io/linux-bashbound/roadmap): systemd, logs, timers, SSH configuration, hostname, and locale.
-- [Level 09 — Storage & Filesystems](https://vivekkumarq.github.io/linux-bashbound/roadmap): GPT/MBR, ext4/XFS/Btrfs, LVM, fstab, and capacity tools.
-- [Level 10 — Security](https://vivekkumarq.github.io/linux-bashbound/roadmap): SSH keys, firewalls, SELinux/AppArmor, audit, and hardening.
-- [Level 11 — Performance & Monitoring](https://vivekkumarq.github.io/linux-bashbound/roadmap): Load average, memory, I/O, caching, swap, and the standard toolkit.
-- [Level 12 — Networking Internals](https://vivekkumarq.github.io/linux-bashbound/roadmap): TCP handshake, sockets, routing lookups, and packet path on Linux.
-- [Level 13 — Advanced Linux](https://vivekkumarq.github.io/linux-bashbound/roadmap): Namespaces, cgroups, capabilities, virtual memory, IPC, epoll.
-- [Level 14 — Unix & POSIX](https://vivekkumarq.github.io/linux-bashbound/roadmap): Unix history, POSIX, BSD vs System V, and how macOS fits.
-- [Level 15 — Production Linux](https://vivekkumarq.github.io/linux-bashbound/roadmap): DevOps-facing Linux: services, observability, incidents, and change control.
+- [Level 00 — Linux Fundamentals](https://linuxbashbound.duckdns.org/roadmap): Operating systems, distributions, kernel vs user space, boot, and the filesystem map.
+- [Level 01 — Terminal & Shell](https://linuxbashbound.duckdns.org/roadmap): Terminal vs shell, prompts, arguments, PATH, quoting, history, and expansion.
+- [Level 02 — Filesystem](https://linuxbashbound.duckdns.org/roadmap): Inodes, links, descriptors, mount points, and the FHS directories you will live in.
+- [Level 03 — Users & Permissions](https://linuxbashbound.duckdns.org/roadmap): Users, groups, sudo, mode bits, umask, special bits, and ACLs.
+- [Level 04 — Processes](https://linuxbashbound.duckdns.org/roadmap): PID, fork/exec, jobs, signals, priorities, zombies, and daemons.
+- [Level 05 — Networking](https://linuxbashbound.duckdns.org/roadmap): IP, TCP/UDP, DNS, routing, SSH, and the commands you will use daily.
+- [Level 06 — Package Management](https://linuxbashbound.duckdns.org/roadmap): APT, DNF, Pacman, RPM/DEB, repositories, and dependencies.
+- [Level 07 — Bash Scripting](https://linuxbashbound.duckdns.org/roadmap): Variables, control flow, pipes, redirection, functions, and production scripts.
+- [Level 08 — System Administration](https://linuxbashbound.duckdns.org/roadmap): systemd, logs, timers, SSH configuration, hostname, and locale.
+- [Level 09 — Storage & Filesystems](https://linuxbashbound.duckdns.org/roadmap): GPT/MBR, ext4/XFS/Btrfs, LVM, fstab, and capacity tools.
+- [Level 10 — Security](https://linuxbashbound.duckdns.org/roadmap): SSH keys, firewalls, SELinux/AppArmor, audit, and hardening.
+- [Level 11 — Performance & Monitoring](https://linuxbashbound.duckdns.org/roadmap): Load average, memory, I/O, caching, swap, and the standard toolkit.
+- [Level 12 — Networking Internals](https://linuxbashbound.duckdns.org/roadmap): TCP handshake, sockets, routing lookups, and packet path on Linux.
+- [Level 13 — Advanced Linux](https://linuxbashbound.duckdns.org/roadmap): Namespaces, cgroups, capabilities, virtual memory, IPC, epoll.
+- [Level 14 — Unix & POSIX](https://linuxbashbound.duckdns.org/roadmap): Unix history, POSIX, BSD vs System V, and how macOS fits.
+- [Level 15 — Production Linux](https://linuxbashbound.duckdns.org/roadmap): DevOps-facing Linux: services, observability, incidents, and change control.
 
 ## Modules
 
-- [What is Linux?](https://vivekkumarq.github.io/linux-bashbound/learn/what-is-linux): Linux is a kernel, and a Linux system is that kernel plus userland tools, libraries, and a package-managed distribution.
-- [Linux vs Unix](https://vivekkumarq.github.io/linux-bashbound/learn/linux-vs-unix): Unix is a family of operating systems and a design culture. Linux is a Unix-like kernel that is not derived from AT&T Unix source.
-- [Linux distributions](https://vivekkumarq.github.io/linux-bashbound/learn/distributions): Pick a distro family and you pick a package format, release model, and default administration style.
-- [Kernel, GNU, and open source](https://vivekkumarq.github.io/linux-bashbound/learn/kernel-and-gnu): A typical Linux system is GNU userland plus the Linux kernel, licensed as free and open source software.
-- [Linux architecture](https://vivekkumarq.github.io/linux-bashbound/learn/architecture): Applications talk to the kernel through system calls. The kernel talks to hardware. The shell is just another user program.
-- [Boot process and init](https://vivekkumarq.github.io/linux-bashbound/learn/boot-and-init): Firmware loads a bootloader, the bootloader loads the kernel, the kernel starts PID 1 (usually systemd).
-- [Directory structure (FHS)](https://vivekkumarq.github.io/linux-bashbound/learn/directory-map): Linux paths are a contract: /etc is config, /var is variable data, /usr is shipped software, /home is people.
-- [man, info, and --help](https://vivekkumarq.github.io/linux-bashbound/learn/help-systems): The local system documents itself. Learn the sections and you become independent.
-- [Terminal, console, and shell](https://vivekkumarq.github.io/linux-bashbound/learn/terminal-shell): The terminal displays bytes. The shell interprets your typing. They are not the same program.
-- [Bash commands, arguments, and the prompt](https://vivekkumarq.github.io/linux-bashbound/learn/bash-basics): A command line is a program name plus arguments. The prompt is a hint, not part of the command.
-- [Environment variables and PATH](https://vivekkumarq.github.io/linux-bashbound/learn/env-and-path): Child processes inherit environment variables. PATH is the list of directories searched for commands.
-- [Quoting, escaping, and expansion](https://vivekkumarq.github.io/linux-bashbound/learn/quoting-expansion): The shell rewrites your line before the program sees it: globs, variables, command substitution, word splitting.
-- [Inodes, hard links, and symbolic links](https://vivekkumarq.github.io/linux-bashbound/learn/inodes-and-links): A filename is a directory entry pointing at an inode. Hard links are extra names. Symlinks are path strings.
-- [Mounts and mount points](https://vivekkumarq.github.io/linux-bashbound/learn/mounts): A filesystem is usable only after it is mounted on a directory.
-- [Important directories in depth](https://vivekkumarq.github.io/linux-bashbound/learn/fhs-deep-dive): /etc configuration, /var state, /usr shipped software, /proc and /sys kernel interfaces, /dev devices, /run runtime.
-- [Users, groups, root, and sudo](https://vivekkumarq.github.io/linux-bashbound/learn/users-groups): Identity is a UID and GIDs. Root is UID 0. sudo is controlled delegation.
-- [Permission bits, chmod, chown, umask](https://vivekkumarq.github.io/linux-bashbound/learn/mode-bits): Each file has owner, group, and a mode: rwx for user, group, others.
-- [setuid, setgid, sticky bit, and ACLs](https://vivekkumarq.github.io/linux-bashbound/learn/special-bits-acl): Special mode bits change execution identity or deletion rules. ACLs add named users beyond owner/group/other.
-- [What is a process?](https://vivekkumarq.github.io/linux-bashbound/learn/process-model): A process is a running program with a PID, memory, file descriptors, and credentials.
-- [Jobs, foreground, background, signals](https://vivekkumarq.github.io/linux-bashbound/learn/jobs-signals): Job control is a shell feature. Signals are kernel messages to processes.
-- [Monitoring and controlling processes](https://vivekkumarq.github.io/linux-bashbound/learn/process-control): ps, top, nice, and zombie/orphan behavior.
-- [IP, TCP, UDP, and ports](https://vivekkumarq.github.io/linux-bashbound/learn/net-fundamentals): Hosts have addresses. Processes bind ports. TCP is a connection; UDP is datagrams.
-- [DNS, DHCP, and routing basics](https://vivekkumarq.github.io/linux-bashbound/learn/name-resolution): DHCP configures an address. DNS maps names. Routing decides the next hop.
-- [SSH and copying files](https://vivekkumarq.github.io/linux-bashbound/learn/remote-access): SSH is the standard encrypted admin channel. Keys beat passwords.
-- [Package management](https://vivekkumarq.github.io/linux-bashbound/learn/package-managers): Packages are signed bundles with metadata and dependencies, served from repositories.
-- [Bash scripting fundamentals](https://vivekkumarq.github.io/linux-bashbound/learn/bash-scripting): Variables, tests, loops, functions, exit codes, and set -euo pipefail with its caveats.
-- [Pipes, redirection, and descriptors](https://vivekkumarq.github.io/linux-bashbound/learn/pipes-redirection): stdin 0, stdout 1, stderr 2. Pipes connect stdout of one process to stdin of the next.
-- [Practical Bash scripts](https://vivekkumarq.github.io/linux-bashbound/learn/practical-scripts): Backup, log grep, disk check, service check, file organizer — patterns you can adapt.
-- [systemd units and services](https://vivekkumarq.github.io/linux-bashbound/learn/systemd): Units describe services, sockets, mounts, timers. systemctl is the control plane.
-- [Logs, cron, and timers](https://vivekkumarq.github.io/linux-bashbound/learn/logs-and-jobs): journald is the systemd log. cron and systemd timers schedule work.
-- [Hostname, time, locale, SSH server](https://vivekkumarq.github.io/linux-bashbound/learn/host-config): Identity of a machine: name, clock, language, and how admins log in.
-- [Disks, partitions, and filesystem types](https://vivekkumarq.github.io/linux-bashbound/learn/disks-partitions): Block devices are split into partitions with a table (GPT or MBR) and formatted with a filesystem.
-- [LVM, fstab, df, and du](https://vivekkumarq.github.io/linux-bashbound/learn/lvm-and-fstab): LVM abstracts disks into flexible volumes. fstab mounts them at boot. df vs du diagnose fullness.
-- [Linux security model](https://vivekkumarq.github.io/linux-bashbound/learn/linux-security): Discretionary permissions, sudo, SSH, MAC (SELinux/AppArmor), firewalls, and least privilege.
-- [Performance and monitoring](https://vivekkumarq.github.io/linux-bashbound/learn/performance-basics): Measure CPU, memory, disk, network before changing anything. Load average is a queue length.
-- [TCP internals and Linux sockets](https://vivekkumarq.github.io/linux-bashbound/learn/tcp-and-sockets): Handshake, states, and how Linux represents connections as inodes/sockets.
-- [Namespaces, cgroups, and containers](https://vivekkumarq.github.io/linux-bashbound/learn/namespaces-cgroups): Containers are processes with isolated namespaces and limited cgroups — not a second kernel.
-- [Virtual memory and IPC](https://vivekkumarq.github.io/linux-bashbound/learn/memory-ipc): Each process has a virtual address space. The kernel maps pages. Processes talk via pipes, sockets, shm, signals.
-- [Unix history, POSIX, BSD, and macOS](https://vivekkumarq.github.io/linux-bashbound/learn/unix-posix): POSIX is the portable contract. BSD and System V are historic Unix branches. macOS is Unix-certified with a BSD userland and a Mach/XNU kernel.
-- [Production Linux and DevOps practice](https://vivekkumarq.github.io/linux-bashbound/learn/production-linux): Production means change control, observability, backups, least privilege, and reversible deploys.
+- [What is Linux?](https://linuxbashbound.duckdns.org/learn/what-is-linux): Linux itself is only the kernel — the part that drives the hardware. A usable system is that kernel plus everything around it: the shell, the commands, the libraries, packaged together as a distribution.
+- [Linux vs Unix](https://linuxbashbound.duckdns.org/learn/linux-vs-unix): Unix is the system built at Bell Labs in 1969 and the family that grew from it. Linux is a kernel written from scratch twenty years later that copied the design without using any of the code.
+- [Linux distributions](https://linuxbashbound.duckdns.org/learn/distributions): Pick a distro family and you pick a package format, release model, and default administration style.
+- [Kernel, GNU, and open source](https://linuxbashbound.duckdns.org/learn/kernel-and-gnu): The programs you type are not part of the kernel. Most of them came from a project called GNU, and the licence they carry is the reason you can read, change and redistribute the whole system.
+- [Linux architecture](https://linuxbashbound.duckdns.org/learn/architecture): Applications talk to the kernel through system calls. The kernel talks to hardware. The shell is just another user program.
+- [Boot process and init](https://linuxbashbound.duckdns.org/learn/boot-and-init): Firmware loads a bootloader, the bootloader loads the kernel, the kernel starts PID 1 (usually systemd).
+- [Directory structure (FHS)](https://linuxbashbound.duckdns.org/learn/directory-map): Linux paths are a contract: /etc is config, /var is variable data, /usr is shipped software, /home is people.
+- [man, info, and --help](https://linuxbashbound.duckdns.org/learn/help-systems): The local system documents itself. Learn the sections and you become independent.
+- [Terminal, console, and shell](https://linuxbashbound.duckdns.org/learn/terminal-shell): The terminal displays bytes. The shell interprets your typing. They are not the same program.
+- [Bash commands, arguments, and the prompt](https://linuxbashbound.duckdns.org/learn/bash-basics): A command line is a program name plus arguments. The prompt is a hint, not part of the command.
+- [Environment variables and PATH](https://linuxbashbound.duckdns.org/learn/env-and-path): Child processes inherit environment variables. PATH is the list of directories searched for commands.
+- [Quoting, escaping, and expansion](https://linuxbashbound.duckdns.org/learn/quoting-expansion): The shell rewrites your line before the program sees it: globs, variables, command substitution, word splitting.
+- [Inodes, hard links, and symbolic links](https://linuxbashbound.duckdns.org/learn/inodes-and-links): A filename is a directory entry pointing at an inode. Hard links are extra names. Symlinks are path strings.
+- [Mounts and mount points](https://linuxbashbound.duckdns.org/learn/mounts): A filesystem is usable only after it is mounted on a directory.
+- [Important directories in depth](https://linuxbashbound.duckdns.org/learn/fhs-deep-dive): /etc configuration, /var state, /usr shipped software, /proc and /sys kernel interfaces, /dev devices, /run runtime.
+- [Users, groups, root, and sudo](https://linuxbashbound.duckdns.org/learn/users-groups): Identity is a UID and GIDs. Root is UID 0. sudo is controlled delegation.
+- [Permission bits, chmod, chown, umask](https://linuxbashbound.duckdns.org/learn/mode-bits): Each file has owner, group, and a mode: rwx for user, group, others.
+- [setuid, setgid, sticky bit, and ACLs](https://linuxbashbound.duckdns.org/learn/special-bits-acl): Special mode bits change execution identity or deletion rules. ACLs add named users beyond owner/group/other.
+- [What is a process?](https://linuxbashbound.duckdns.org/learn/process-model): A process is a running program with a PID, memory, file descriptors, and credentials.
+- [Jobs, foreground, background, signals](https://linuxbashbound.duckdns.org/learn/jobs-signals): Job control is a shell feature. Signals are kernel messages to processes.
+- [Monitoring and controlling processes](https://linuxbashbound.duckdns.org/learn/process-control): ps, top, nice, and zombie/orphan behavior.
+- [IP, TCP, UDP, and ports](https://linuxbashbound.duckdns.org/learn/net-fundamentals): Hosts have addresses. Processes bind ports. TCP is a connection; UDP is datagrams.
+- [DNS, DHCP, and routing basics](https://linuxbashbound.duckdns.org/learn/name-resolution): DHCP configures an address. DNS maps names. Routing decides the next hop.
+- [SSH and copying files](https://linuxbashbound.duckdns.org/learn/remote-access): SSH is the standard encrypted admin channel. Keys beat passwords.
+- [Package management](https://linuxbashbound.duckdns.org/learn/package-managers): Packages are signed bundles with metadata and dependencies, served from repositories.
+- [Bash scripting fundamentals](https://linuxbashbound.duckdns.org/learn/bash-scripting): Variables, tests, loops, functions, exit codes, and set -euo pipefail with its caveats.
+- [Pipes, redirection, and descriptors](https://linuxbashbound.duckdns.org/learn/pipes-redirection): stdin 0, stdout 1, stderr 2. Pipes connect stdout of one process to stdin of the next.
+- [Practical Bash scripts](https://linuxbashbound.duckdns.org/learn/practical-scripts): Backup, log grep, disk check, service check, file organizer — patterns you can adapt.
+- [systemd units and services](https://linuxbashbound.duckdns.org/learn/systemd): Units describe services, sockets, mounts, timers. systemctl is the control plane.
+- [Logs, cron, and timers](https://linuxbashbound.duckdns.org/learn/logs-and-jobs): journald is the systemd log. cron and systemd timers schedule work.
+- [Hostname, time, locale, SSH server](https://linuxbashbound.duckdns.org/learn/host-config): Identity of a machine: name, clock, language, and how admins log in.
+- [Disks, partitions, and filesystem types](https://linuxbashbound.duckdns.org/learn/disks-partitions): Block devices are split into partitions with a table (GPT or MBR) and formatted with a filesystem.
+- [LVM, fstab, df, and du](https://linuxbashbound.duckdns.org/learn/lvm-and-fstab): LVM abstracts disks into flexible volumes. fstab mounts them at boot. df vs du diagnose fullness.
+- [Linux security model](https://linuxbashbound.duckdns.org/learn/linux-security): Discretionary permissions, sudo, SSH, MAC (SELinux/AppArmor), firewalls, and least privilege.
+- [Performance and monitoring](https://linuxbashbound.duckdns.org/learn/performance-basics): Measure CPU, memory, disk, network before changing anything. Load average is a queue length.
+- [TCP internals and Linux sockets](https://linuxbashbound.duckdns.org/learn/tcp-and-sockets): Handshake, states, and how Linux represents connections as inodes/sockets.
+- [Namespaces, cgroups, and containers](https://linuxbashbound.duckdns.org/learn/namespaces-cgroups): Containers are processes with isolated namespaces and limited cgroups — not a second kernel.
+- [Virtual memory and IPC](https://linuxbashbound.duckdns.org/learn/memory-ipc): Each process has a virtual address space. The kernel maps pages. Processes talk via pipes, sockets, shm, signals.
+- [Unix history, POSIX, BSD, and macOS](https://linuxbashbound.duckdns.org/learn/unix-posix): POSIX is the portable contract. BSD and System V are historic Unix branches. macOS is Unix-certified with a BSD userland and a Mach/XNU kernel.
+- [Production Linux and DevOps practice](https://linuxbashbound.duckdns.org/learn/production-linux): Production means change control, observability, backups, least privilege, and reversible deploys.

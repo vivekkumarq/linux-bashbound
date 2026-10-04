@@ -31,9 +31,10 @@ jobs:
       # The build runs content-stats first, which fails on a roadmap level
       # pointing at a module that does not exist, an unreachable module, a
       # dangling prerequisite, or an unanswerable quiz question.
+      # No BASE_PATH: the site is served from linuxbashbound.duckdns.org at the
+      # root, so vite's default base of / is correct. public/CNAME is what tells
+      # Pages to serve it there.
       - name: Build
-        env:
-          BASE_PATH: /${{ github.event.repository.name }}/
         run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

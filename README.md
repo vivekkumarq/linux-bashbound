@@ -6,9 +6,9 @@ An interactive Linux and Unix learning environment. Start at "what is an operati
 
 No account, no server, no backend. Progress lives in `localStorage` on the device you learn on.
 
-**Live site:** [vivekkumarq.github.io/linux-bashbound](https://vivekkumarq.github.io/linux-bashbound/)
+**Live site:** [linuxbashbound.duckdns.org](https://linuxbashbound.duckdns.org)
 
-[Start learning](https://vivekkumarq.github.io/linux-bashbound/learn) · [Roadmap](https://vivekkumarq.github.io/linux-bashbound/roadmap) · [Commands](https://vivekkumarq.github.io/linux-bashbound/commands) · [Interview Arena](https://vivekkumarq.github.io/linux-bashbound/interview) · [Terminal](https://vivekkumarq.github.io/linux-bashbound/terminal) · [Labs](https://vivekkumarq.github.io/linux-bashbound/troubleshooting)
+[Start learning](https://linuxbashbound.duckdns.org/learn) · [Roadmap](https://linuxbashbound.duckdns.org/roadmap) · [Commands](https://linuxbashbound.duckdns.org/commands) · [Interview Arena](https://linuxbashbound.duckdns.org/interview) · [Terminal](https://linuxbashbound.duckdns.org/terminal) · [Labs](https://linuxbashbound.duckdns.org/troubleshooting)
 
 ---
 
@@ -35,13 +35,14 @@ These numbers are counted from the content at build time by `scripts/content-sta
 |---:|---|
 | **16** | roadmap levels |
 | **40** | modules |
-| **122** | concepts |
+| **127** | concepts |
 | **128** | commands |
-| **1,282** | interview questions |
+| **1,301** | interview questions |
 | **86** | multiple-choice questions driving the quiz engine |
 | **30** | daily challenges |
 | **9** | incident labs |
 | **11** | cheat sheets |
+| **37** | glossary terms, defined inline where they first appear |
 
 Every interview question is either hand-written or derived from a lesson field that was already authored as a question and an answer — a concept's own interview Q&A, its exercise, its worked output, its common mistake. Prose restated as a pseudo-question ("explain in simple terms: X") is deliberately **not** generated, because padding a counter is not the same as having questions.
 
@@ -179,7 +180,9 @@ npm run stats        # print content counts and integrity problems
 
 ## Deployment
 
-GitHub Pages, published from this repository by `.github/workflows/pages.yml` on every push to `main`. It installs, builds with `BASE_PATH=/linux-bashbound/`, and publishes `dist/`. Pages is set to **Source: GitHub Actions**.
+GitHub Pages, published from this repository by `.github/workflows/pages.yml` on every push to `main`. It installs, builds, and publishes `dist/`. Pages is set to **Source: GitHub Actions**.
+
+The site is served from the custom domain `linuxbashbound.duckdns.org`, so it sits at the root and needs no base path — vite's default of `/` is correct. `public/CNAME` is what tells Pages to serve it there, and the DuckDNS record is an A record pointing at `185.199.108.153`, one of the GitHub Pages addresses.
 
 Deep links survive a refresh: `public/404.html` stashes the requested path and `src/main.tsx` restores it before the router mounts.
 
