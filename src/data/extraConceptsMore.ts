@@ -13,6 +13,7 @@ function cx(
   a: string,
   related: string[],
   takeaway: string,
+  real?: Real,
 ): Concept {
   return {
     id,
@@ -21,9 +22,9 @@ function cx(
     technical,
     analogy,
     example: { command, output, explanation },
-    mistakes: ["Skipping the simple model and jumping to flags.", "Copying a command without knowing which process it changes."],
-    practices: ["Explain it out loud in one sentence before you run it.", "Check man or --help for the exact flag dialect (GNU vs BSD)."],
-    exercise: {
+    mistakes: real?.mistakes ?? GENERIC.mistakes,
+    practices: real?.practices ?? GENERIC.practices,
+    exercise: real?.exercise ?? {
       prompt: `After reading “${title}”, write one sentence you could tell a junior teammate.`,
       solution: takeaway,
     },
@@ -33,10 +34,31 @@ function cx(
   };
 }
 
+/**
+ * The per-concept content that used to be missing.
+ *
+ * Every concept built by cx() shared one pair of mistakes, one pair of
+ * practices, and an "exercise" that asked the reader to restate the takeaway
+ * — which is not an exercise, and told nobody anything specific about the
+ * subject. Supplying `real` replaces the placeholders with content that is
+ * actually about this concept.
+ */
+interface Real {
+  mistakes: string[];
+  practices: string[];
+  exercise: { prompt: string; solution: string };
+}
+
+/** Placeholders. GENERIC_COUNT in index-stats tracks how many remain. */
+export const GENERIC = {
+  mistakes: ["Skipping the simple model and jumping to flags.", "Copying a command without knowing which process it changes."],
+  practices: ["Explain it out loud in one sentence before you run it.", "Check man or --help for the exact flag dialect (GNU vs BSD)."],
+};
+
 export const extraConceptsMore: Record<string, Concept[]> = {
   architecture: [
-    cx("syscalls-plain", "System calls are the only legal door", "Programs cannot poke the disk themselves. They ask the kernel through a small list of requests: open, read, write, fork, mmap, connect.", "glibc wraps those requests. strace prints them. Section 2 of the manual is the syscall list. Root is still a user-space identity.", "A hotel guest (app) fills a request form (syscall). Staff (kernel) enter the service corridors.", "man 2 syscalls | head", "syscalls(2)", "You do not memorize every syscall. You remember that Permission denied is usually the kernel saying no.", "Root vs kernel mode?", "Root is uid 0 in user space. Kernel mode is a CPU privilege level. Root still uses syscalls.", ["process-model"], "If it needs hardware or isolation, it goes through a syscall."),
-    cx("shared-libs", "Why ldd matters", "Most programs share C libraries. If libc is missing, the binary will not start even if the file is on disk.", "ldd shows dynamic deps. Alpine musl cannot run a glibc binary. Static binaries skip this but are larger.", "A lamp that needs a specific wall socket.", "ldd /bin/ls | head", "linux-vdso.so.1 ... libc.so.6 => /lib/...", "This is why 'it works on my Ubuntu' fails in Alpine.", "What is a missing shared library error?", "The dynamic linker cannot find a .so the binary was built against. Install the package or rebuild for that libc.", ["package-managers"], "Match libc (glibc vs musl) to the binary."),
+    cx("syscalls-plain", "System calls are the only legal door", "Because programs cannot touch hardware themselves, they have to ask, and there is a fixed list of things they are allowed to ask for. That list is the system calls, and there are only a few hundred of them: open a file, read from it, write to it, start a new process, map some memory, make a network connection. Everything your computer does is built out of that small vocabulary. You never need to memorise the list, but knowing it exists changes how you read errors: Permission denied is not your program failing, it is the kernel declining a request.", "glibc wraps those requests. strace prints them. Section 2 of the manual is the syscall list. Root is still a user-space identity.", "A hotel guest (app) fills a request form (syscall). Staff (kernel) enter the service corridors.", "man 2 syscalls | head", "syscalls(2)", "You do not memorize every syscall. You remember that Permission denied is usually the kernel saying no.", "Root vs kernel mode?", "Root is uid 0 in user space. Kernel mode is a CPU privilege level. Root still uses syscalls.", ["process-model"], "If it needs hardware or isolation, it goes through a syscall.", { mistakes: ["Reading 'Permission denied' as a bug in the program. It is the kernel refusing a request, and the fix is almost always ownership, mode bits or a security policy — not the program.", "Assuming root can bypass the system call interface. Root is still an ordinary user-space identity; it makes the same calls, the kernel just approves more of them."], practices: ["When a program fails for no visible reason, run it under strace and read the last few calls before the error. The failing syscall usually names the file or permission at fault.", "Reach for man section 2 for the kernel interface and section 3 for the C library wrapper around it — read(2) and fread(3) are not the same thing."], exercise: { prompt: "Run `strace -c ls /` if strace is available, or `strace ls / 2>&1 | head -20`. Identify which system calls are used to list a directory.", solution: "You will see openat on the directory, then getdents64 to read its entries, then write to print them, and close. Listing a directory is three or four distinct requests to the kernel, not one 'list' operation — there is no such syscall." } }),
+    cx("shared-libs", "Why ldd matters", "Nearly every program needs the same basic things: formatting text, doing arithmetic on dates, talking to the kernel. Rather than every program carrying its own copy, these live in shared libraries that programs borrow from when they start. It saves enormous space, but it means a program on disk is not self-contained. If the library it expects is missing, or is a different edition, the program will not start at all — and the error usually looks like the program is broken rather than a dependency being absent.", "ldd shows dynamic deps. Alpine musl cannot run a glibc binary. Static binaries skip this but are larger.", "A lamp that needs a specific wall socket.", "ldd /bin/ls | head", "linux-vdso.so.1 ... libc.so.6 => /lib/...", "This is why 'it works on my Ubuntu' fails in Alpine.", "What is a missing shared library error?", "The dynamic linker cannot find a .so the binary was built against. Install the package or rebuild for that libc.", ["package-managers"], "Match libc (glibc vs musl) to the binary.", { mistakes: ["Copying a binary between distributions and expecting it to run. It carries no copy of its libraries, only the expectation that compatible ones are present.", "Reading 'No such file or directory' when starting a binary that is clearly there as a missing-binary error. It usually means a library the binary needs, or its dynamic loader, is what is missing."], practices: ["Before shipping a binary to another machine, run ldd on it and check the libraries exist on the target — particularly the C library, which differs between glibc and musl systems.", "If a binary must run anywhere, build it statically. It is larger, but it carries everything it needs and cannot fail this way."], exercise: { prompt: "Run `ldd /bin/ls` and then `ldd $(which bash)`. Note which libraries both depend on.", solution: "Both link against libc.so.6, the C library. That is the shared dependency almost everything on the system has, and the reason swapping it — as Alpine does by using musl — breaks binaries built elsewhere." } }),
   ],
   "boot-and-init": [
     cx("grub-plain", "GRUB is the chooser", "Before Linux runs, firmware starts a bootloader. GRUB lets you pick a kernel. A bad kernel update is often fixed by booting the previous entry.", "UEFI → EFI binary or GRUB → vmlinuz + initrd. Kernel cmdline lives in grub config or boot loader entries.", "A receptionist who decides which manager starts the shift.", "ls /boot | head", "vmlinuz-...\ninitrd.img-...", "Those two files are the kernel and its first-aid kit (initramfs).", "How do you boot an old kernel?", "From the GRUB menu pick the previous vmlinuz. Cloud serial console if you have no screen.", ["systemd"], "Keep one known-good kernel; GRUB is your undo."),
