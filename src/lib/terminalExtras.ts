@@ -61,6 +61,26 @@ export function countFlag(args: string[], fallback: number) {
   return fallback;
 }
 
+/**
+ * A POSIX basic regular expression in JavaScript syntax. In a BRE, ( ) { } + ?
+ * and | are literal and their backslashed forms are the operators (the last
+ * three as GNU extensions) — the reverse of JavaScript.
+ */
+export function breToJs(pattern: string) {
+  let out = "";
+  for (let i = 0; i < pattern.length; i += 1) {
+    const ch = pattern[i];
+    if (ch === "\\" && i + 1 < pattern.length) {
+      const next = pattern[i + 1];
+      out += "(){}+?|".includes(next) ? next : `\\${next}`;
+      i += 1;
+    } else {
+      out += "(){}+?|".includes(ch) ? `\\${ch}` : ch;
+    }
+  }
+  return out;
+}
+
 /** A tr set with its escapes, [:classes:] and a-z ranges spelled out. */
 function trSet(set: string) {
   const range = (from: string, to: string) => {
@@ -207,19 +227,62 @@ function makeExtras(deps: {
     },
 
     sed: (state, args, stdin) => {
-      const expr = args.find((a) => a.startsWith("s"));
-      const files = args.filter((a) => !a.startsWith("-") && a !== expr);
-      if (!expr) return fail(state, "sed: this sandbox supports s/pattern/replacement/flags only");
-      const m = /^s(.)(.*?)\1(.*?)\1([gi]*)$/.exec(expr);
-      if (!m) return fail(state, `sed: unsupported expression '${expr}' (try s/old/new/g)`);
-      const read = readInput(state, files, stdin);
-      if (read.error) return fail(state, `sed: ${read.error}`);
-      try {
-        const re = new RegExp(m[2], `${m[4].includes("g") ? "g" : ""}${m[4].includes("i") ? "i" : ""}m`);
-        return { output: stripTrailingNewline(read.text).replace(re, m[3]), state };
-      } catch {
-        return fail(state, `sed: invalid regular expression '${m[2]}'`);
+      // Only the s command is simulated; everything else gets an honest
+      // message rather than a silently different result.
+      let extended = false;
+      let inPlace = false;
+      let script: string | null = null;
+      const files: string[] = [];
+      for (let i = 0; i < args.length; i += 1) {
+        const a = args[i];
+        if (a === "-e") script = args[(i += 1)] ?? "";
+        else if (a === "-E" || a === "-r" || a === "--regexp-extended") extended = true;
+        else if (a === "-i" || a === "--in-place") inPlace = true;
+        else if (a.startsWith("-")) return fail(state, `sed: option '${a}' is not simulated here (s/old/new/flags with -E, -i and -e is)`);
+        else if (script === null) script = a;
+        else files.push(a);
       }
+      if (script === null) return fail(state, "Usage: sed [-E] [-i] s/regexp/replacement/[gi] [FILE]...");
+
+      const m = /^s(.)((?:\\.|(?!\1).)*)\1((?:\\.|(?!\1).)*)\1([gi]*)$/s.exec(script);
+      if (!m) return fail(state, `sed: only s/regexp/replacement/flags is simulated here, not '${script}'`);
+      const [, , pattern, replacement, opts] = m;
+
+      let re: RegExp;
+      try {
+        re = new RegExp(extended ? pattern : breToJs(pattern), `${opts.includes("g") ? "g" : ""}${opts.includes("i") ? "i" : ""}`);
+      } catch {
+        return fail(state, `sed: -e expression #1, char ${script.length}: invalid regular expression`);
+      }
+      // sed's replacement syntax, not JavaScript's: & is the match, \1 a group.
+      const substitute = (match: string, groups: string[]) =>
+        replacement.replace(/\\(\d)|\\n|\\(.)|&/gs, (token, digit?: string, escaped?: string) => {
+          if (digit !== undefined) return groups[Number(digit) - 1] ?? "";
+          if (token === "\\n") return "\n";
+          if (escaped !== undefined) return escaped;
+          return match;
+        });
+      // Applied line by line, so without g it replaces the first match on
+      // every line rather than the first in the whole input.
+      const edit = (text: string) =>
+        lines(text)
+          .map((line) => line.replace(re, (match, ...rest) => substitute(match, rest.slice(0, -2) as string[])))
+          .join("\n");
+
+      if (inPlace) {
+        if (!files.length) return fail(state, "sed: no input files");
+        let fs = state.fs;
+        for (const name of files) {
+          const read = readInput(state, [name], "");
+          if (read.error) return fail(state, `sed: can't read ${read.error}`, 2);
+          fs = writeFileAt(fs, resolve(state, name) ?? [], asFileText(edit(read.text)), false, walk);
+        }
+        return { output: "", state: { ...state, fs } };
+      }
+
+      const read = readInput(state, files, stdin);
+      if (read.error) return fail(state, `sed: can't read ${read.error}`, 2);
+      return { output: edit(read.text), state };
     },
 
     tee: (state, args, stdin) => {
