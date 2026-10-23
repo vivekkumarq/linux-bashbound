@@ -76,6 +76,9 @@ check("redirect wrote the file", fileText("/tmp/out.txt"), "written\n");
 sh("echo second >> /tmp/out.txt");
 check("append", fileText("/tmp/out.txt"), "written\nsecond\n");
 check("pipeline into redirect", (sh("seq 3 | sort -rn > /tmp/nums.txt"), fileText("/tmp/nums.txt")), "3\n2\n1\n");
+check("cat > copy is byte-for-byte", (sh("cat /tmp/out.txt > /tmp/copy.txt"), fileText("/tmp/copy.txt")), "written\nsecond\n");
+check("tee writes whole lines", (sh("echo teed | tee /tmp/tee.txt"), fileText("/tmp/tee.txt")), "teed\n");
+check("empty output makes an empty file", (sh("grep nothing-matches /var/log/syslog > /tmp/empty.txt"), fileText("/tmp/empty.txt")), "");
 
 // Globs expand against the filesystem.
 sh("cd /tmp");

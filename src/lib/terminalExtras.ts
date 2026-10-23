@@ -16,6 +16,15 @@ export function stripTrailingNewline(text: string) {
   return text.endsWith("\n") ? text.slice(0, -1) : text;
 }
 
+/**
+ * Command output as it would land in a file. Most commands here return their
+ * lines without the final newline, but `cat` hands back a file verbatim, so
+ * the newline is added only when it is missing.
+ */
+export function asFileText(text: string) {
+  return text === "" || text.endsWith("\n") ? text : `${text}\n`;
+}
+
 /** Parses `-n 5`, `-n5` and the bare `-5` form used by head and tail. */
 export function countFlag(args: string[], fallback: number) {
   const joined = args.find((a) => /^-n\d+$/.test(a));
@@ -157,7 +166,7 @@ function makeExtras(deps: {
       const files = args.filter((a) => !a.startsWith("-"));
       let fs = state.fs;
       for (const name of files) {
-        fs = writeFileAt(fs, resolve(state, name) ?? [], stdin, append, walk);
+        fs = writeFileAt(fs, resolve(state, name) ?? [], asFileText(stdin), append, walk);
       }
       return { output: stdin, state: { ...state, fs } };
     },
