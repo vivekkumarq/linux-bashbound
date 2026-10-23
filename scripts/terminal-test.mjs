@@ -182,6 +182,21 @@ check("rm -f is quiet about missing files", sh("rm -f /tmp/never"), "");
 check("rm carries on past an error", (sh("touch /tmp/k1; rm /tmp/never /tmp/k1"), sh("ls /tmp/k1")), (out) => out.includes("No such file"));
 check("rm with no operand", sh("rm"), "rm: missing operand");
 
+// cp and mv never lose the source by moving it onto itself.
+sh("mkdir -p /tmp/cm; cd /tmp/cm; echo keep > f");
+check("mv f f keeps the file", (sh("mv f f"), sh("cat f")), "keep");
+check("mv f . keeps the file", sh("mv f ."), "mv: 'f' and './f' are the same file");
+check("cat after mv f .", sh("cat f"), "keep");
+check("mv dir into itself is refused", (sh("mkdir sub; mv sub sub/inner"), sh("ls")), (out) => out.includes("sub"));
+check("cp many into a directory", (sh("echo a > a; echo b > b; mkdir out; cp a b out"), sh("ls out")), "a  b");
+check("cp many needs a directory", sh("cp a b f"), "cp: target 'f' is not a directory");
+check("cp a directory needs -r", sh("cp sub sub2"), "cp: -r not specified; omitting directory 'sub'");
+check("cp -r copies a directory", (sh("cp -r sub sub2"), sh("ls")), (out) => out.includes("sub2"));
+check("cp reports a missing source", sh("cp nope x"), "cp: cannot stat 'nope': No such file or directory");
+check("mv renames", (sh("mv a renamed"), sh("ls")), (out) => out.includes("renamed") && !/\ba\b/.test(out.replace("renamed", "")));
+check("mv ~ is refused", (sh("mv ~ /tmp/stolen"), sh("ls /home")), "student");
+sh("cd ~");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));

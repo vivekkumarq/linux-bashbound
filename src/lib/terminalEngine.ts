@@ -511,27 +511,75 @@ function runBuiltin(
     }
     case "cp":
     case "mv": {
+      const flags = args.filter((a) => /^-[a-zA-Z]+$/.test(a)).join("");
+      const recursive = cmd === "mv" || /[rRa]/.test(flags) || args.includes("--recursive");
       const names = args.filter((a) => !a.startsWith("-"));
-      if (names.length < 2) return fail(next, `${cmd}: missing operand`);
-      const dest = resolve(next, names[names.length - 1])!;
-      const src = resolve(next, names[0])!;
-      const srcNode = walk(next.fs, src);
-      if (!srcNode) return fail(next, `${cmd}: no such file`);
-      const destNode = walk(next.fs, dest);
-      const { parent: sp, name: sn } = parentAndName(src);
-      const srcParent = walk(next.fs, sp);
-      if (destNode && destNode.kind === "dir") {
-        destNode.children[srcNode.name] = structuredClone(srcNode);
-      } else {
-        const { parent, name } = parentAndName(dest);
-        const p = walk(next.fs, parent);
-        if (!p || p.kind !== "dir") return fail(next, `${cmd}: dest error`);
+      if (!names.length) return fail(next, `${cmd}: missing file operand`);
+      if (names.length < 2) return fail(next, `${cmd}: missing destination file operand after '${names[0]}'`);
+
+      const destName = names[names.length - 1];
+      const destPath = resolve(next, destName) ?? [];
+      const intoDir = walk(next.fs, destPath)?.kind === "dir";
+      const sources = names.slice(0, -1);
+      if (sources.length > 1 && !intoDir) return fail(next, `${cmd}: target '${destName}' is not a directory`);
+
+      const errors: string[] = [];
+      for (const srcName of sources) {
+        const srcPath = resolve(next, srcName) ?? [];
+        const srcNode = walk(next.fs, srcPath);
+        if (!srcNode) {
+          errors.push(`${cmd}: cannot stat '${srcName}': No such file or directory`);
+          continue;
+        }
+        if (srcNode.kind === "dir" && !recursive) {
+          errors.push(`cp: -r not specified; omitting directory '${srcName}'`);
+          continue;
+        }
+        const base = srcPath[srcPath.length - 1] ?? "";
+        const target = intoDir ? [...destPath, base] : destPath;
+        const shown = intoDir ? `${destName.replace(/\/+$/, "")}/${base}` : destName;
+        const src = srcPath.join("/");
+
+        if (cmd === "mv" && srcPath.length <= next.home.length && srcPath.every((p, i) => p === next.home[i])) {
+          errors.push(`mv: refusing to move '${srcName}' in Simulation Mode: it holds the lab's home directory`);
+          continue;
+        }
+        // Without these two checks mv deleted the file it had just "moved"
+        // onto itself, and moving a directory into itself lost it entirely.
+        if (target.join("/") === src) {
+          errors.push(`${cmd}: '${srcName}' and '${shown}' are the same file`);
+          continue;
+        }
+        if (srcNode.kind === "dir" && target.join("/").startsWith(`${src}/`)) {
+          errors.push(`${cmd}: cannot ${cmd === "mv" ? "move" : "copy"} '${srcName}' to a subdirectory of itself, '${shown}'`);
+          continue;
+        }
+
+        const { parent, name } = parentAndName(target);
+        const parentNode = walk(next.fs, parent);
+        if (!parentNode || parentNode.kind !== "dir") {
+          errors.push(
+            cmd === "mv"
+              ? `mv: cannot move '${srcName}' to '${shown}': No such file or directory`
+              : `cp: cannot create regular file '${shown}': No such file or directory`,
+          );
+          continue;
+        }
+        if (parentNode.children[name]?.kind === "dir" && srcNode.kind !== "dir") {
+          errors.push(`${cmd}: cannot overwrite directory '${shown}' with non-directory`);
+          continue;
+        }
+
         const copy = structuredClone(srcNode);
         copy.name = name;
-        p.children[name] = copy;
+        parentNode.children[name] = copy;
+        if (cmd === "mv") {
+          const from = parentAndName(srcPath);
+          const fromNode = walk(next.fs, from.parent);
+          if (fromNode?.kind === "dir") delete fromNode.children[from.name];
+        }
       }
-      if (cmd === "mv" && srcParent && srcParent.kind === "dir") delete srcParent.children[sn];
-      return { output: "", state: next };
+      return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "printf":
       return { output: args.join(" ").replace(/\\n/g, "\n"), state: next };
