@@ -1,4 +1,4 @@
-import { countFlag, makeExtras, stripTrailingNewline, writeFileAt, type Runner } from "./terminalExtras";
+import { asFileText, countFlag, makeExtras, stripTrailingNewline, writeFileAt, type Runner } from "./terminalExtras";
 import { globToRegExp, parseLine, wordText, type Word } from "./terminalShell";
 
 export type Node =
@@ -641,7 +641,7 @@ export function runCommand(state: TermState, line: string): { output: string; st
       // lands in the last one, and the next stage of the pipe gets nothing.
       stage.redirects.forEach((r, i) => {
         const last = i === stage.redirects.length - 1;
-        const text = last && output ? `${output}\n` : "";
+        const text = last ? asFileText(output) : "";
         const target = wordText(r.target, (n) => lookup(current, n));
         current = { ...current, fs: writeFileAt(current.fs, resolve(current, target) ?? [], text, r.append, walk) };
       });
