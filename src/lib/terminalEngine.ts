@@ -1,7 +1,9 @@
 import {
   asFileText,
+  breToJs,
   countFlag,
   fail,
+  lines,
   makeExtras,
   own,
   stripTrailingNewline,
@@ -450,33 +452,86 @@ function runBuiltin(
       return { output: `${lineCount} ${words} ${text.length}${label}`, state: next };
     }
     case "grep": {
-      const flags = args.filter((a) => a.startsWith("-")).join("");
-      const positional = args.filter((a) => !a.startsWith("-"));
-      const pat = positional[0];
-      if (!pat) return fail(next, "grep: usage: grep [-ivnc] PATTERN [FILE...]", 2);
-      const read = readInput(next, positional.slice(1), stdin);
-      if (read.error) return fail(next, `grep: ${read.error}`, 2);
-
-      let re: RegExp;
-      try {
-        re = new RegExp(pat, flags.includes("i") ? "i" : "");
-      } catch {
-        return fail(next, `grep: ${pat}: invalid regular expression`, 2);
+      const opts = new Set<string>();
+      const patterns: string[] = [];
+      const operands: string[] = [];
+      for (let i = 0; i < args.length; i += 1) {
+        const a = args[i];
+        if (a === "-e") patterns.push(args[(i += 1)] ?? "");
+        else if (/^-[a-zA-Z]+$/.test(a)) for (const c of a.slice(1)) opts.add(c);
+        else if (a.startsWith("--")) return fail(next, `grep: option '${a}' is not simulated here`, 2);
+        else operands.push(a);
+      }
+      const unsupported = [...opts].find((c) => !"ivncEFwxolLhHqsrR".includes(c));
+      if (unsupported) return fail(next, `grep: -${unsupported} is not simulated here`, 2);
+      if (!patterns.length) {
+        if (!operands.length) return fail(next, "Usage: grep [OPTION]... PATTERNS [FILE]...", 2);
+        patterns.push(operands.shift()!);
       }
 
-      const invert = flags.includes("v");
-      const hits: string[] = [];
-      stripTrailingNewline(read.text)
-        .split("\n")
-        .forEach((l, i) => {
-          if (re.test(l) === invert) return;
-          hits.push(flags.includes("n") ? `${i + 1}:${l}` : l);
-        });
+      // Basic regular expressions unless -E, fixed strings with -F.
+      const source = patterns
+        .map((p) => (opts.has("F") ? p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : opts.has("E") ? p : breToJs(p)))
+        .map((p) => (opts.has("x") ? `^(?:${p})$` : opts.has("w") ? `(?<!\\w)(?:${p})(?!\\w)` : p))
+        .join("|");
+      let re: RegExp;
+      try {
+        re = new RegExp(source, `g${opts.has("i") ? "i" : ""}`);
+      } catch {
+        return fail(next, "grep: Invalid regular expression", 2);
+      }
 
-      // grep's status is 1 when nothing matched, which is how scripts test it.
-      const status = hits.length ? 0 : 1;
-      if (flags.includes("c")) return { output: String(hits.length), status, state: next };
-      return { output: hits.join("\n"), status, state: next };
+      // Each operand becomes one or more named inputs; -r walks directories.
+      const recursive = opts.has("r") || opts.has("R");
+      const errors: string[] = [];
+      const inputs: { name: string; text: string }[] = [];
+      const collect = (name: string, node: Node) => {
+        if (node.kind === "file") inputs.push({ name, text: node.content });
+        else if (!recursive) errors.push(`grep: ${name}: Is a directory`);
+        else for (const key of Object.keys(node.children).sort()) collect(`${name.replace(/\/$/, "")}/${key}`, node.children[key]);
+      };
+      if (!operands.length && recursive) operands.push(".");
+      for (const name of operands) {
+        const node = walk(next.fs, resolve(next, name) ?? []);
+        if (node) collect(name, node);
+        else errors.push(`grep: ${name}: No such file or directory`);
+      }
+      if (!operands.length) inputs.push({ name: "(standard input)", text: stdin });
+
+      const label = opts.has("H") || (!opts.has("h") && (operands.length > 1 || recursive));
+      const out: string[] = [];
+      let matched = false;
+      for (const { name, text } of inputs) {
+        const prefix = label ? `${name}:` : "";
+        let count = 0;
+        lines(text).forEach((line, i) => {
+          re.lastIndex = 0;
+          if (re.test(line) === opts.has("v")) return;
+          count += 1;
+          if (opts.has("c") || opts.has("l") || opts.has("L") || opts.has("q")) return;
+          const where = `${prefix}${opts.has("n") ? `${i + 1}:` : ""}`;
+          if (opts.has("o") && !opts.has("v")) {
+            // matchAll starts from lastIndex, which test() just moved.
+            re.lastIndex = 0;
+            for (const m of line.matchAll(re)) if (m[0]) out.push(`${where}${m[0]}`);
+          } else {
+            out.push(`${where}${line}`);
+          }
+        });
+        if (count) matched = true;
+        if (opts.has("c")) out.push(`${prefix}${count}`);
+        if (opts.has("l") && count) out.push(name);
+        if (opts.has("L") && !count) out.push(name);
+      }
+
+      // 0 on a match, 1 on none, 2 on trouble — how scripts test grep.
+      const status = errors.length && !(opts.has("q") && matched) ? 2 : matched ? 0 : 1;
+      return {
+        output: opts.has("q") ? "" : out.join("\n"),
+        error: errors.length && !opts.has("s") ? errors.join("\n") : undefined,
+        status,
+        state: next,
+      };
     }
     case "rm": {
       const flags = args.filter((a) => /^-[a-zA-Z]+$/.test(a)).join("");
