@@ -179,6 +179,7 @@ function runBuiltin(
           "  Shell     help clear reset",
           "",
           "  Pipes     cat /var/log/syslog | grep ERROR | wc -l",
+          "  Lists     cd /tmp; ls",
           "  Redirect  echo hi > out.txt     and     echo more >> out.txt",
           "  Globs     ls *.txt",
           "  Tab       completes commands and paths",
@@ -570,29 +571,37 @@ export function runCommand(state: TermState, line: string): { output: string; st
   if (parsed.error) return { output: parsed.error, state: recorded };
 
   let current = recorded;
-  let output = "";
+  const printed: string[] = [];
 
-  for (const stage of parsed.stages) {
-    const [name, ...rest] = stage.words;
-    const result = runBuiltin(current, [name.text, ...expandGlobs(current, rest)], output);
+  for (const pipeline of parsed.pipelines) {
+    let output = "";
 
-    // clear and reset are whole-terminal actions; they end the line.
-    if (result.output === "__CLEAR__") return result;
+    for (const stage of pipeline) {
+      const [name, ...rest] = stage.words;
+      const result = runBuiltin(current, [name.text, ...expandGlobs(current, rest)], output);
 
-    current = result.state;
-    output = result.output;
+      // clear and reset are whole-terminal actions; they end the line.
+      if (result.output === "__CLEAR__") return result;
 
-    // Every target is created or truncated, as in a real shell; the output
-    // lands in the last one, and the next stage of the pipe gets nothing.
-    stage.redirects.forEach((r, i) => {
-      const last = i === stage.redirects.length - 1;
-      const text = last && output ? `${output}\n` : "";
-      current = { ...current, fs: writeFileAt(current.fs, resolve(current, r.target) ?? [], text, r.append, walk) };
-    });
-    if (stage.redirects.length) output = "";
+      current = result.state;
+      output = result.output;
+
+      // Every target is created or truncated, as in a real shell; the output
+      // lands in the last one, and the next stage of the pipe gets nothing.
+      stage.redirects.forEach((r, i) => {
+        const last = i === stage.redirects.length - 1;
+        const text = last && output ? `${output}\n` : "";
+        current = { ...current, fs: writeFileAt(current.fs, resolve(current, r.target) ?? [], text, r.append, walk) };
+      });
+      if (stage.redirects.length) output = "";
+    }
+
+    // A file's own trailing newline is the end of its last line, not a blank
+    // line before the next command's output.
+    if (output) printed.push(stripTrailingNewline(output));
   }
 
-  return { output, state: current };
+  return { output: printed.join("\n"), state: current };
 }
 
 /**

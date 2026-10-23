@@ -30,7 +30,8 @@ export interface Stage {
 }
 
 export interface ParsedLine {
-  stages: Stage[];
+  /** Pipelines separated by `;`, run one after another. */
+  pipelines: Stage[][];
   error?: string;
 }
 
@@ -39,19 +40,20 @@ const KEYWORDS = new Set(["for", "while", "until", "if", "case", "select", "func
 
 const CONTROL_FLOW = "Control flow is not simulated here. The Bash scripting module covers it: /learn/bash-scripting.";
 const SUBSTITUTION = "Command substitution is not simulated here. See /learn/bash-scripting.";
-const LISTS = "Command lists (&& and ||) are not simulated here. Run the commands one at a time.";
+const LISTS = "Command lists (&& and ||) are not simulated here. Separate commands with ; or run them one at a time.";
 
 /**
- * Splits a command line into pipeline stages the way a shell does: quotes are
- * removed but keep their contents together as one word, and `|` and `>` only
- * count as operators outside quotes.
+ * Splits a command line into pipelines and stages the way a shell does: quotes
+ * are removed but keep their contents together as one word, and `;`, `|` and
+ * `>` only count as operators outside quotes.
  *
  * The words come back already split, so a command receives exactly the
  * arguments that were typed — `grep "disk full" log` passes one pattern
  * rather than two words that get joined and split again on the way.
  */
 export function parseLine(line: string): ParsedLine {
-  const stages: Stage[] = [];
+  const pipelines: Stage[][] = [];
+  let stages: Stage[] = [];
   let words: Word[] = [];
   let redirects: Redirect[] = [];
   let pending: { append: boolean } | null = null;
@@ -59,7 +61,7 @@ export function parseLine(line: string): ParsedLine {
   let glob = false;
   let inWord = false;
 
-  const fail = (error: string): ParsedLine => ({ stages: [], error });
+  const fail = (error: string): ParsedLine => ({ pipelines: [], error });
 
   const endWord = () => {
     if (!inWord) return;
@@ -138,6 +140,14 @@ export function parseLine(line: string): ParsedLine {
       continue;
     }
 
+    if (ch === ";") {
+      const error = endStage(";");
+      if (error) return fail(error);
+      pipelines.push(stages);
+      stages = [];
+      continue;
+    }
+
     if (ch === "&" && line[i + 1] === "&") return fail(LISTS);
     if (ch === "`" || (ch === "$" && line[i + 1] === "(")) return fail(SUBSTITUTION);
     if (ch === "<" && line[i + 1] === "<") return fail("Here-documents are not simulated here.");
@@ -156,14 +166,18 @@ export function parseLine(line: string): ParsedLine {
     inWord = true;
   }
 
-  const error = endStage("newline");
-  if (error) return fail(error);
+  // A trailing `;` is allowed, so only close a stage that has something in it.
+  if (inWord || words.length || pending || stages.length) {
+    const error = endStage("newline");
+    if (error) return fail(error);
+    pipelines.push(stages);
+  }
 
   // A keyword only opens a compound command in command position, so
   // `grep if notes.txt` is an ordinary search.
-  if (stages.some((s) => KEYWORDS.has(s.words[0].text))) return fail(CONTROL_FLOW);
+  if (pipelines.flat().some((s) => KEYWORDS.has(s.words[0].text))) return fail(CONTROL_FLOW);
 
-  return { stages };
+  return { pipelines };
 }
 
 /** Converts a shell glob to an anchored regular expression. */

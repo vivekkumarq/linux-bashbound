@@ -27,6 +27,13 @@ function sh(line) {
   return result.output;
 }
 
+/** Exact contents of a file in the virtual filesystem, trailing newline included. */
+function fileText(path) {
+  let node = state.fs;
+  for (const part of path.split("/").filter(Boolean)) node = node?.children?.[part];
+  return node?.content;
+}
+
 function check(label, actual, expected) {
   const ok = typeof expected === "function" ? expected(actual) : actual === expected;
   if (ok) {
@@ -65,10 +72,10 @@ check("nl numbers lines", sh("seq 2 | nl"), (out) => /1\t1/.test(out));
 
 // Redirection writes to the virtual filesystem and produces no terminal output.
 check("redirect is silent", sh("echo written > /tmp/out.txt"), "");
-check("redirect wrote the file", sh("cat /tmp/out.txt"), "written\n");
+check("redirect wrote the file", fileText("/tmp/out.txt"), "written\n");
 sh("echo second >> /tmp/out.txt");
-check("append", sh("cat /tmp/out.txt"), "written\nsecond\n");
-check("pipeline into redirect", (sh("seq 3 | sort -rn > /tmp/nums.txt"), sh("cat /tmp/nums.txt")), "3\n2\n1\n");
+check("append", fileText("/tmp/out.txt"), "written\nsecond\n");
+check("pipeline into redirect", (sh("seq 3 | sort -rn > /tmp/nums.txt"), fileText("/tmp/nums.txt")), "3\n2\n1\n");
 
 // Globs expand against the filesystem.
 sh("cd /tmp");
@@ -96,8 +103,15 @@ check("quoted glob is not expanded", (sh("cd /tmp"), sh("echo '*.txt'")), "*.txt
 check("find gets the quoted pattern", sh("find /tmp -name '*.txt'"), (out) => out.includes("/tmp/out.txt") && out.includes("/tmp/nums.txt"));
 sh("cd ~");
 check("keyword as an argument is not control flow", sh("echo if for while"), "if for while");
-check("redirect mid-pipeline", (sh("echo hi > /tmp/mid.txt | cat"), sh("cat /tmp/mid.txt")), "hi\n");
+check("redirect mid-pipeline", (sh("echo hi > /tmp/mid.txt | cat"), fileText("/tmp/mid.txt")), "hi\n");
 check("unterminated quote", sh("echo 'oops"), (out) => out.includes("unexpected EOF"));
+
+// ; runs commands one after another, in the same shell.
+check("; sequences commands", sh("cd /etc; cat hostname; pwd"), "bashbound\n/etc");
+check("trailing ; is fine", sh("pwd;"), "/etc");
+check("; inside quotes is text", sh("echo 'a; b'"), "a; b");
+check("leading ; is a syntax error", sh("; ls"), (out) => out.includes("syntax error"));
+sh("cd ~");
 
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
