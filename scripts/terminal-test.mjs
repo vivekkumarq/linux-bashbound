@@ -256,6 +256,13 @@ check("grep -c on empty input is 0", sh("grep -c '^$' /dev/null"), "0");
 check("grep -q is silent", (sh("grep -q root /etc/passwd"), sh("grep -q root /etc/passwd; echo $?")), "0");
 check("grep -A is not silently ignored", sh("grep -A 2 ERROR /var/log/syslog"), "grep: -A is not simulated here");
 
+// printf formats, and reuses the format for extra arguments.
+check("printf %s per argument", sh("printf '%s\\n' ls -l /tmp"), "ls\n-l\n/tmp");
+check("printf zero padding", sh("printf '%04d\\n' 7"), "0007");
+check("printf width and left align", sh("printf '[%5s][%-3s]' ab c"), "[   ab][c  ]");
+check("printf precision", sh("printf '%.2f %x %o %%' 3.14159 255 8"), "3.14 ff 10 %");
+check("printf with no format", sh("printf"), (out) => out.includes("usage"));
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
