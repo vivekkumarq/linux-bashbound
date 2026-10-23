@@ -131,6 +131,26 @@ check("unset variable vanishes unquoted", sh("echo a $NOPE b"), "a b");
 check("redirect target expands", (sh("echo v > $HOME/v.txt"), fileText("/home/student/v.txt")), "v\n");
 sh("reset");
 
+// stderr is its own channel: it reaches the terminal, not pipes or files.
+check("error is not piped", sh("cat /nope | wc -l"), "cat: /nope: No such file or directory\n0");
+check("error is not redirected by >", (sh("ls /nope > /tmp/ls.txt"), fileText("/tmp/ls.txt")), "");
+check("> still shows the error", sh("ls /nope > /tmp/ls.txt"), "ls: cannot access '/nope': No such file or directory");
+check("2> sends it to a file", (sh("ls /nope 2> /tmp/err.txt"), fileText("/tmp/err.txt")), "ls: cannot access '/nope': No such file or directory\n");
+check("2>/dev/null hides it", sh("ls /nope 2>/dev/null"), "");
+check("2>&1 merges into the pipe", sh("ls /nope 2>&1 | wc -l"), "1");
+check("> file 2>&1 captures both", (sh("ls /nope /etc > /tmp/both.txt 2>&1"), fileText("/tmp/both.txt")), (out) => out.startsWith("ls: cannot access") && out.includes("hostname"));
+check("2>&1 > file keeps the error on screen", sh("ls /nope 2>&1 > /tmp/order.txt"), (out) => out.includes("cannot access"));
+check("&> captures both", (sh("ls /nope &> /tmp/amp.txt"), fileText("/tmp/amp.txt")), (out) => out.includes("cannot access"));
+check(">&2 turns output into an error", sh("echo oops >&2 | wc -l"), "oops\n0");
+check("unknown command goes to stderr", sh("strace ls > /dev/null"), (out) => out.includes("command not simulated"));
+check("< reads a file", sh("wc -l < /etc/passwd"), "2");
+check("< missing file", sh("cat < /nope"), "bash: /nope: No such file or directory");
+check("$? after success", (sh("ls /etc > /dev/null"), sh("echo $?")), "0");
+check("$? after failure", (sh("ls /nope 2> /dev/null"), sh("echo $?")), "2");
+check("$? for no match", (sh("grep zzz /etc/hostname"), sh("echo $?")), "1");
+check("$? for unknown command", (sh("nosuchtool 2>/dev/null"), sh("echo $?")), "127");
+check("a 2 that is an argument stays one", sh("echo 2 > /tmp/two.txt; cat /tmp/two.txt"), "2");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
