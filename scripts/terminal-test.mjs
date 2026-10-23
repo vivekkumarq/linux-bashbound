@@ -266,6 +266,20 @@ check("echo -e interprets escapes", sh("echo -e 'a\\tb'"), "a\tb");
 check("echo -n is an option", sh("echo -n hi"), "hi");
 check("echo leaves other dashes alone", sh("echo -x"), "-x");
 
+// head and tail counts.
+sh("seq 5 > /tmp/five");
+check("head -n 2", sh("head -n 2 /tmp/five"), "1\n2");
+check("head -3", sh("head -3 /tmp/five"), "1\n2\n3");
+check("head -n 0 prints nothing", sh("head -n 0 /tmp/five"), "");
+check("head -n -2 drops the last two", sh("head -n -2 /tmp/five"), "1\n2\n3");
+check("tail -n 2", sh("tail -n 2 /tmp/five"), "4\n5");
+check("tail -n +4 starts at line 4", sh("tail -n +4 /tmp/five"), "4\n5");
+check("tail -n 0 prints nothing", sh("tail -n 0 /tmp/five"), "");
+check("head 5 reads a file named 5", (sh("echo x > /tmp/5; cd /tmp"), sh("head 5")), "x");
+sh("cd ~");
+check("head of two files has headers", sh("head -n 1 /tmp/five /etc/hostname"), "==> /tmp/five <==\n1\n\n==> /etc/hostname <==\nbashbound");
+check("head with a bad count", sh("head -n x /tmp/five"), "head: invalid number of lines: 'x'");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
