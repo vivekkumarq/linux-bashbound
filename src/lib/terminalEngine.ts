@@ -119,6 +119,61 @@ function resolve(state: TermState, raw: string): string[] | null {
   return out;
 }
 
+/** printf's backslash escapes: \n, \t, \\, \0NNN octal and the rest. */
+function unbackslash(text: string) {
+  const simple: Record<string, string> = { n: "\n", t: "\t", r: "\r", a: "\x07", b: "\b", f: "\f", v: "\v", "\\": "\\", '"': '"', "'": "'" };
+  return text.replace(/\\(0[0-7]{0,3}|.)/g, (all, c: string) =>
+    c[0] === "0" ? String.fromCharCode(parseInt(c, 8)) : (simple[c] ?? all),
+  );
+}
+
+/**
+ * The printf builtin: escapes in the format, then %s %d %i %f %c %x %o %%
+ * with flags, width and precision. The format is reused until every
+ * argument is consumed, which is what makes `printf '%s\n' a b c` print three
+ * lines.
+ */
+function printf(format: string, args: string[]) {
+  const spec = /%([-+ 0#]*)(\d*)(?:\.(\d+))?([sdifcxXo%])/g;
+  const one = (rest: string[]) => {
+    let used = 0;
+    const text = unbackslash(format).replace(spec, (_m, flags: string, width: string, precision: string | undefined, conv: string) => {
+      if (conv === "%") return "%";
+      const arg = rest[used] ?? "";
+      used += 1;
+      let body: string;
+      if (conv === "s") body = precision === undefined ? arg : arg.slice(0, Number(precision));
+      else if (conv === "c") body = arg.slice(0, 1);
+      else if (conv === "f") body = (Number(arg) || 0).toFixed(precision === undefined ? 6 : Number(precision));
+      else {
+        const n = Math.trunc(Number(arg) || 0);
+        const base = conv === "x" || conv === "X" ? 16 : conv === "o" ? 8 : 10;
+        body = Math.abs(n).toString(base);
+        if (conv === "X") body = body.toUpperCase();
+        if (n < 0) body = `-${body}`;
+        else if (flags.includes("+")) body = `+${body}`;
+      }
+      const w = Number(width) || 0;
+      if (flags.includes("-")) return body.padEnd(w);
+      if (flags.includes("0") && conv !== "s" && conv !== "c") {
+        const sign = /^[-+]/.test(body) ? body[0] : "";
+        return sign + body.slice(sign.length).padStart(w - sign.length, "0");
+      }
+      return body.padStart(w);
+    });
+    return { text, used };
+  };
+
+  let { text, used } = one(args);
+  let rest = args.slice(used);
+  while (used > 0 && rest.length) {
+    const more = one(rest);
+    text += more.text;
+    rest = rest.slice(more.used);
+  }
+  return text;
+}
+
 /** "-rwsr-xr-x" to its permission bits, special bits included. */
 function modeBits(mode: string): number {
   let bits = 0;
@@ -650,7 +705,8 @@ function runBuiltin(
       return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "printf":
-      return { output: args.join(" ").replace(/\\n/g, "\n"), state: next };
+      if (!args.length) return fail(next, "printf: usage: printf [-v var] format [arguments]", 2);
+      return { output: printf(args[0], args.slice(1)), state: next };
     case "export": {
       if (!args.length) {
         return {
