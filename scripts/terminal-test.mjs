@@ -170,12 +170,25 @@ check("chmod rejects a bad mode", sh("chmod 9z9 /tmp/m"), "chmod: invalid mode: 
 check("chmod reports a missing file", sh("chmod 600 /tmp/nope"), "chmod: cannot access '/tmp/nope': No such file or directory");
 check("chmod -R reaches children", (sh("touch /tmp/d/inner; chmod -R 700 /tmp/d"), modeOf("/tmp/d/inner")), "-rwx------");
 
+// rm: refusals depend on the path, not how it was spelled.
+check("rm -rf ~ refused", (sh("rm -rf ~"), sh("ls ~")), (out) => out.includes("Documents"));
+check("rm -rf /home/ refused", (sh("rm -rf /home/"), sh("ls /home")), "student");
+check("rm -r . refused", (sh("cd /tmp/d"), sh("rm -r .")), (out) => out.includes("refusing to remove '.' or '..'"));
+check("cwd survives rm -r .", sh("ls"), "inner");
+sh("cd ~");
+check("rm -R works", (sh("mkdir -p /tmp/r1/x; rm -R /tmp/r1"), sh("ls /tmp/r1")), (out) => out.includes("No such file"));
+check("rm -rfv works", (sh("mkdir -p /tmp/r2/x; rm -rfv /tmp/r2"), sh("ls /tmp/r2")), (out) => out.includes("No such file"));
+check("rm -f is quiet about missing files", sh("rm -f /tmp/never"), "");
+check("rm carries on past an error", (sh("touch /tmp/k1; rm /tmp/never /tmp/k1"), sh("ls /tmp/k1")), (out) => out.includes("No such file"));
+check("rm with no operand", sh("rm"), "rm: missing operand");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
 
 // Destructive paths stay refused.
-check("rm / refused", sh("rm -rf /"), (out) => out.includes("refusing"));
+check("rm / refused", sh("rm -rf /"), (out) => out.includes("dangerous to operate recursively on '/'"));
+check("/ is still there", sh("ls /"), (out) => out.includes("etc") && out.includes("home"));
 
 console.log(failures === 0 ? "\nall terminal checks passed" : `\n${failures} check(s) failed`);
 process.exit(failures === 0 ? 0 : 1);

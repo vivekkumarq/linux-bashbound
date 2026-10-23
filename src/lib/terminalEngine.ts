@@ -466,23 +466,48 @@ function runBuiltin(
       return { output: hits.join("\n"), status, state: next };
     }
     case "rm": {
-      const rec = args.includes("-r") || args.includes("-rf") || args.includes("-fr");
+      const flags = args.filter((a) => /^-[a-zA-Z]+$/.test(a)).join("");
+      const rec = /[rR]/.test(flags) || args.includes("--recursive");
+      const force = flags.includes("f") || args.includes("--force");
       const names = args.filter((a) => !a.startsWith("-"));
+      if (!names.length) return force ? { output: "", state: next } : fail(next, "rm: missing operand");
+
+      // Checked on the resolved path, not the spelling: ~, /home/student/,
+      // and ../.. from inside home all name the same protected directory.
+      const errors: string[] = [];
       for (const name of names) {
-        if (name === "/" || name === "~" || name === "/home") {
-          return fail(next, "rm: refusing to remove that path in Simulation Mode");
+        const path = resolve(next, name) ?? [];
+        const last = name.split("/").filter(Boolean).pop();
+        if (last === "." || last === "..") {
+          errors.push(`rm: refusing to remove '.' or '..' directory: skipping '${name}'`);
+          continue;
         }
-        const path = resolve(next, name)!;
+        if (!path.length) {
+          errors.push(
+            rec
+              ? "rm: it is dangerous to operate recursively on '/'\nrm: use --no-preserve-root to override this failsafe"
+              : "rm: cannot remove '/': Is a directory",
+          );
+          continue;
+        }
+        if (path.length <= next.home.length && path.every((p, i) => p === next.home[i])) {
+          errors.push(`rm: refusing to remove '${name}' in Simulation Mode: it holds the lab's home directory`);
+          continue;
+        }
         const { parent, name: base } = parentAndName(path);
         const parentNode = walk(next.fs, parent);
-        if (!parentNode || parentNode.kind !== "dir" || !parentNode.children[base]) {
-          return fail(next, `rm: cannot remove '${name}': No such file or directory`);
+        const target = parentNode?.kind === "dir" ? parentNode.children[base] : undefined;
+        if (!parentNode || parentNode.kind !== "dir" || !target) {
+          if (!force) errors.push(`rm: cannot remove '${name}': No such file or directory`);
+          continue;
         }
-        const target = parentNode.children[base];
-        if (target.kind === "dir" && !rec) return fail(next, `rm: cannot remove '${name}': Is a directory`);
+        if (target.kind === "dir" && !rec) {
+          errors.push(`rm: cannot remove '${name}': Is a directory`);
+          continue;
+        }
         delete parentNode.children[base];
       }
-      return { output: "", state: next };
+      return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "cp":
     case "mv": {
