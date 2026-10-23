@@ -207,6 +207,17 @@ check("type unknown", sh("type nosuch"), "bash: type: nosuch: not found");
 check("man sort", sh("man sort"), (out) => out.startsWith("SORT(1)"));
 check("man 1p printf skips the section", sh("man 1p printf"), (out) => out.startsWith("PRINTF(1)"));
 
+// Names that exist on every JavaScript object are not commands.
+for (const name of ["toString", "constructor", "valueOf", "__proto__", "hasOwnProperty"]) {
+  check(`${name} is not simulated`, sh(name), (out) => out.includes("command not simulated"));
+}
+// ...nor are they files.
+check("ls constructor", sh("ls constructor"), "ls: cannot access 'constructor': No such file or directory");
+check("touch toString makes a file", (sh("cd /tmp; touch toString"), sh("ls toString")), "toString");
+check("cat valueOf", sh("cat valueOf"), "cat: valueOf: No such file or directory");
+sh("cd ~");
+check("the shell still works afterwards", sh("pwd"), "/home/student");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));

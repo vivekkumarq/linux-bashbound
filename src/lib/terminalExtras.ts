@@ -24,6 +24,14 @@ export type Runner = (state: TermState, args: string[], stdin: string) => Result
 
 /* ---- Shared helpers ------------------------------------------------------ */
 
+/**
+ * A directory entry by name. Directories are plain objects, so a bare lookup
+ * would also find Object.prototype members such as `constructor`.
+ */
+export function own(children: Record<string, Node>, name: string): Node | undefined {
+  return Object.hasOwn(children, name) ? children[name] : undefined;
+}
+
 /** A command that failed: nothing on stdout, the message on stderr. */
 export function fail(state: TermState, error: string, status = 1): Result {
   return { output: "", error, status, state };
@@ -334,7 +342,7 @@ export function writeFileAt(
   const parent = walk(clone, path.slice(0, -1));
   if (!parent || parent.kind !== "dir") return fs;
   const name = path[path.length - 1];
-  const existing = parent.children[name];
+  const existing = own(parent.children, name);
   const base = append && existing && existing.kind === "file" ? existing.content : "";
   parent.children[name] = { kind: "file", name, content: base + content, mode: "-rw-r--r--" };
   return clone;
