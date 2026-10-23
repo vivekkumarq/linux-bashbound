@@ -1,7 +1,6 @@
 import {
   asFileText,
   breToJs,
-  countFlag,
   fail,
   lines,
   makeExtras,
@@ -494,13 +493,43 @@ function runBuiltin(
     }
     case "head":
     case "tail": {
-      const count = countFlag(args, 10);
-      const files = args.filter((a) => !a.startsWith("-") && !/^\d+$/.test(a));
-      const read = readInput(next, files, stdin);
-      if (read.error) return fail(next, `${cmd}: ${read.error}`);
-      const lines = stripTrailingNewline(read.text).split("\n");
-      const slice = cmd === "head" ? lines.slice(0, count) : lines.slice(-count);
-      return { output: slice.join("\n"), state: next };
+      // -n N, -nN and -N. `tail -n +N` starts at line N; `head -n -N` drops
+      // the last N. -f is accepted and prints the current contents.
+      let spec = "10";
+      const files: string[] = [];
+      for (let i = 0; i < args.length; i += 1) {
+        const a = args[i];
+        if (a === "-n" || a === "--lines") spec = args[(i += 1)] ?? "";
+        else if (/^-n.+/.test(a)) spec = a.slice(2);
+        else if (/^-\d+$/.test(a)) spec = a.slice(1);
+        else if (["-f", "-F", "-q", "-v"].includes(a)) continue;
+        else if (a.startsWith("-") && a !== "-") return fail(next, `${cmd}: invalid option -- '${a.slice(1)}'`);
+        else files.push(a);
+      }
+      if (!/^[+-]?\d+$/.test(spec)) return fail(next, `${cmd}: invalid number of lines: '${spec}'`);
+      const count = Math.abs(Number(spec));
+
+      const take = (text: string) => {
+        const all = lines(text);
+        if (cmd === "head") return spec.startsWith("-") ? all.slice(0, Math.max(0, all.length - count)) : all.slice(0, count);
+        if (spec.startsWith("+")) return all.slice(Math.max(0, count - 1));
+        return count === 0 ? [] : all.slice(-count);
+      };
+
+      if (files.length < 2) {
+        const read = readInput(next, files, stdin);
+        if (read.error) return fail(next, `${cmd}: cannot open '${files[0]}' for reading: ${read.error.split(": ").pop()}`);
+        return { output: take(read.text).join("\n"), state: next };
+      }
+      // Several files each get a ==> name <== header, as in coreutils.
+      const blocks: string[] = [];
+      const errors: string[] = [];
+      for (const name of files) {
+        const read = readInput(next, [name], "");
+        if (read.error) errors.push(`${cmd}: cannot open '${name}' for reading: ${read.error.split(": ").pop()}`);
+        else blocks.push([`==> ${name} <==`, ...take(read.text)].join("\n"));
+      }
+      return { output: blocks.join("\n\n"), error: errors.join("\n") || undefined, status: errors.length ? 1 : 0, state: next };
     }
     case "wc": {
       const flags = args.filter((a) => a.startsWith("-")).join("");

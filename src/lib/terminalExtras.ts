@@ -50,17 +50,6 @@ export function asFileText(text: string) {
   return text === "" || text.endsWith("\n") ? text : `${text}\n`;
 }
 
-/** Parses `-n 5`, `-n5` and the bare `-5` form used by head and tail. */
-export function countFlag(args: string[], fallback: number) {
-  const joined = args.find((a) => /^-n\d+$/.test(a));
-  if (joined) return Number(joined.slice(2)) || fallback;
-  const bare = args.find((a) => /^-\d+$/.test(a));
-  if (bare) return Number(bare.slice(1)) || fallback;
-  const idx = args.indexOf("-n");
-  if (idx !== -1 && args[idx + 1]) return Number(args[idx + 1]) || fallback;
-  return fallback;
-}
-
 /**
  * A POSIX basic regular expression in JavaScript syntax. In a BRE, ( ) { } + ?
  * and | are literal and their backslashed forms are the operators (the last
