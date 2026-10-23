@@ -10,62 +10,160 @@
  * the in-memory filesystem.
  */
 
+/**
+ * One word after quote removal. `glob` is set only when a `*` or `?` appeared
+ * outside quotes — the only case in which a shell expands it.
+ */
+export interface Word {
+  text: string;
+  glob: boolean;
+}
+
+export interface Redirect {
+  target: string;
+  append: boolean;
+}
+
 export interface Stage {
-  /** The command text for this stage, redirection already removed. */
-  command: string;
+  words: Word[];
+  redirects: Redirect[];
 }
 
 export interface ParsedLine {
   stages: Stage[];
-  redirect: { target: string; append: boolean } | null;
   error?: string;
 }
 
-/** Splits on `|` and trailing `>`/`>>`, ignoring both inside quotes. */
+/** Words that open a compound command when they are the first word of one. */
+const KEYWORDS = new Set(["for", "while", "until", "if", "case", "select", "function"]);
+
+const CONTROL_FLOW = "Control flow is not simulated here. The Bash scripting module covers it: /learn/bash-scripting.";
+const SUBSTITUTION = "Command substitution is not simulated here. See /learn/bash-scripting.";
+const LISTS = "Command lists (&& and ||) are not simulated here. Run the commands one at a time.";
+
+/**
+ * Splits a command line into pipeline stages the way a shell does: quotes are
+ * removed but keep their contents together as one word, and `|` and `>` only
+ * count as operators outside quotes.
+ *
+ * The words come back already split, so a command receives exactly the
+ * arguments that were typed — `grep "disk full" log` passes one pattern
+ * rather than two words that get joined and split again on the way.
+ */
 export function parseLine(line: string): ParsedLine {
-  const stages: string[] = [];
-  let current = "";
-  let quote: "'" | '"' | null = null;
+  const stages: Stage[] = [];
+  let words: Word[] = [];
+  let redirects: Redirect[] = [];
+  let pending: { append: boolean } | null = null;
+  let text = "";
+  let glob = false;
+  let inWord = false;
+
+  const fail = (error: string): ParsedLine => ({ stages: [], error });
+
+  const endWord = () => {
+    if (!inWord) return;
+    if (pending) {
+      redirects.push({ target: text, append: pending.append });
+      pending = null;
+    } else {
+      words.push({ text, glob });
+    }
+    text = "";
+    glob = false;
+    inWord = false;
+  };
+
+  /** Closes the current stage; returns an error message if it was empty. */
+  const endStage = (token: string): string | null => {
+    endWord();
+    if (pending) return "bash: syntax error near unexpected token `newline'";
+    if (!words.length) return `bash: syntax error near unexpected token \`${token}'`;
+    stages.push({ words, redirects });
+    words = [];
+    redirects = [];
+    return null;
+  };
 
   for (let i = 0; i < line.length; i += 1) {
     const ch = line[i];
-    if (quote) {
-      current += ch;
-      if (ch === quote) quote = null;
+
+    if (ch === "'") {
+      const close = line.indexOf("'", i + 1);
+      if (close === -1) return fail("bash: unexpected EOF while looking for matching `''");
+      text += line.slice(i + 1, close);
+      inWord = true;
+      i = close;
       continue;
     }
-    if (ch === "'" || ch === '"') {
-      quote = ch;
-      current += ch;
+
+    if (ch === '"') {
+      let j = i + 1;
+      for (; j < line.length && line[j] !== '"'; j += 1) {
+        const c = line[j];
+        if (c === "`" || (c === "$" && line[j + 1] === "(")) return fail(SUBSTITUTION);
+        // Inside double quotes a backslash only escapes the characters that
+        // would otherwise be special there.
+        if (c === "\\" && '$`"\\'.includes(line[j + 1] ?? "\n")) {
+          text += line[j + 1];
+          j += 1;
+          continue;
+        }
+        text += c;
+      }
+      if (j >= line.length) return fail('bash: unexpected EOF while looking for matching `"\'');
+      inWord = true;
+      i = j;
       continue;
     }
+
+    if (ch === "\\") {
+      if (i + 1 < line.length) {
+        text += line[i + 1];
+        inWord = true;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (/\s/.test(ch)) {
+      endWord();
+      continue;
+    }
+
     if (ch === "|") {
-      stages.push(current);
-      current = "";
+      if (line[i + 1] === "|") return fail(LISTS);
+      const error = endStage("|");
+      if (error) return fail(error);
       continue;
     }
-    current += ch;
+
+    if (ch === "&" && line[i + 1] === "&") return fail(LISTS);
+    if (ch === "`" || (ch === "$" && line[i + 1] === "(")) return fail(SUBSTITUTION);
+    if (ch === "<" && line[i + 1] === "<") return fail("Here-documents are not simulated here.");
+
+    if (ch === ">") {
+      endWord();
+      if (pending) return fail("bash: syntax error near unexpected token `>'");
+      const append = line[i + 1] === ">";
+      if (append) i += 1;
+      pending = { append };
+      continue;
+    }
+
+    if (ch === "*" || ch === "?") glob = true;
+    text += ch;
+    inWord = true;
   }
 
-  if (quote) return { stages: [], redirect: null, error: "unexpected EOF while looking for matching quote" };
-  stages.push(current);
+  const error = endStage("newline");
+  if (error) return fail(error);
 
-  // Redirection is only recognised on the final stage, which matches how a
-  // real shell attaches it to the last command in the pipeline.
-  let redirect: ParsedLine["redirect"] = null;
-  const last = stages[stages.length - 1];
-  const match = /\s*(>>|>)\s*([^\s|<>]+)\s*$/.exec(last);
-  if (match) {
-    redirect = { target: match[2], append: match[1] === ">>" };
-    stages[stages.length - 1] = last.slice(0, match.index);
-  }
+  // A keyword only opens a compound command in command position, so
+  // `grep if notes.txt` is an ordinary search.
+  if (stages.some((s) => KEYWORDS.has(s.words[0].text))) return fail(CONTROL_FLOW);
 
-  const trimmed = stages.map((s) => s.trim());
-  if (trimmed.some((s) => s === "")) {
-    return { stages: [], redirect, error: "syntax error near unexpected token `|'" };
-  }
-
-  return { stages: trimmed.map((command) => ({ command })), redirect };
+  return { stages };
 }
 
 /** Converts a shell glob to an anchored regular expression. */
@@ -77,22 +175,4 @@ export function globToRegExp(pattern: string): RegExp {
     else out += ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
   return new RegExp(`${out}$`);
-}
-
-export function hasGlob(word: string) {
-  return /[*?]/.test(word);
-}
-
-/**
- * Unsupported shell syntax. Saying so plainly is better than silently doing
- * something different from what a real shell would do.
- */
-export function unsupportedSyntax(line: string): string | null {
-  if (/\$\(|`/.test(line)) return "Command substitution is not simulated here. See /learn/bash-scripting.";
-  if (/\b(for|while|until|if|case)\b/.test(line)) {
-    return "Control flow is not simulated here. The Bash scripting module covers it: /learn/bash-scripting.";
-  }
-  if (/&&|\|\|/.test(line)) return "Command lists (&& and ||) are not simulated here. Run the commands one at a time.";
-  if (/<</.test(line)) return "Here-documents are not simulated here.";
-  return null;
 }

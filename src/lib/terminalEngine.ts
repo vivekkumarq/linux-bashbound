@@ -1,5 +1,5 @@
 import { countFlag, makeExtras, stripTrailingNewline, writeFileAt, type Runner } from "./terminalExtras";
-import { globToRegExp, hasGlob, parseLine, unsupportedSyntax } from "./terminalShell";
+import { globToRegExp, parseLine, type Word } from "./terminalShell";
 
 export type Node =
   | { kind: "dir"; name: string; children: Record<string, Node>; mode: string }
@@ -96,32 +96,6 @@ function parentAndName(path: string[]) {
   return { parent: path.slice(0, -1), name: path[path.length - 1] };
 }
 
-function tokenize(line: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let q: "'" | '"' | null = null;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (q) {
-      if (ch === q) q = null;
-      else cur += ch;
-      continue;
-    }
-    if (ch === "'" || ch === '"') {
-      q = ch;
-      continue;
-    }
-    if (/\s/.test(ch)) {
-      if (cur) out.push(cur);
-      cur = "";
-      continue;
-    }
-    cur += ch;
-  }
-  if (cur) out.push(cur);
-  return out;
-}
-
 export function promptPath(state: TermState) {
   const p = "/" + state.cwd.join("/");
   if (p === "/home/student") return "~";
@@ -167,27 +141,26 @@ export const SIMULATED = [
 /**
  * Runs one simple command (no pipes, no redirection).
  *
- * `stdin` is the previous stage's output when this command is part of a
- * pipeline. Filters fall back to it when given no file operand, which is what
- * makes `cat file | grep x` behave the way it does on a real shell.
+ * `argv` arrives already split and unquoted by the shell layer. `stdin` is the
+ * previous stage's output when this command is part of a pipeline. Filters
+ * fall back to it when given no file operand, which is what makes
+ * `cat file | grep x` behave the way it does on a real shell.
  *
  * runCommand() below is the entry point; it handles the shell syntax and then
  * calls in here per stage.
  */
 function runBuiltin(
   state: TermState,
-  line: string,
+  argv: string[],
   stdin = "",
 ): { output: string; state: TermState } {
-  const trimmed = line.trim();
-  if (!trimmed) return { output: "", state };
+  if (!argv.length) return { output: "", state };
   const next: TermState = {
     ...state,
     env: { ...state.env },
     cwd: [...state.cwd],
     history: state.history,
   };
-  const argv = tokenize(trimmed);
   const cmd = argv[0];
   const args = argv.slice(1);
 
@@ -250,7 +223,7 @@ function runBuiltin(
         state: next,
       };
     case "echo":
-      return { output: args.join(" ").replace(/^["']|["']$/g, ""), state: next };
+      return { output: args.join(" "), state: next };
     case "ls": {
       const long = args.some((a) => /^-[a-z]*l/.test(a));
       const all = args.some((a) => /^-[a-z]*a/.test(a));
@@ -560,10 +533,14 @@ function readInput(state: TermState, files: string[], stdin: string): { text: st
 
 const EXTRA: Record<string, Runner> = makeExtras({ walk, resolve, readInput });
 
-/** Expands `*` and `?` against the filesystem, leaving non-matching words alone. */
-function expandGlobs(state: TermState, args: string[]): string[] {
-  return args.flatMap((word) => {
-    if (!hasGlob(word)) return [word];
+/**
+ * Expands unquoted `*` and `?` against the filesystem, leaving non-matching
+ * words alone. A quoted pattern reaches the command as typed, which is what
+ * `find . -name '*.txt'` depends on.
+ */
+function expandGlobs(state: TermState, args: Word[]): string[] {
+  return args.flatMap(({ text: word, glob }) => {
+    if (!glob) return [word];
     const slash = word.lastIndexOf("/");
     const dirPart = slash === -1 ? "." : word.slice(0, slash) || "/";
     const basePart = slash === -1 ? word : word.slice(slash + 1);
@@ -589,33 +566,30 @@ export function runCommand(state: TermState, line: string): { output: string; st
 
   const recorded: TermState = { ...state, history: [...state.history, trimmed] };
 
-  const unsupported = unsupportedSyntax(trimmed);
-  if (unsupported) return { output: unsupported, state: recorded };
-
   const parsed = parseLine(trimmed);
-  if (parsed.error) return { output: `bash: ${parsed.error}`, state: recorded };
+  if (parsed.error) return { output: parsed.error, state: recorded };
 
   let current = recorded;
-  let stdin = "";
   let output = "";
 
   for (const stage of parsed.stages) {
-    const argv = tokenize(stage.command);
-    const expanded = [argv[0], ...expandGlobs(current, argv.slice(1))].filter(Boolean);
-    const result = runBuiltin(current, expanded.join(" "), stdin);
+    const [name, ...rest] = stage.words;
+    const result = runBuiltin(current, [name.text, ...expandGlobs(current, rest)], output);
 
     // clear and reset are whole-terminal actions; they end the line.
     if (result.output === "__CLEAR__") return result;
 
     current = result.state;
-    stdin = result.output;
     output = result.output;
-  }
 
-  if (parsed.redirect) {
-    const path = resolve(current, parsed.redirect.target) ?? [];
-    const fs = writeFileAt(current.fs, path, output ? `${output}\n` : "", parsed.redirect.append, walk);
-    return { output: "", state: { ...current, fs } };
+    // Every target is created or truncated, as in a real shell; the output
+    // lands in the last one, and the next stage of the pipe gets nothing.
+    stage.redirects.forEach((r, i) => {
+      const last = i === stage.redirects.length - 1;
+      const text = last && output ? `${output}\n` : "";
+      current = { ...current, fs: writeFileAt(current.fs, resolve(current, r.target) ?? [], text, r.append, walk) };
+    });
+    if (stage.redirects.length) output = "";
   }
 
   return { output, state: current };

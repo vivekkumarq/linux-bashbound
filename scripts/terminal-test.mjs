@@ -86,6 +86,19 @@ check("control flow refused", sh("for i in 1 2; do echo $i; done"), (out) => out
 check("substitution refused", sh("echo $(date)"), (out) => out.includes("substitution"));
 check("&& refused", sh("true && false"), (out) => out.includes("Command lists"));
 
+// Quoting: a quoted argument reaches the command as one word, and operators
+// and globs inside quotes are plain text.
+check("quoted pattern with a space", sh('grep "boot complete" /var/log/syslog'), "INFO boot complete");
+check("single quotes keep spaces", sh("echo 'a   b'"), "a   b");
+check("> inside quotes is text", sh('echo "a > b"'), "a > b");
+check("| inside quotes is text", sh("echo 'x | y'"), "x | y");
+check("quoted glob is not expanded", (sh("cd /tmp"), sh("echo '*.txt'")), "*.txt");
+check("find gets the quoted pattern", sh("find /tmp -name '*.txt'"), (out) => out.includes("/tmp/out.txt") && out.includes("/tmp/nums.txt"));
+sh("cd ~");
+check("keyword as an argument is not control flow", sh("echo if for while"), "if for while");
+check("redirect mid-pipeline", (sh("echo hi > /tmp/mid.txt | cat"), sh("cat /tmp/mid.txt")), "hi\n");
+check("unterminated quote", sh("echo 'oops"), (out) => out.includes("unexpected EOF"));
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
