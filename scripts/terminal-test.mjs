@@ -218,6 +218,13 @@ check("cat valueOf", sh("cat valueOf"), "cat: valueOf: No such file or directory
 sh("cd ~");
 check("the shell still works afterwards", sh("pwd"), "/home/student");
 
+// tr: classes, escapes, and -s only squeezing the named characters.
+check("tr classes", sh("echo hello | tr '[:lower:]' '[:upper:]'"), "HELLO");
+check("tr space to newline", sh("echo a b c | tr ' ' '\\n'"), "a\nb\nc");
+check("tr -s squeezes only the set", sh("echo 'hello   world' | tr -s ' '"), "hello world");
+check("tr -d with a class", sh("echo abc123 | tr -d '[:digit:]'"), "abc");
+check("tr escapes both ways", sh("echo a-b | tr - '\\t' | tr -d '\\t'"), "ab");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));

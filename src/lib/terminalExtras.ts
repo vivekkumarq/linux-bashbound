@@ -61,6 +61,44 @@ export function countFlag(args: string[], fallback: number) {
   return fallback;
 }
 
+/** A tr set with its escapes, [:classes:] and a-z ranges spelled out. */
+function trSet(set: string) {
+  const range = (from: string, to: string) => {
+    let acc = "";
+    for (let c = from.charCodeAt(0); c <= to.charCodeAt(0); c += 1) acc += String.fromCharCode(c);
+    return acc;
+  };
+  const classes: Record<string, string> = {
+    lower: range("a", "z"),
+    upper: range("A", "Z"),
+    digit: range("0", "9"),
+    alpha: range("a", "z") + range("A", "Z"),
+    alnum: range("a", "z") + range("A", "Z") + range("0", "9"),
+    space: " \t\n\r\v\f",
+    blank: " \t",
+  };
+  const escapes: Record<string, string> = { n: "\n", t: "\t", r: "\r", "\\": "\\" };
+  let out = "";
+  for (let i = 0; i < set.length; i += 1) {
+    const cls = /^\[:(\w+):\]/.exec(set.slice(i));
+    if (cls && classes[cls[1]]) {
+      out += classes[cls[1]];
+      i += cls[0].length - 1;
+      continue;
+    }
+    let ch = set[i];
+    if (ch === "\\" && i + 1 < set.length) ch = escapes[set[(i += 1)]] ?? set[i];
+    // A range such as a-z; a dash at either end is a literal dash.
+    if (set[i + 1] === "-" && i + 2 < set.length) {
+      out += range(ch, set[i + 2]);
+      i += 2;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 export function lines(text: string) {
   const body = stripTrailingNewline(text);
   return body === "" ? [] : body.split("\n");
@@ -142,31 +180,29 @@ function makeExtras(deps: {
     },
 
     tr: (state, args, stdin) => {
-      const flags = args.filter((a) => a.startsWith("-")).join("");
-      const sets = args.filter((a) => !a.startsWith("-"));
-      if (!sets.length) return fail(state, "tr: usage: tr [-ds] SET1 [SET2]");
+      const flags = args.filter((a) => /^-[a-z]+$/.test(a)).join("");
+      const sets = args.filter((a) => !/^-[a-z]+$/.test(a));
+      if (!sets.length) return fail(state, "tr: missing operand");
 
-      const expand = (set: string) =>
-        set.replace(/([a-zA-Z0-9])-([a-zA-Z0-9])/g, (_m, from: string, to: string) => {
-          let acc = "";
-          for (let c = from.charCodeAt(0); c <= to.charCodeAt(0); c += 1) acc += String.fromCharCode(c);
-          return acc;
-        });
-
-      const from = expand(sets[0]);
-      const to = sets[1] ? expand(sets[1]) : "";
+      const from = trSet(sets[0]);
+      const to = sets[1] ? trSet(sets[1]) : "";
       let out = "";
       for (const ch of stdin) {
         const i = from.indexOf(ch);
         if (flags.includes("d")) {
           if (i === -1) out += ch;
-        } else if (i !== -1) {
-          out += to[Math.min(i, to.length - 1)] ?? ch;
+        } else if (i !== -1 && to) {
+          out += to[Math.min(i, to.length - 1)];
         } else {
           out += ch;
         }
       }
-      if (flags.includes("s")) out = out.replace(/(.)\1+/g, "$1");
+      // -s squeezes runs of the characters in the last set given, not every
+      // repeated character: `tr -s ' '` must leave "hello" alone.
+      if (flags.includes("s")) {
+        const squeeze = to || from;
+        out = [...out].filter((ch, i, all) => !(i > 0 && ch === all[i - 1] && squeeze.includes(ch))).join("");
+      }
       return { output: stripTrailingNewline(out), state };
     },
 
