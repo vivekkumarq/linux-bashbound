@@ -151,6 +151,25 @@ check("$? for no match", (sh("grep zzz /etc/hostname"), sh("echo $?")), "1");
 check("$? for unknown command", (sh("nosuchtool 2>/dev/null"), sh("echo $?")), "127");
 check("a 2 that is an argument stays one", sh("echo 2 > /tmp/two.txt; cat /tmp/two.txt"), "2");
 
+// chmod: every octal digit, special bits, and symbolic modes.
+const modeOf = (path) => sh(`ls -l ${path}`).split(/\s+/)[0];
+sh("touch /tmp/m; mkdir -p /tmp/d");
+check("chmod 711", (sh("chmod 711 /tmp/m"), modeOf("/tmp/m")), "-rwx--x--x");
+check("chmod 642", (sh("chmod 642 /tmp/m"), modeOf("/tmp/m")), "-rw-r---w-");
+check("chmod 4755 sets setuid", (sh("chmod 4755 /tmp/m"), modeOf("/tmp/m")), "-rwsr-xr-x");
+check("chmod 4644 shows S", (sh("chmod 4644 /tmp/m"), modeOf("/tmp/m")), "-rwSr--r--");
+check("chmod 000", (sh("chmod 000 /tmp/m"), modeOf("/tmp/m")), "----------");
+check("chmod u+x", (sh("chmod 644 /tmp/m; chmod u+x /tmp/m"), modeOf("/tmp/m")), "-rwxr--r--");
+check("chmod +x honours no class", (sh("chmod 644 /tmp/m; chmod +x /tmp/m"), modeOf("/tmp/m")), "-rwxr-xr-x");
+check("chmod +w is limited by the umask", (sh("chmod 444 /tmp/m; chmod +w /tmp/m"), modeOf("/tmp/m")), "-rw-r--r--");
+check("chmod go-rx,u=rw", (sh("chmod 755 /tmp/m; chmod go-rx,u=rw /tmp/m"), modeOf("/tmp/m")), "-rw-------");
+check("chmod -x is a mode", (sh("chmod 755 /tmp/m; chmod -x /tmp/m"), modeOf("/tmp/m")), "-rw-r--r--");
+check("chmod +t on a directory", (sh("chmod 777 /tmp/d; chmod +t /tmp/d"), sh("ls -l /tmp").split("\n").find((l) => l.endsWith(" d")).split(/\s+/)[0]), "drwxrwxrwt");
+check("chmod g+s on a directory", (sh("chmod 770 /tmp/d; chmod g+s /tmp/d"), sh("ls -l /tmp").split("\n").find((l) => l.endsWith(" d")).split(/\s+/)[0]), "drwxrws---");
+check("chmod rejects a bad mode", sh("chmod 9z9 /tmp/m"), "chmod: invalid mode: '9z9'");
+check("chmod reports a missing file", sh("chmod 600 /tmp/nope"), "chmod: cannot access '/tmp/nope': No such file or directory");
+check("chmod -R reaches children", (sh("touch /tmp/d/inner; chmod -R 700 /tmp/d"), modeOf("/tmp/d/inner")), "-rwx------");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));

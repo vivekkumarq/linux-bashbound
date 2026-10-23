@@ -116,6 +116,67 @@ function resolve(state: TermState, raw: string): string[] | null {
   return out;
 }
 
+/** "-rwsr-xr-x" to its permission bits, special bits included. */
+function modeBits(mode: string): number {
+  let bits = 0;
+  for (let i = 0; i < 9; i += 1) {
+    // s and t stand in for x; their capitals mean the special bit without x.
+    if (!"-ST".includes(mode[i + 1])) bits |= 1 << (8 - i);
+  }
+  if ("sS".includes(mode[3])) bits |= 0o4000;
+  if ("sS".includes(mode[6])) bits |= 0o2000;
+  if ("tT".includes(mode[9])) bits |= 0o1000;
+  return bits;
+}
+
+/** Permission bits to the nine characters after the type in `ls -l`. */
+function modeString(bits: number): string {
+  const chars = [..."rwxrwxrwx"].map((c, i) => (bits & (1 << (8 - i)) ? c : "-"));
+  const special = (i: number, bit: number, letter: string) => {
+    if (bits & bit) chars[i] = chars[i] === "x" ? letter : letter.toUpperCase();
+  };
+  special(2, 0o4000, "s");
+  special(5, 0o2000, "s");
+  special(8, 0o1000, "t");
+  return chars.join("");
+}
+
+/**
+ * Applies a chmod mode — octal like 750 or 4755, or symbolic like u+x,go-w —
+ * to `bits`. Returns null when the mode is not valid.
+ */
+function applyMode(bits: number, mode: string, isDir: boolean): number | null {
+  if (/^[0-7]{1,5}$/.test(mode)) {
+    const value = parseInt(mode, 8) & 0o7777;
+    // GNU chmod keeps a directory's setuid and setgid bits under a numeric
+    // mode unless a fifth digit says otherwise (00755).
+    return isDir && mode.length < 5 ? value | (bits & 0o6000) : value;
+  }
+
+  const CLASS: Record<string, number> = { u: 0o4700, g: 0o2070, o: 0o1007, a: 0o7777 };
+  let out = bits;
+  for (const clause of mode.split(",")) {
+    const m = /^([ugoa]*)([-+=])([rwxXst]*)$/.exec(clause);
+    if (!m) return null;
+    const [, who, op, perms] = m;
+    // With no class named, the umask (022 here) limits what is granted.
+    const scope = who ? [...who].reduce((acc, c) => acc | CLASS[c], 0) : 0o7777 & ~0o022;
+    let want = 0;
+    for (const p of perms) {
+      if (p === "r") want |= 0o444;
+      if (p === "w") want |= 0o222;
+      if (p === "x" || (p === "X" && (isDir || out & 0o111))) want |= 0o111;
+      if (p === "s") want |= 0o6000;
+      if (p === "t") want |= 0o1000;
+    }
+    want &= scope;
+    if (op === "+") out |= want;
+    if (op === "-") out &= ~want;
+    if (op === "=") out = (out & ~(who ? scope : 0o777)) | want;
+  }
+  return out;
+}
+
 function parentAndName(path: string[]) {
   if (!path.length) return { parent: [] as string[], name: "" };
   return { parent: path.slice(0, -1), name: path[path.length - 1] };
@@ -504,26 +565,25 @@ function runBuiltin(
       return { output: node.kind === "dir" ? `${name}: directory` : `${name}: ASCII text`, state: next };
     }
     case "chmod": {
-      const mode = args.find((a) => /^[0-7]{3,4}$/.test(a) || /^[ugoa]*[-+=][rwx]+$/.test(a));
-      const name = args.filter((a) => a !== mode).pop();
-      if (!name) return fail(next, "chmod: missing operand");
-      const path = resolve(next, name);
-      const node = path ? walk(next.fs, path) : null;
-      if (!node) return fail(next, `chmod: cannot access '${name}'`);
-      if (mode && /^[0-7]{3}$/.test(mode)) {
-        const map: Record<string, string> = {
-          "7": "rwx",
-          "6": "rw-",
-          "5": "r-x",
-          "4": "r--",
-          "0": "---",
-        };
-        const u = map[mode[0]] ?? "rwx";
-        const g = map[mode[1]] ?? "r-x";
-        const o = map[mode[2]] ?? "r-x";
-        node.mode = `${node.kind === "dir" ? "d" : "-"}${u}${g}${o}`;
+      // -x is a mode, not an option, so only the real options are set aside.
+      const operands = args.filter((a) => !["-R", "-v", "-c", "-f", "--recursive"].includes(a));
+      const recursive = args.includes("-R") || args.includes("--recursive");
+      const [mode, ...names] = operands;
+      if (!mode) return fail(next, "chmod: missing operand");
+      if (!names.length) return fail(next, `chmod: missing operand after '${mode}'`);
+      if (applyMode(0, mode, false) === null) return fail(next, `chmod: invalid mode: '${mode}'`);
+
+      const errors: string[] = [];
+      const visit = (node: Node) => {
+        node.mode = node.mode[0] + modeString(applyMode(modeBits(node.mode), mode, node.kind === "dir")!);
+        if (recursive && node.kind === "dir") Object.values(node.children).forEach(visit);
+      };
+      for (const name of names) {
+        const node = walk(next.fs, resolve(next, name) ?? []);
+        if (node) visit(node);
+        else errors.push(`chmod: cannot access '${name}': No such file or directory`);
       }
-      return { output: "", state: next };
+      return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "ln": {
       const sym = args.includes("-s");
