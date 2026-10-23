@@ -381,8 +381,18 @@ function runBuiltin(
         output: next.history.map((h, i) => `${String(i + 1).padStart(4, " ")}  ${h}`).join("\n"),
         state: next,
       };
-    case "echo":
-      return { output: args.join(" "), state: next };
+    case "echo": {
+      // bash's echo takes -n, -e and -E only as leading words made of those letters.
+      let words = args;
+      let escapes = false;
+      while (words.length && /^-[neE]+$/.test(words[0])) {
+        if (words[0].includes("e")) escapes = true;
+        if (words[0].includes("E")) escapes = false;
+        words = words.slice(1);
+      }
+      const text = words.join(" ");
+      return { output: escapes ? unbackslash(text) : text, state: next };
+    }
     case "ls": {
       const long = args.some((a) => /^-[a-z]*l/.test(a));
       const all = args.some((a) => /^-[a-z]*a/.test(a));

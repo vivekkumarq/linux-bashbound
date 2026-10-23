@@ -262,6 +262,9 @@ check("printf zero padding", sh("printf '%04d\\n' 7"), "0007");
 check("printf width and left align", sh("printf '[%5s][%-3s]' ab c"), "[   ab][c  ]");
 check("printf precision", sh("printf '%.2f %x %o %%' 3.14159 255 8"), "3.14 ff 10 %");
 check("printf with no format", sh("printf"), (out) => out.includes("usage"));
+check("echo -e interprets escapes", sh("echo -e 'a\\tb'"), "a\tb");
+check("echo -n is an option", sh("echo -n hi"), "hi");
+check("echo leaves other dashes alone", sh("echo -x"), "-x");
 
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
