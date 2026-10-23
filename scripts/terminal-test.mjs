@@ -237,6 +237,25 @@ check("sed other delimiter", sh("echo /usr/bin | sed 's|/usr|/opt|'"), "/opt/bin
 check("sed -i edits the file", (sh("echo old > /tmp/s.txt; sed -i 's/old/new/' /tmp/s.txt"), fileText("/tmp/s.txt")), "new\n");
 check("sed refuses what it cannot do", sh("sed -n '1,5p' /etc/passwd"), (out) => out.includes("not simulated"));
 
+// grep: BRE by default, the common flags, several files, -r.
+check("grep BRE alternation", sh("grep 'boot\\|ok' /var/log/syslog"), "INFO boot complete\nINFO ok");
+check("grep BRE | is literal", sh("grep 'boot|ok' /var/log/syslog"), "");
+check("grep -E alternation", sh("grep -E 'boot|ok' /var/log/syslog"), "INFO boot complete\nINFO ok");
+check("grep -F is fixed", sh("echo 'a.c abc' | grep -o -F 'a.c'"), "a.c");
+check("grep -w", sh("printf 'ok\\nbook\\n' | grep -w ok"), "ok");
+check("grep -x", sh("printf 'ok\\nok ok\\n' | grep -x ok"), "ok");
+check("grep -o", sh("echo 'id=1 id=22' | grep -oE '[0-9]+'"), "1\n22");
+check("grep -l", sh("grep -l root /etc/passwd /etc/hostname"), "/etc/passwd");
+check("grep labels several files", sh("grep -c o /etc/passwd /etc/hostname"), "/etc/passwd:2\n/etc/hostname:1");
+check("grep -r", sh("grep -r ERROR /var"), "/var/log/syslog:ERROR disk simulated");
+check("grep -i -n", sh("grep -in error /var/log/syslog"), "2:ERROR disk simulated");
+check("grep -e twice", sh("grep -e boot -e ok /var/log/syslog | wc -l"), "2");
+check("grep keeps going past a missing file", sh("grep root /nope /etc/passwd"), "grep: /nope: No such file or directory\n/etc/passwd:root:x:0:0:root:/root:/bin/bash");
+check("grep on a directory", sh("grep x /etc"), "grep: /etc: Is a directory");
+check("grep -c on empty input is 0", sh("grep -c '^$' /dev/null"), "0");
+check("grep -q is silent", (sh("grep -q root /etc/passwd"), sh("grep -q root /etc/passwd; echo $?")), "0");
+check("grep -A is not silently ignored", sh("grep -A 2 ERROR /var/log/syslog"), "grep: -A is not simulated here");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
