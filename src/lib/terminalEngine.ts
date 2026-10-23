@@ -1,4 +1,13 @@
-import { asFileText, countFlag, makeExtras, stripTrailingNewline, writeFileAt, type Runner } from "./terminalExtras";
+import {
+  asFileText,
+  countFlag,
+  fail,
+  makeExtras,
+  stripTrailingNewline,
+  writeFileAt,
+  type Result,
+  type Runner,
+} from "./terminalExtras";
 import { globToRegExp, parseLine, wordText, type Word } from "./terminalShell";
 
 export type Node =
@@ -11,6 +20,8 @@ export interface TermState {
   env: Record<string, string>;
   /** Shell variables that have been assigned but not exported. */
   vars: Record<string, string>;
+  /** Exit status of the last pipeline, for `$?`. */
+  status: number;
   history: string[];
   fs: Node;
 }
@@ -40,6 +51,7 @@ export function initialFs(): Node {
       file("os-release", 'NAME="Linux BashBound Lab"\nID=bashbound\n'),
       file("passwd", "root:x:0:0:root:/root:/bin/bash\nstudent:x:1000:1000:Student:/home/student:/bin/bash\n"),
     ]),
+    dir("dev", [file("null", "", "crw-rw-rw-")]),
     dir("tmp"),
     dir("usr", [dir("bin"), dir("local", [dir("bin")])]),
     dir("var", [dir("log", [file("syslog", "INFO boot complete\nERROR disk simulated\nINFO ok\n")])]),
@@ -57,6 +69,7 @@ export function freshState(): TermState {
       PWD: "/home/student",
     },
     vars: {},
+    status: 0,
     history: [],
     fs: initialFs(),
   };
@@ -64,6 +77,7 @@ export function freshState(): TermState {
 
 /** What `$name` expands to. Unset variables expand to nothing, as in bash. */
 function lookup(state: TermState, name: string): string {
+  if (name === "?") return String(state.status);
   if (name === "$") return "2451"; // the shell's PID in the ps sample output
   if (name === "0") return "bash";
   if (name === "#") return "0";
@@ -165,7 +179,7 @@ function runBuiltin(
   state: TermState,
   argv: string[],
   stdin = "",
-): { output: string; state: TermState } {
+): Result {
   if (!argv.length) return { output: "", state };
   const next: TermState = {
     ...state,
@@ -192,7 +206,8 @@ function runBuiltin(
           "",
           "  Pipes     cat /var/log/syslog | grep ERROR | wc -l",
           "  Lists     cd /tmp; ls",
-          "  Redirect  echo hi > out.txt     and     echo more >> out.txt",
+          "  Redirect  echo hi > out.txt   >> appends   < reads   2> errors   2>&1 both",
+          "  Vars      echo $HOME    NAME=value    export NAME    echo $?",
           "  Globs     ls *.txt",
           "  Tab       completes commands and paths",
           "",
@@ -277,19 +292,20 @@ function runBuiltin(
         blocks.push(operands.length > 1 ? `${target}:\n${body}` : body);
       }
 
-      const parts = [
-        ...errors,
-        ...(loose.length ? [long ? loose.join("\n") : loose.join("  ")] : []),
-        ...blocks,
-      ];
-      return { output: parts.join("\n\n"), state: next };
+      const parts = [...(loose.length ? [long ? loose.join("\n") : loose.join("  ")] : []), ...blocks];
+      return {
+        output: parts.join("\n\n"),
+        error: errors.length ? errors.join("\n") : undefined,
+        status: errors.length ? 2 : 0,
+        state: next,
+      };
     }
     case "cd": {
       const dest = args[0] ?? "~";
       const path = resolve(next, dest);
-      if (!path) return { output: "cd: path error", state: next };
+      if (!path) return fail(next, "cd: path error");
       const node = walk(next.fs, path);
-      if (!node || node.kind !== "dir") return { output: `cd: ${dest}: No such directory`, state: next };
+      if (!node || node.kind !== "dir") return fail(next, `cd: ${dest}: No such directory`);
       next.cwd = path;
       next.env.PWD = "/" + path.join("/");
       return { output: "", state: next };
@@ -297,7 +313,7 @@ function runBuiltin(
     case "mkdir": {
       const pflag = args.includes("-p");
       const names = args.filter((a) => !a.startsWith("-"));
-      if (!names.length) return { output: "mkdir: missing operand", state: next };
+      if (!names.length) return fail(next, "mkdir: missing operand");
       for (const name of names) {
         const path = resolve(next, name);
         if (!path) continue;
@@ -306,33 +322,33 @@ function runBuiltin(
         if ((!parentNode || parentNode.kind !== "dir") && pflag) {
           let cur = next.fs;
           for (const seg of path) {
-            if (cur.kind !== "dir") return { output: "mkdir: not a directory", state: next };
+            if (cur.kind !== "dir") return fail(next, "mkdir: not a directory");
             if (!cur.children[seg]) cur.children[seg] = dir(seg);
             cur = cur.children[seg];
           }
           continue;
         }
-        if (!parentNode || parentNode.kind !== "dir") return { output: `mkdir: cannot create directory '${name}'`, state: next };
-        if (parentNode.children[base] && !pflag) return { output: `mkdir: cannot create directory '${name}': File exists`, state: next };
+        if (!parentNode || parentNode.kind !== "dir") return fail(next, `mkdir: cannot create directory '${name}'`);
+        if (parentNode.children[base] && !pflag) return fail(next, `mkdir: cannot create directory '${name}': File exists`);
         if (!parentNode.children[base]) parentNode.children[base] = dir(base);
       }
       return { output: "", state: next };
     }
     case "touch": {
       const names = args.filter((a) => !a.startsWith("-"));
-      if (!names.length) return { output: "touch: missing file operand", state: next };
+      if (!names.length) return fail(next, "touch: missing file operand");
       for (const name of names) {
         const path = resolve(next, name)!;
         const { parent, name: base } = parentAndName(path);
         const parentNode = walk(next.fs, parent);
-        if (!parentNode || parentNode.kind !== "dir") return { output: `touch: cannot touch '${name}'`, state: next };
+        if (!parentNode || parentNode.kind !== "dir") return fail(next, `touch: cannot touch '${name}'`);
         if (!parentNode.children[base]) parentNode.children[base] = file(base, "");
       }
       return { output: "", state: next };
     }
     case "cat": {
       const read = readInput(next, args, stdin);
-      if (read.error) return { output: `cat: ${read.error}`, state: next };
+      if (read.error) return fail(next, `cat: ${read.error}`);
       return { output: read.text, state: next };
     }
     case "head":
@@ -340,7 +356,7 @@ function runBuiltin(
       const count = countFlag(args, 10);
       const files = args.filter((a) => !a.startsWith("-") && !/^\d+$/.test(a));
       const read = readInput(next, files, stdin);
-      if (read.error) return { output: `${cmd}: ${read.error}`, state: next };
+      if (read.error) return fail(next, `${cmd}: ${read.error}`);
       const lines = stripTrailingNewline(read.text).split("\n");
       const slice = cmd === "head" ? lines.slice(0, count) : lines.slice(-count);
       return { output: slice.join("\n"), state: next };
@@ -349,7 +365,7 @@ function runBuiltin(
       const flags = args.filter((a) => a.startsWith("-")).join("");
       const files = args.filter((a) => !a.startsWith("-"));
       const read = readInput(next, files, stdin);
-      if (read.error) return { output: `wc: ${read.error}`, state: next };
+      if (read.error) return fail(next, `wc: ${read.error}`);
       const text = read.text;
       const lineCount = text === "" ? 0 : stripTrailingNewline(text).split("\n").length;
       const words = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -363,15 +379,15 @@ function runBuiltin(
       const flags = args.filter((a) => a.startsWith("-")).join("");
       const positional = args.filter((a) => !a.startsWith("-"));
       const pat = positional[0];
-      if (!pat) return { output: "grep: usage: grep [-ivnc] PATTERN [FILE...]", state: next };
+      if (!pat) return fail(next, "grep: usage: grep [-ivnc] PATTERN [FILE...]", 2);
       const read = readInput(next, positional.slice(1), stdin);
-      if (read.error) return { output: `grep: ${read.error}`, state: next };
+      if (read.error) return fail(next, `grep: ${read.error}`, 2);
 
       let re: RegExp;
       try {
         re = new RegExp(pat, flags.includes("i") ? "i" : "");
       } catch {
-        return { output: `grep: ${pat}: invalid regular expression`, state: next };
+        return fail(next, `grep: ${pat}: invalid regular expression`, 2);
       }
 
       const invert = flags.includes("v");
@@ -383,24 +399,26 @@ function runBuiltin(
           hits.push(flags.includes("n") ? `${i + 1}:${l}` : l);
         });
 
-      if (flags.includes("c")) return { output: String(hits.length), state: next };
-      return { output: hits.join("\n"), state: next };
+      // grep's status is 1 when nothing matched, which is how scripts test it.
+      const status = hits.length ? 0 : 1;
+      if (flags.includes("c")) return { output: String(hits.length), status, state: next };
+      return { output: hits.join("\n"), status, state: next };
     }
     case "rm": {
       const rec = args.includes("-r") || args.includes("-rf") || args.includes("-fr");
       const names = args.filter((a) => !a.startsWith("-"));
       for (const name of names) {
         if (name === "/" || name === "~" || name === "/home") {
-          return { output: "rm: refusing to remove that path in Simulation Mode", state: next };
+          return fail(next, "rm: refusing to remove that path in Simulation Mode");
         }
         const path = resolve(next, name)!;
         const { parent, name: base } = parentAndName(path);
         const parentNode = walk(next.fs, parent);
         if (!parentNode || parentNode.kind !== "dir" || !parentNode.children[base]) {
-          return { output: `rm: cannot remove '${name}': No such file or directory`, state: next };
+          return fail(next, `rm: cannot remove '${name}': No such file or directory`);
         }
         const target = parentNode.children[base];
-        if (target.kind === "dir" && !rec) return { output: `rm: cannot remove '${name}': Is a directory`, state: next };
+        if (target.kind === "dir" && !rec) return fail(next, `rm: cannot remove '${name}': Is a directory`);
         delete parentNode.children[base];
       }
       return { output: "", state: next };
@@ -408,11 +426,11 @@ function runBuiltin(
     case "cp":
     case "mv": {
       const names = args.filter((a) => !a.startsWith("-"));
-      if (names.length < 2) return { output: `${cmd}: missing operand`, state: next };
+      if (names.length < 2) return fail(next, `${cmd}: missing operand`);
       const dest = resolve(next, names[names.length - 1])!;
       const src = resolve(next, names[0])!;
       const srcNode = walk(next.fs, src);
-      if (!srcNode) return { output: `${cmd}: no such file`, state: next };
+      if (!srcNode) return fail(next, `${cmd}: no such file`);
       const destNode = walk(next.fs, dest);
       const { parent: sp, name: sn } = parentAndName(src);
       const srcParent = walk(next.fs, sp);
@@ -421,7 +439,7 @@ function runBuiltin(
       } else {
         const { parent, name } = parentAndName(dest);
         const p = walk(next.fs, parent);
-        if (!p || p.kind !== "dir") return { output: `${cmd}: dest error`, state: next };
+        if (!p || p.kind !== "dir") return fail(next, `${cmd}: dest error`);
         const copy = structuredClone(srcNode);
         copy.name = name;
         p.children[name] = copy;
@@ -462,17 +480,17 @@ function runBuiltin(
     case "type":
     case "which": {
       const name = args.find((a) => !a.startsWith("-"));
-      if (!name) return { output: `${cmd}: missing operand`, state: next };
+      if (!name) return fail(next, `${cmd}: missing operand`);
       if (SIMULATED.includes(name)) {
         return { output: cmd === "type" ? `${name} is a simulated shell command` : `/usr/bin/${name}`, state: next };
       }
-      return { output: `${cmd}: ${name}: not found in Simulation Mode`, state: next };
+      return fail(next, `${cmd}: ${name}: not found in Simulation Mode`);
     }
     case "stat": {
       const name = args.find((a) => !a.startsWith("-")) || ".";
       const path = resolve(next, name);
       const node = path ? walk(next.fs, path) : null;
-      if (!node) return { output: `stat: cannot statx '${name}'`, state: next };
+      if (!node) return fail(next, `stat: cannot statx '${name}'`);
       return {
         output: `  File: ${name}\n  Size: ${node.kind === "file" ? node.content.length : 4096}\n  Type: ${node.kind}\nAccess: ${node.mode}`,
         state: next,
@@ -480,7 +498,7 @@ function runBuiltin(
     }
     case "file": {
       const name = args[0];
-      if (!name) return { output: "file: missing operand", state: next };
+      if (!name) return fail(next, "file: missing operand");
       const node = walk(next.fs, resolve(next, name)!);
       if (!node) return { output: `${name}: cannot open`, state: next };
       return { output: node.kind === "dir" ? `${name}: directory` : `${name}: ASCII text`, state: next };
@@ -488,10 +506,10 @@ function runBuiltin(
     case "chmod": {
       const mode = args.find((a) => /^[0-7]{3,4}$/.test(a) || /^[ugoa]*[-+=][rwx]+$/.test(a));
       const name = args.filter((a) => a !== mode).pop();
-      if (!name) return { output: "chmod: missing operand", state: next };
+      if (!name) return fail(next, "chmod: missing operand");
       const path = resolve(next, name);
       const node = path ? walk(next.fs, path) : null;
-      if (!node) return { output: `chmod: cannot access '${name}'`, state: next };
+      if (!node) return fail(next, `chmod: cannot access '${name}'`);
       if (mode && /^[0-7]{3}$/.test(mode)) {
         const map: Record<string, string> = {
           "7": "rwx",
@@ -510,29 +528,27 @@ function runBuiltin(
     case "ln": {
       const sym = args.includes("-s");
       const names = args.filter((a) => !a.startsWith("-"));
-      if (names.length < 2) return { output: "ln: missing operand", state: next };
+      if (names.length < 2) return fail(next, "ln: missing operand");
       const target = names[0];
       const dest = resolve(next, names[1]);
-      if (!dest) return { output: "ln: dest error", state: next };
+      if (!dest) return fail(next, "ln: dest error");
       const { parent, name } = parentAndName(dest);
       const p = walk(next.fs, parent);
-      if (!p || p.kind !== "dir") return { output: "ln: dest error", state: next };
+      if (!p || p.kind !== "dir") return fail(next, "ln: dest error");
       p.children[name] = file(name, sym ? `symlink -> ${target}` : "", "-rw-r--r--");
       return { output: "", state: next };
     }
     case "man": {
       const name = args.find((a) => !/^\d+$/.test(a) && !a.startsWith("-"));
-      if (!name) return { output: "What manual page do you want?", state: next };
+      if (!name) return fail(next, "What manual page do you want?");
       if (SIMULATED.includes(name)) {
         return { output: `${name.toUpperCase()}(1)  Simulation Mode\n\nTYPE help FOR THE LAB COMMAND LIST.\nOn a real host run: man ${name}`, state: next };
       }
-      return { output: `No simulated man page for ${name}. Open the Commands explorer in this site.`, state: next };
+      return fail(next, `No simulated man page for ${name}. Open the Commands explorer in this site.`, 16);
     }
     default:
-      return {
-        output: `bash: ${cmd}: command not simulated. Type help. Simulation Mode never executes host commands.`,
-        state: next,
-      };
+      // 127 is bash's "command not found".
+      return fail(next, `bash: ${cmd}: command not simulated. Type help. Simulation Mode never executes host commands.`, 127);
   }
 }
 
@@ -596,15 +612,18 @@ export function runCommand(state: TermState, line: string): { output: string; st
   const recorded: TermState = { ...state, history: [...state.history, trimmed] };
 
   const parsed = parseLine(trimmed);
-  if (parsed.error) return { output: parsed.error, state: recorded };
+  if (parsed.error) return { output: parsed.error, state: { ...recorded, status: 2 } };
 
   let current = recorded;
   const printed: string[] = [];
 
   for (const pipeline of parsed.pipelines) {
     let output = "";
+    let status = 0;
 
     for (const stage of pipeline) {
+      const expand = (w: Word) => wordText(w, (n) => lookup(current, n));
+
       // NAME=value words before the command. On their own they set shell
       // variables; in front of a command they would only reach that
       // command's environment, which nothing in the sandbox reads.
@@ -614,7 +633,7 @@ export function runCommand(state: TermState, line: string): { output: string; st
         const head = stage.words[start].parts[0];
         const m = typeof head === "string" ? /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(head) : null;
         if (!m) break;
-        const value = wordText(stage.words[start], (n) => lookup(current, n)).slice(m[0].length);
+        const value = expand(stage.words[start]).slice(m[0].length);
         assignments.push([m[1], value]);
       }
       if (start === stage.words.length) {
@@ -626,31 +645,73 @@ export function runCommand(state: TermState, line: string): { output: string; st
         }
         current = { ...current, env, vars };
         output = "";
+        status = 0;
         continue;
       }
 
-      const result = runBuiltin(current, expandWords(current, stage.words.slice(start)), output);
+      // Redirections are set up before the command runs, left to right, so
+      // `> out 2>&1` and `2>&1 > out` differ exactly as they do in bash. A
+      // sink is the pipe (or terminal) for stdout, the terminal for stderr,
+      // or a file path.
+      type Sink = "stdout" | "stderr" | string[];
+      let out: Sink = "stdout";
+      let err: Sink = "stderr";
+      let stdin = output;
+      let broken = "";
+      for (const r of stage.redirects) {
+        if ("dup" in r) {
+          if (r.fd === 2) err = out;
+          else out = err;
+          continue;
+        }
+        const name = expand(r.target);
+        const path = resolve(current, name) ?? [];
+        if (r.fd === 0) {
+          const node = walk(current.fs, path);
+          if (!node || node.kind !== "file") {
+            broken = `bash: ${name}: ${node ? "Is a directory" : "No such file or directory"}`;
+            break;
+          }
+          stdin = node.content;
+          continue;
+        }
+        current = { ...current, fs: writeFileAt(current.fs, path, "", r.append, walk) };
+        if (r.fd !== 2) out = path;
+        if (r.fd !== 1) err = path;
+      }
+      if (broken) {
+        printed.push(broken);
+        output = "";
+        status = 1;
+        continue;
+      }
+
+      const result = runBuiltin(current, expandWords(current, stage.words.slice(start)), stdin);
 
       // clear and reset are whole-terminal actions; they end the line.
       if (result.output === "__CLEAR__") return result;
 
       current = result.state;
-      output = result.output;
+      status = result.status ?? 0;
 
-      // Every target is created or truncated, as in a real shell; the output
-      // lands in the last one, and the next stage of the pipe gets nothing.
-      stage.redirects.forEach((r, i) => {
-        const last = i === stage.redirects.length - 1;
-        const text = last ? asFileText(output) : "";
-        const target = wordText(r.target, (n) => lookup(current, n));
-        current = { ...current, fs: writeFileAt(current.fs, resolve(current, target) ?? [], text, r.append, walk) };
-      });
-      if (stage.redirects.length) output = "";
+      // Errors print as they happen and never travel down a pipe or into a
+      // file unless 2> or 2>&1 sends them there.
+      let piped = "";
+      const send = (sink: Sink, text: string) => {
+        if (!text) return;
+        if (sink === "stdout") piped = piped ? `${piped}\n${text}` : text;
+        else if (sink === "stderr") printed.push(stripTrailingNewline(text));
+        else current = { ...current, fs: writeFileAt(current.fs, sink, asFileText(text), true, walk) };
+      };
+      send(err, result.error ?? "");
+      send(out, result.output);
+      output = piped;
     }
 
     // A file's own trailing newline is the end of its last line, not a blank
     // line before the next command's output.
     if (output) printed.push(stripTrailingNewline(output));
+    current = { ...current, status };
   }
 
   return { output: printed.join("\n"), state: current };

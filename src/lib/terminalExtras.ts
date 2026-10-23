@@ -8,9 +8,26 @@
 
 import type { Node, TermState } from "./terminalEngine";
 
-export type Runner = (state: TermState, args: string[], stdin: string) => { output: string; state: TermState };
+/**
+ * What a command produces. `output` is stdout, which pipes and `>` carry;
+ * `error` is stderr, which goes to the terminal unless `2>` sends it
+ * elsewhere. `status` is the exit status `$?` reports, 0 when left out.
+ */
+export interface Result {
+  output: string;
+  error?: string;
+  status?: number;
+  state: TermState;
+}
+
+export type Runner = (state: TermState, args: string[], stdin: string) => Result;
 
 /* ---- Shared helpers ------------------------------------------------------ */
+
+/** A command that failed: nothing on stdout, the message on stderr. */
+export function fail(state: TermState, error: string, status = 1): Result {
+  return { output: "", error, status, state };
+}
 
 export function stripTrailingNewline(text: string) {
   return text.endsWith("\n") ? text.slice(0, -1) : text;
@@ -56,7 +73,7 @@ function makeExtras(deps: {
       const flags = args.filter((a) => a.startsWith("-")).join("");
       const files = args.filter((a) => !a.startsWith("-"));
       const read = readInput(state, files, stdin);
-      if (read.error) return { output: `${name}: ${read.error}`, state };
+      if (read.error) return fail(state, `${name}: ${read.error}`);
       return { output: fn(lines(read.text), flags, args).join("\n"), state };
     };
 
@@ -107,8 +124,8 @@ function makeExtras(deps: {
         else if (!a.startsWith("-")) files.push(a);
       }
       const read = readInput(state, files, stdin);
-      if (read.error) return { output: `cut: ${read.error}`, state };
-      if (!fields) return { output: "cut: you must specify a list of fields, e.g. -f1", state };
+      if (read.error) return fail(state, `cut: ${read.error}`);
+      if (!fields) return fail(state, "cut: you must specify a list of fields, e.g. -f1");
       const out = lines(read.text).map((line) => {
         const parts = line.split(delim);
         return fields!.map((f) => parts[Number(f) - 1] ?? "").join(delim);
@@ -119,7 +136,7 @@ function makeExtras(deps: {
     tr: (state, args, stdin) => {
       const flags = args.filter((a) => a.startsWith("-")).join("");
       const sets = args.filter((a) => !a.startsWith("-"));
-      if (!sets.length) return { output: "tr: usage: tr [-ds] SET1 [SET2]", state };
+      if (!sets.length) return fail(state, "tr: usage: tr [-ds] SET1 [SET2]");
 
       const expand = (set: string) =>
         set.replace(/([a-zA-Z0-9])-([a-zA-Z0-9])/g, (_m, from: string, to: string) => {
@@ -148,16 +165,16 @@ function makeExtras(deps: {
     sed: (state, args, stdin) => {
       const expr = args.find((a) => a.startsWith("s"));
       const files = args.filter((a) => !a.startsWith("-") && a !== expr);
-      if (!expr) return { output: "sed: this sandbox supports s/pattern/replacement/flags only", state };
+      if (!expr) return fail(state, "sed: this sandbox supports s/pattern/replacement/flags only");
       const m = /^s(.)(.*?)\1(.*?)\1([gi]*)$/.exec(expr);
-      if (!m) return { output: `sed: unsupported expression '${expr}' (try s/old/new/g)`, state };
+      if (!m) return fail(state, `sed: unsupported expression '${expr}' (try s/old/new/g)`);
       const read = readInput(state, files, stdin);
-      if (read.error) return { output: `sed: ${read.error}`, state };
+      if (read.error) return fail(state, `sed: ${read.error}`);
       try {
         const re = new RegExp(m[2], `${m[4].includes("g") ? "g" : ""}${m[4].includes("i") ? "i" : ""}m`);
         return { output: stripTrailingNewline(read.text).replace(re, m[3]), state };
       } catch {
-        return { output: `sed: invalid regular expression '${m[2]}'`, state };
+        return fail(state, `sed: invalid regular expression '${m[2]}'`);
       }
     },
 
@@ -179,7 +196,7 @@ function makeExtras(deps: {
       const wantType = typeIdx !== -1 ? args[typeIdx + 1] : null;
 
       const root = walk(state.fs, resolve(state, start) ?? []);
-      if (!root) return { output: `find: '${start}': No such file or directory`, state };
+      if (!root) return fail(state, `find: '${start}': No such file or directory`);
 
       const re = pattern ? globToRe(pattern) : null;
       const out: string[] = [];
@@ -199,7 +216,7 @@ function makeExtras(deps: {
     tree: (state, args) => {
       const start = args.find((a) => !a.startsWith("-")) ?? ".";
       const root = walk(state.fs, resolve(state, start) ?? []);
-      if (!root) return { output: `tree: ${start}: No such file or directory`, state };
+      if (!root) return fail(state, `tree: ${start}: No such file or directory`);
       const rows = [start];
       let dirs = 0;
       let files = 0;
@@ -226,7 +243,7 @@ function makeExtras(deps: {
     seq: (state, args) => {
       const nums = args.map(Number).filter((n) => !Number.isNaN(n));
       const [from, to] = nums.length === 1 ? [1, nums[0]] : nums;
-      if (to === undefined) return { output: "seq: usage: seq [FIRST] LAST", state };
+      if (to === undefined) return fail(state, "seq: usage: seq [FIRST] LAST");
       const out: number[] = [];
       for (let i = from; i <= to; i += 1) out.push(i);
       return { output: out.join("\n"), state };
@@ -282,7 +299,7 @@ function makeExtras(deps: {
       const human = args.join("").includes("h");
       const start = args.find((a) => !a.startsWith("-")) ?? ".";
       const root = walk(state.fs, resolve(state, start) ?? []);
-      if (!root) return { output: `du: cannot access '${start}': No such file or directory`, state };
+      if (!root) return fail(state, `du: cannot access '${start}': No such file or directory`);
       const size = (node: Node): number =>
         node.kind === "file"
           ? Math.max(4, Math.ceil(node.content.length / 1024) * 4)
@@ -311,7 +328,8 @@ export function writeFileAt(
   append: boolean,
   walk: (root: Node, p: string[]) => Node | null,
 ): Node {
-  if (!path.length) return fs;
+  // /dev/null swallows everything written to it.
+  if (!path.length || path.join("/") === "dev/null") return fs;
   const clone = structuredClone(fs) as Node;
   const parent = walk(clone, path.slice(0, -1));
   if (!parent || parent.kind !== "dir") return fs;

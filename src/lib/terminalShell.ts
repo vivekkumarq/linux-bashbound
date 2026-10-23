@@ -27,10 +27,13 @@ export interface Word {
   quoted: boolean;
 }
 
-export interface Redirect {
-  target: Word;
-  append: boolean;
-}
+/**
+ * `<`, `>`, `>>`, `2>`, `&>` and friends name a file; `2>&1` and `>&2` point
+ * one descriptor at wherever the other currently goes.
+ */
+export type Redirect =
+  | { fd: 0 | 1 | 2 | "both"; target: Word; append: boolean }
+  | { fd: 1 | 2; dup: true };
 
 export interface Stage {
   words: Word[];
@@ -86,7 +89,7 @@ export function parseLine(line: string): ParsedLine {
   let stages: Stage[] = [];
   let words: Word[] = [];
   let redirects: Redirect[] = [];
-  let pending: { append: boolean } | null = null;
+  let pending: { fd: 0 | 1 | 2 | "both"; append: boolean } | null = null;
   let parts: Part[] = [];
   let text = "";
   let glob = false;
@@ -107,7 +110,7 @@ export function parseLine(line: string): ParsedLine {
     if (text) parts.push(text);
     const word: Word = { parts, glob, quoted };
     if (pending) {
-      redirects.push({ target: word, append: pending.append });
+      redirects.push({ fd: pending.fd, target: word, append: pending.append });
       pending = null;
     } else {
       words.push(word);
@@ -205,12 +208,37 @@ export function parseLine(line: string): ParsedLine {
     if (ch === "`" || (ch === "$" && line[i + 1] === "(")) return fail(SUBSTITUTION);
     if (ch === "<" && line[i + 1] === "<") return fail("Here-documents are not simulated here.");
 
-    if (ch === ">") {
+    if (ch === "<") {
+      endWord();
+      if (pending) return fail("bash: syntax error near unexpected token `<'");
+      pending = { fd: 0, append: false };
+      continue;
+    }
+
+    if (ch === ">" || (ch === "&" && line[i + 1] === ">")) {
+      // A bare 1 or 2 written right against the operator is the descriptor
+      // number, not an argument: `ls 2>/dev/null`.
+      let fd: 1 | 2 | "both" = 1;
+      if (ch === "&") {
+        fd = "both";
+        i += 1;
+      } else if (inWord && !quoted && !parts.length && (text === "1" || text === "2")) {
+        fd = text === "2" ? 2 : 1;
+        text = "";
+        inWord = false;
+      }
       endWord();
       if (pending) return fail("bash: syntax error near unexpected token `>'");
       const append = line[i + 1] === ">";
       if (append) i += 1;
-      pending = { append };
+
+      const dup = /^&([12])/.exec(line.slice(i + 1));
+      if (dup && fd !== "both" && !append) {
+        if (Number(dup[1]) !== fd) redirects.push({ fd, dup: true });
+        i += dup[0].length;
+        continue;
+      }
+      pending = { fd, append };
       continue;
     }
 
