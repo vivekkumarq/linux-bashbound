@@ -3,6 +3,7 @@ import {
   countFlag,
   fail,
   makeExtras,
+  own,
   stripTrailingNewline,
   writeFileAt,
   type Result,
@@ -88,7 +89,7 @@ function walk(root: Node, path: string[]): Node | null {
   let n = root;
   for (const p of path) {
     if (n.kind !== "dir") return null;
-    const next = n.children[p];
+    const next = own(n.children, p);
     if (!next) return null;
     n = next;
   }
@@ -261,8 +262,10 @@ function runBuiltin(
   const cmd = argv[0];
   const args = argv.slice(1);
 
-  const extra = EXTRA[cmd];
-  if (extra) return extra(next, args, stdin);
+  // An own-property check: a plain lookup also finds Object.prototype, so
+  // typing `toString` or `constructor` ran it as a command and wrecked the
+  // terminal state.
+  if (Object.hasOwn(EXTRA, cmd)) return EXTRA[cmd](next, args, stdin);
 
   switch (cmd) {
     case "help":
@@ -394,14 +397,14 @@ function runBuiltin(
           let cur = next.fs;
           for (const seg of path) {
             if (cur.kind !== "dir") return fail(next, "mkdir: not a directory");
-            if (!cur.children[seg]) cur.children[seg] = dir(seg);
+            if (!own(cur.children, seg)) cur.children[seg] = dir(seg);
             cur = cur.children[seg];
           }
           continue;
         }
         if (!parentNode || parentNode.kind !== "dir") return fail(next, `mkdir: cannot create directory '${name}'`);
-        if (parentNode.children[base] && !pflag) return fail(next, `mkdir: cannot create directory '${name}': File exists`);
-        if (!parentNode.children[base]) parentNode.children[base] = dir(base);
+        if (own(parentNode.children, base) && !pflag) return fail(next, `mkdir: cannot create directory '${name}': File exists`);
+        if (!own(parentNode.children, base)) parentNode.children[base] = dir(base);
       }
       return { output: "", state: next };
     }
@@ -413,7 +416,7 @@ function runBuiltin(
         const { parent, name: base } = parentAndName(path);
         const parentNode = walk(next.fs, parent);
         if (!parentNode || parentNode.kind !== "dir") return fail(next, `touch: cannot touch '${name}'`);
-        if (!parentNode.children[base]) parentNode.children[base] = file(base, "");
+        if (!own(parentNode.children, base)) parentNode.children[base] = file(base, "");
       }
       return { output: "", state: next };
     }
@@ -506,7 +509,7 @@ function runBuiltin(
         }
         const { parent, name: base } = parentAndName(path);
         const parentNode = walk(next.fs, parent);
-        const target = parentNode?.kind === "dir" ? parentNode.children[base] : undefined;
+        const target = parentNode?.kind === "dir" ? own(parentNode.children, base) : undefined;
         if (!parentNode || parentNode.kind !== "dir" || !target) {
           if (!force) errors.push(`rm: cannot remove '${name}': No such file or directory`);
           continue;
@@ -575,7 +578,7 @@ function runBuiltin(
           );
           continue;
         }
-        if (parentNode.children[name]?.kind === "dir" && srcNode.kind !== "dir") {
+        if (own(parentNode.children, name)?.kind === "dir" && srcNode.kind !== "dir") {
           errors.push(`${cmd}: cannot overwrite directory '${shown}' with non-directory`);
           continue;
         }
