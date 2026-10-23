@@ -225,6 +225,18 @@ check("tr -s squeezes only the set", sh("echo 'hello   world' | tr -s ' '"), "he
 check("tr -d with a class", sh("echo abc123 | tr -d '[:digit:]'"), "abc");
 check("tr escapes both ways", sh("echo a-b | tr - '\\t' | tr -d '\\t'"), "ab");
 
+// sed s///: per line, sed's replacement syntax, BRE by default.
+check("sed without g changes every line once", sh("sed 's/INFO/I/' /var/log/syslog"), "I boot complete\nERROR disk simulated\nI ok");
+check("sed g replaces all on a line", sh("echo aaa | sed 's/a/b/g'"), "bbb");
+check("sed & is the match", sh("echo cat | sed 's/cat/[&]/'"), "[cat]");
+check("sed \\1 is a group in a BRE", sh("echo 'john smith' | sed 's/\\(\\w*\\) \\(\\w*\\)/\\2, \\1/'"), "smith, john");
+check("sed -E groups", sh("echo 'john smith' | sed -E 's/(\\w+) (\\w+)/\\2 \\1/'"), "smith john");
+check("sed BRE + is literal", sh("echo 'a+b' | sed 's/a+b/x/'"), "x");
+check("sed $ in the replacement is literal", sh("echo price | sed 's/price/$5/'"), "$5");
+check("sed other delimiter", sh("echo /usr/bin | sed 's|/usr|/opt|'"), "/opt/bin");
+check("sed -i edits the file", (sh("echo old > /tmp/s.txt; sed -i 's/old/new/' /tmp/s.txt"), fileText("/tmp/s.txt")), "new\n");
+check("sed refuses what it cannot do", sh("sed -n '1,5p' /etc/passwd"), (out) => out.includes("not simulated"));
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
