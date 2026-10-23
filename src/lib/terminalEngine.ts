@@ -1,5 +1,5 @@
 import { countFlag, makeExtras, stripTrailingNewline, writeFileAt, type Runner } from "./terminalExtras";
-import { globToRegExp, parseLine, type Word } from "./terminalShell";
+import { globToRegExp, parseLine, wordText, type Word } from "./terminalShell";
 
 export type Node =
   | { kind: "dir"; name: string; children: Record<string, Node>; mode: string }
@@ -9,6 +9,8 @@ export interface TermState {
   cwd: string[];
   home: string[];
   env: Record<string, string>;
+  /** Shell variables that have been assigned but not exported. */
+  vars: Record<string, string>;
   history: string[];
   fs: Node;
 }
@@ -54,9 +56,18 @@ export function freshState(): TermState {
       PATH: "/usr/local/bin:/usr/bin:/bin",
       PWD: "/home/student",
     },
+    vars: {},
     history: [],
     fs: initialFs(),
   };
+}
+
+/** What `$name` expands to. Unset variables expand to nothing, as in bash. */
+function lookup(state: TermState, name: string): string {
+  if (name === "$") return "2451"; // the shell's PID in the ps sample output
+  if (name === "0") return "bash";
+  if (name === "#") return "0";
+  return state.env[name] ?? state.vars[name] ?? "";
 }
 
 function walk(root: Node, path: string[]): Node | null {
@@ -114,6 +125,7 @@ export const SIMULATED = [
   "date",
   "env",
   "export",
+  "unset",
   "history",
   "echo",
   "printf",
@@ -175,7 +187,7 @@ function runBuiltin(
           "",
           "  Files     ls cd pwd mkdir touch cat head tail stat file cp mv rm ln chmod du tree find",
           "  Text      grep sed cut tr sort uniq wc nl tac tee seq basename dirname",
-          "  System    whoami id uname hostname env export date history ps df free uptime type which man",
+          "  System    whoami id uname hostname env export unset date history ps df free uptime type which man",
           "  Shell     help clear reset",
           "",
           "  Pipes     cat /var/log/syslog | grep ERROR | wc -l",
@@ -428,10 +440,22 @@ function runBuiltin(
           state: next,
         };
       }
+      next.vars = { ...next.vars };
       for (const a of args) {
         const eq = a.indexOf("=");
-        if (eq === -1) continue;
-        next.env[a.slice(0, eq)] = a.slice(eq + 1);
+        const key = eq === -1 ? a : a.slice(0, eq);
+        // `export NAME` promotes an existing shell variable to the environment.
+        const value = eq === -1 ? next.vars[key] : a.slice(eq + 1);
+        delete next.vars[key];
+        if (value !== undefined) next.env[key] = value;
+      }
+      return { output: "", state: next };
+    }
+    case "unset": {
+      next.vars = { ...next.vars };
+      for (const a of args) {
+        delete next.env[a];
+        delete next.vars[a];
       }
       return { output: "", state: next };
     }
@@ -535,13 +559,17 @@ function readInput(state: TermState, files: string[], stdin: string): { text: st
 const EXTRA: Record<string, Runner> = makeExtras({ walk, resolve, readInput });
 
 /**
- * Expands unquoted `*` and `?` against the filesystem, leaving non-matching
- * words alone. A quoted pattern reaches the command as typed, which is what
- * `find . -name '*.txt'` depends on.
+ * Turns parsed words into argv: variables are filled in, then unquoted `*`
+ * and `?` expand against the filesystem, leaving non-matching words alone. A
+ * quoted pattern reaches the command as typed, which is what
+ * `find . -name '*.txt'` depends on. An unquoted variable that expands to
+ * nothing disappears, as it does in bash.
  */
-function expandGlobs(state: TermState, args: Word[]): string[] {
-  return args.flatMap(({ text: word, glob }) => {
-    if (!glob) return [word];
+function expandWords(state: TermState, args: Word[]): string[] {
+  return args.flatMap((w) => {
+    const word = wordText(w, (name) => lookup(state, name));
+    if (!word && !w.quoted) return [];
+    if (!w.glob) return [word];
     const slash = word.lastIndexOf("/");
     const dirPart = slash === -1 ? "." : word.slice(0, slash) || "/";
     const basePart = slash === -1 ? word : word.slice(slash + 1);
@@ -577,8 +605,31 @@ export function runCommand(state: TermState, line: string): { output: string; st
     let output = "";
 
     for (const stage of pipeline) {
-      const [name, ...rest] = stage.words;
-      const result = runBuiltin(current, [name.text, ...expandGlobs(current, rest)], output);
+      // NAME=value words before the command. On their own they set shell
+      // variables; in front of a command they would only reach that
+      // command's environment, which nothing in the sandbox reads.
+      const assignments: [string, string][] = [];
+      let start = 0;
+      for (; start < stage.words.length; start += 1) {
+        const head = stage.words[start].parts[0];
+        const m = typeof head === "string" ? /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(head) : null;
+        if (!m) break;
+        const value = wordText(stage.words[start], (n) => lookup(current, n)).slice(m[0].length);
+        assignments.push([m[1], value]);
+      }
+      if (start === stage.words.length) {
+        const env = { ...current.env };
+        const vars = { ...current.vars };
+        for (const [key, value] of assignments) {
+          if (key in env) env[key] = value;
+          else vars[key] = value;
+        }
+        current = { ...current, env, vars };
+        output = "";
+        continue;
+      }
+
+      const result = runBuiltin(current, expandWords(current, stage.words.slice(start)), output);
 
       // clear and reset are whole-terminal actions; they end the line.
       if (result.output === "__CLEAR__") return result;
@@ -591,7 +642,8 @@ export function runCommand(state: TermState, line: string): { output: string; st
       stage.redirects.forEach((r, i) => {
         const last = i === stage.redirects.length - 1;
         const text = last && output ? `${output}\n` : "";
-        current = { ...current, fs: writeFileAt(current.fs, resolve(current, r.target) ?? [], text, r.append, walk) };
+        const target = wordText(r.target, (n) => lookup(current, n));
+        current = { ...current, fs: writeFileAt(current.fs, resolve(current, target) ?? [], text, r.append, walk) };
       });
       if (stage.redirects.length) output = "";
     }
