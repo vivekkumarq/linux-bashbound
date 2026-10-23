@@ -197,6 +197,16 @@ check("mv renames", (sh("mv a renamed"), sh("ls")), (out) => out.includes("renam
 check("mv ~ is refused", (sh("mv ~ /tmp/stolen"), sh("ls /home")), "student");
 sh("cd ~");
 
+// which, type and man know every simulated command, filters included.
+check("which sort", sh("which sort"), "/usr/bin/sort");
+check("which finds nothing for cd", (sh("which cd"), sh("echo $?")), "1");
+check("type cd", sh("type cd"), "cd is a shell builtin");
+check("type ls", sh("type ls"), "ls is /usr/bin/ls");
+check("type find", sh("type find"), "find is /usr/bin/find");
+check("type unknown", sh("type nosuch"), "bash: type: nosuch: not found");
+check("man sort", sh("man sort"), (out) => out.startsWith("SORT(1)"));
+check("man 1p printf skips the section", sh("man 1p printf"), (out) => out.startsWith("PRINTF(1)"));
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));

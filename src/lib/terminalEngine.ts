@@ -225,6 +225,16 @@ export const SIMULATED = [
   "man",
 ];
 
+/** Commands bash runs itself rather than from PATH. */
+const BUILTINS = new Set(["cd", "echo", "pwd", "printf", "export", "unset", "history", "type", "help"]);
+/** Builtins with no program of the same name on disk, so `which` finds nothing. */
+const SHELL_ONLY = new Set(["cd", "export", "unset", "history", "type", "help"]);
+
+/** Whether the sandbox runs `name`, counting the filters in terminalExtras. */
+function isSimulated(name: string) {
+  return SIMULATED.includes(name) || Object.hasOwn(EXTRA, name);
+}
+
 /**
  * Runs one simple command (no pipes, no redirection).
  *
@@ -613,12 +623,26 @@ function runBuiltin(
     }
     case "type":
     case "which": {
-      const name = args.find((a) => !a.startsWith("-"));
-      if (!name) return fail(next, `${cmd}: missing operand`);
-      if (SIMULATED.includes(name)) {
-        return { output: cmd === "type" ? `${name} is a simulated shell command` : `/usr/bin/${name}`, state: next };
+      const names = args.filter((a) => !a.startsWith("-"));
+      if (!names.length) return cmd === "type" ? { output: "", state: next } : fail(next, "", 1);
+      const found: string[] = [];
+      const missing: string[] = [];
+      for (const name of names) {
+        const builtin = BUILTINS.has(name);
+        const external = isSimulated(name) && !SHELL_ONLY.has(name);
+        if (cmd === "type") {
+          if (builtin) found.push(`${name} is a shell builtin`);
+          else if (external) found.push(`${name} is /usr/bin/${name}`);
+          else missing.push(`bash: type: ${name}: not found`);
+        } else if (external) {
+          found.push(`/usr/bin/${name}`);
+        } else {
+          // which only searches PATH, so a builtin such as cd has no answer.
+          missing.push("");
+        }
       }
-      return fail(next, `${cmd}: ${name}: not found in Simulation Mode`);
+      const error = missing.filter(Boolean).join("\n");
+      return { output: found.join("\n"), error: error || undefined, status: missing.length ? 1 : 0, state: next };
     }
     case "stat": {
       const name = args.find((a) => !a.startsWith("-")) || ".";
@@ -672,9 +696,10 @@ function runBuiltin(
       return { output: "", state: next };
     }
     case "man": {
-      const name = args.find((a) => !/^\d+$/.test(a) && !a.startsWith("-"));
+      // Skip a section such as 2 or 1p: `man 1p printf` is about printf.
+      const name = args.find((a) => !/^\d\w*$/.test(a) && !a.startsWith("-"));
       if (!name) return fail(next, "What manual page do you want?");
-      if (SIMULATED.includes(name)) {
+      if (isSimulated(name)) {
         return { output: `${name.toUpperCase()}(1)  Simulation Mode\n\nTYPE help FOR THE LAB COMMAND LIST.\nOn a real host run: man ${name}`, state: next };
       }
       return fail(next, `No simulated man page for ${name}. Open the Commands explorer in this site.`, 16);
