@@ -113,6 +113,21 @@ check("; inside quotes is text", sh("echo 'a; b'"), "a; b");
 check("leading ; is a syntax error", sh("; ls"), (out) => out.includes("syntax error"));
 sh("cd ~");
 
+// Variables and ~ expand; single quotes keep them literal.
+check("$HOME expands", sh("echo $HOME"), "/home/student");
+check("${VAR} and quotes", sh('echo "${USER}:$PATH"'), "student:/usr/local/bin:/usr/bin:/bin");
+check("single quotes stay literal", sh("echo '$HOME'"), "$HOME");
+check("escaped $ stays literal", sh("echo \\$HOME"), "$HOME");
+check("~ expands at the start of a word", sh("echo ~ ~/x a~b"), "/home/student /home/student/x a~b");
+check("export uses the expanded value", (sh('export PATH="$HOME/bin:$PATH"'), sh("echo $PATH")), "/home/student/bin:/usr/local/bin:/usr/bin:/bin");
+check("assignment then expansion in one line", sh("GREETING=hi; echo $GREETING there"), "hi there");
+check("a shell variable is not in env", sh("env"), (out) => !out.includes("GREETING"));
+check("export promotes it", (sh("export GREETING"), sh("env")), (out) => out.includes("GREETING=hi"));
+check("unset removes it", (sh("unset GREETING"), sh("echo [$GREETING]")), "[]");
+check("unset variable vanishes unquoted", sh("echo a $NOPE b"), "a b");
+check("redirect target expands", (sh("echo v > $HOME/v.txt"), fileText("/home/student/v.txt")), "v\n");
+sh("reset");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
