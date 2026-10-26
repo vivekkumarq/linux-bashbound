@@ -280,6 +280,15 @@ sh("cd ~");
 check("head of two files has headers", sh("head -n 1 /tmp/five /etc/hostname"), "==> /tmp/five <==\n1\n\n==> /etc/hostname <==\nbashbound");
 check("head with a bad count", sh("head -n x /tmp/five"), "head: invalid number of lines: 'x'");
 
+// seq FIRST INCREMENT LAST.
+check("seq with an increment", sh("seq 1 2 9"), "1\n3\n5\n7\n9");
+check("seq counting down", sh("seq 3 -1 1"), "3\n2\n1");
+check("seq FIRST LAST", sh("seq 4 6"), "4\n5\n6");
+check("seq decimals", sh("seq 0 0.5 1.5"), "0.0\n0.5\n1.0\n1.5");
+check("seq -s and -w", sh("seq -w -s , 8 10"), "08,09,10");
+check("seq rejects junk", sh("seq x"), "seq: invalid floating point argument: 'x'");
+check("seq cannot hang the tab", sh("seq 1000000000 | wc -l"), "seq: stopped after 10000 numbers in Simulation Mode\n10000");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
