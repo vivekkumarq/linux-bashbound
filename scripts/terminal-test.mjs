@@ -15,7 +15,7 @@ const { output } = await bundle.generate({ format: "esm" });
 const entry = join(mkdtempSync(join(tmpdir(), "bb-term-")), "engine.mjs");
 writeFileSync(entry, output[0].code);
 
-const { freshState, runCommand, completionsFor } = await import(`file://${entry}`);
+const { freshState, runCommand, completionsFor, promptPath } = await import(`file://${entry}`);
 
 let state = freshState();
 let failures = 0;
@@ -60,6 +60,12 @@ check("cd into a file", sh("cd hostname"), "bash: cd: hostname: Not a directory"
 check("cd to a missing path", sh("cd /nope"), "bash: cd: /nope: No such file or directory");
 check("cd with two arguments", sh("cd /tmp /var"), "bash: cd: too many arguments");
 check("bare cd goes home", (sh("cd"), sh("pwd")), "/home/student");
+check("prompt shows ~ for home", promptPath(state), "~");
+check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
+check("prompt outside home", (sh("cd /var/log"), promptPath(state)), "/var/log");
+check("prompt at /", (sh("cd /"), promptPath(state)), "/");
+check("prompt for a sibling of home", (sh("cd /home"), promptPath(state)), "/home");
+sh("cd ~");
 
 // Pipes: a filter with no file operand must read stdin.
 check("echo | wc -l", sh("echo hello | wc -l"), "1");
