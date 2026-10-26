@@ -490,40 +490,52 @@ function runBuiltin(
       return { output: back ? next.env.PWD : "", state: next };
     }
     case "mkdir": {
-      const pflag = args.includes("-p");
+      const pflag = args.some((a) => /^-[a-z]*p/.test(a)) || args.includes("--parents");
       const names = args.filter((a) => !a.startsWith("-"));
       if (!names.length) return fail(next, "mkdir: missing operand");
+      const errors: string[] = [];
       for (const name of names) {
-        const path = resolve(next, name);
-        if (!path) continue;
-        const { parent, name: base } = parentAndName(path);
-        let parentNode = walk(next.fs, parent);
-        if ((!parentNode || parentNode.kind !== "dir") && pflag) {
-          let cur = next.fs;
-          for (const seg of path) {
-            if (cur.kind !== "dir") return fail(next, "mkdir: not a directory");
-            if (!own(cur.children, seg)) cur.children[seg] = dir(seg);
-            cur = cur.children[seg];
+        const path = resolve(next, name) ?? [];
+        // With -p every missing level is made and an existing directory is
+        // fine; without it only the last level is, and it must be new.
+        let cur: Node = next.fs;
+        let problem = "";
+        for (let i = 0; i < path.length && !problem; i += 1) {
+          if (cur.kind !== "dir") problem = "Not a directory";
+          else {
+            const child = own(cur.children, path[i]);
+            const last = i === path.length - 1;
+            if (!child) {
+              if (last || pflag) cur.children[path[i]] = dir(path[i]);
+              else problem = "No such file or directory";
+            } else if (last && (!pflag || child.kind !== "dir")) {
+              problem = "File exists";
+            }
+            if (!problem) cur = cur.children[path[i]];
           }
-          continue;
         }
-        if (!parentNode || parentNode.kind !== "dir") return fail(next, `mkdir: cannot create directory '${name}'`);
-        if (own(parentNode.children, base) && !pflag) return fail(next, `mkdir: cannot create directory '${name}': File exists`);
-        if (!own(parentNode.children, base)) parentNode.children[base] = dir(base);
+        if (!path.length && !pflag) problem = "File exists";
+        if (problem) errors.push(`mkdir: cannot create directory '${name}': ${problem}`);
       }
-      return { output: "", state: next };
+      return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "touch": {
       const names = args.filter((a) => !a.startsWith("-"));
       if (!names.length) return fail(next, "touch: missing file operand");
+      const errors: string[] = [];
       for (const name of names) {
-        const path = resolve(next, name)!;
+        const path = resolve(next, name) ?? [];
+        // Touching something that exists, / included, changes nothing here.
+        if (walk(next.fs, path)) continue;
         const { parent, name: base } = parentAndName(path);
         const parentNode = walk(next.fs, parent);
-        if (!parentNode || parentNode.kind !== "dir") return fail(next, `touch: cannot touch '${name}'`);
-        if (!own(parentNode.children, base)) parentNode.children[base] = file(base, "");
+        if (!parentNode || parentNode.kind !== "dir") {
+          errors.push(`touch: cannot touch '${name}': ${parentNode ? "Not a directory" : "No such file or directory"}`);
+          continue;
+        }
+        parentNode.children[base] = file(base, "");
       }
-      return { output: "", state: next };
+      return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "cat": {
       const read = readInput(next, args, stdin);
