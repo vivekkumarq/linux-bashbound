@@ -16,7 +16,7 @@ import { globToRegExp, parseLine, wordText, type Word } from "./terminalShell";
 /** `owner` is the user and group shown by ls -l; anything the learner creates is theirs. */
 export type Node =
   | { kind: "dir"; name: string; children: Record<string, Node>; mode: string; owner?: string }
-  | { kind: "file"; name: string; content: string; mode: string; owner?: string };
+  | { kind: "file"; name: string; content: string; mode: string; owner?: string; target?: string };
 
 export interface TermState {
   cwd: string[];
@@ -110,12 +110,28 @@ function lookup(state: TermState, name: string): string {
   return state.env[name] ?? state.vars[name] ?? "";
 }
 
-function walk(root: Node, path: string[]): Node | null {
+/**
+ * Finds the node at `path`, following symbolic links on the way. The last
+ * component is followed too unless `follow` is false, which is what ls -l
+ * and readlink-style callers want: the link itself.
+ */
+function walk(root: Node, path: string[], follow = true, hops = 0): Node | null {
   let n = root;
-  for (const p of path) {
+  for (let i = 0; i < path.length; i += 1) {
     if (n.kind !== "dir") return null;
-    const next = own(n.children, p);
+    const next = own(n.children, path[i]);
     if (!next) return null;
+    if (next.kind === "file" && next.target !== undefined && (follow || i < path.length - 1)) {
+      // Too many levels of symbolic links, as the kernel calls it.
+      if (hops >= 8) return null;
+      const base = next.target.startsWith("/") ? [] : path.slice(0, i);
+      const resolved: string[] = [];
+      for (const seg of [...base, ...next.target.split("/"), ...path.slice(i + 1)]) {
+        if (seg === "..") resolved.pop();
+        else if (seg && seg !== ".") resolved.push(seg);
+      }
+      return walk(root, resolved, follow, hops + 1);
+    }
     n = next;
   }
   return n;
@@ -433,7 +449,9 @@ function runBuiltin(
       const describe = (name: string, node: Node) => {
         if (!long) return name;
         const owner = node.owner ?? next.env.USER;
-        return `${node.mode}  ${owner} ${owner}  ${node.kind === "file" ? node.content.length : 4096}  ${name}`;
+        const link = node.kind === "file" ? node.target : undefined;
+        const size = link ?? (node.kind === "file" ? node.content : null);
+        return `${node.mode}  ${owner} ${owner}  ${size === null ? 4096 : size.length}  ${name}${link === undefined ? "" : ` -> ${link}`}`;
       };
 
       const blocks: string[] = [];
@@ -442,7 +460,8 @@ function runBuiltin(
 
       for (const target of operands) {
         const path = resolve(next, target);
-        const node = path ? walk(next.fs, path) : null;
+        // ls -l and ls -d describe a symlink itself; plain ls follows it.
+        const node = path ? walk(next.fs, path, !long && !asEntry) : null;
         if (!node) {
           errors.push(`ls: cannot access '${target}': No such file or directory`);
           continue;
@@ -739,7 +758,8 @@ function runBuiltin(
       const errors: string[] = [];
       for (const srcName of sources) {
         const srcPath = resolve(next, srcName) ?? [];
-        const srcNode = walk(next.fs, srcPath);
+        // mv moves a symlink itself; cp copies what it points at.
+        const srcNode = walk(next.fs, srcPath, cmd === "cp");
         if (!srcNode) {
           errors.push(`${cmd}: cannot stat '${srcName}': No such file or directory`);
           continue;
@@ -783,17 +803,18 @@ function runBuiltin(
           continue;
         }
 
-        const copy = structuredClone(srcNode);
-        copy.name = name;
-        // A copy belongs to whoever made it; a move keeps the original owner.
+        // mv keeps the very same node (its owner, and any hard links to it);
+        // cp makes a new one that belongs to whoever made it.
+        const placed = cmd === "mv" ? srcNode : structuredClone(srcNode);
         if (cmd === "cp") {
           const mine = (n: Node) => {
             delete n.owner;
             if (n.kind === "dir") Object.values(n.children).forEach(mine);
           };
-          mine(copy);
+          placed.name = name;
+          mine(placed);
         }
-        parentNode.children[name] = copy;
+        parentNode.children[name] = placed;
         if (cmd === "mv") {
           const from = parentAndName(srcPath);
           const fromNode = walk(next.fs, from.parent);
@@ -900,16 +921,42 @@ function runBuiltin(
       return errors.length ? fail(next, errors.join("\n")) : { output: "", state: next };
     }
     case "ln": {
-      const sym = args.includes("-s");
+      const flags = args.filter((a) => /^-[a-zA-Z]+$/.test(a)).join("");
+      const sym = flags.includes("s");
+      const kind = sym ? "symbolic" : "hard";
       const names = args.filter((a) => !a.startsWith("-"));
-      if (names.length < 2) return fail(next, "ln: missing operand");
+      if (!names.length) return fail(next, "ln: missing file operand");
       const target = names[0];
-      const dest = resolve(next, names[1]);
-      if (!dest) return fail(next, "ln: dest error");
-      const { parent, name } = parentAndName(dest);
-      const p = walk(next.fs, parent);
-      if (!p || p.kind !== "dir") return fail(next, "ln: dest error");
-      p.children[name] = file(name, sym ? `symlink -> ${target}` : "", "-rw-r--r--");
+      const targetBase = target.split("/").filter(Boolean).pop() ?? target;
+
+      // With one operand the link goes in the current directory; a
+      // directory as the second operand gets the link inside it.
+      let shown = names[1] ?? targetBase;
+      let destPath = resolve(next, shown) ?? [];
+      if (walk(next.fs, destPath)?.kind === "dir") {
+        destPath = [...destPath, targetBase];
+        shown = `${shown.replace(/\/+$/, "")}/${targetBase}`;
+      }
+      const { parent, name } = parentAndName(destPath);
+      const dirNode = walk(next.fs, parent);
+      if (!dirNode || dirNode.kind !== "dir") {
+        return fail(next, `ln: failed to create ${kind} link '${shown}': No such file or directory`);
+      }
+      if (own(dirNode.children, name) && !flags.includes("f")) {
+        return fail(next, `ln: failed to create ${kind} link '${shown}': File exists`);
+      }
+
+      if (sym) {
+        // A symlink stores the path as written; it may dangle.
+        dirNode.children[name] = { kind: "file", name, content: "", mode: "lrwxrwxrwx", target };
+        return { output: "", state: next };
+      }
+      const source = walk(next.fs, resolve(next, target) ?? []);
+      if (!source) return fail(next, `ln: failed to access '${target}': No such file or directory`);
+      if (source.kind === "dir") return fail(next, `ln: ${target}: hard link not allowed for directory`);
+      // A hard link is a second name for the same node, so a change made
+      // through either name shows through the other.
+      dirNode.children[name] = source;
       return { output: "", state: next };
     }
     case "man": {

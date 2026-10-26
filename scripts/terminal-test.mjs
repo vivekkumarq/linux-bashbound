@@ -94,6 +94,24 @@ check("mkdir -p over a file", (sh("touch /tmp/plain; mkdir -p /tmp/plain"), sh("
 check("mkdir -p through a file", sh("mkdir -p /tmp/plain/x"), "mkdir: cannot create directory '/tmp/plain/x': Not a directory");
 check("mkdir keeps going after an error", (sh("mkdir /tmp/z1/z2 /tmp/ok1"), sh("ls -d /tmp/ok1")), "/tmp/ok1");
 check("touch under a missing directory", sh("touch /nope/f"), "touch: cannot touch '/nope/f': No such file or directory");
+
+// Links: a hard link is the same file, a symlink is a path that is followed.
+sh("mkdir -p /tmp/ln; cd /tmp/ln; echo one > orig");
+check("hard link shares content", (sh("ln orig hard; echo two >> orig"), sh("cat hard")), "one\ntwo");
+check("writing through the hard link", (sh("echo three > hard"), sh("cat orig")), "three");
+check("chmod through one name", (sh("chmod 600 hard"), sh("ls -l orig").split(/\s+/)[0]), "-rw-------");
+check("removing one name keeps the other", (sh("rm orig"), sh("cat hard")), "three");
+check("symlink is followed", (sh("echo data > real; ln -s real soft"), sh("cat soft")), "data");
+check("ls -l shows the symlink", sh("ls -l soft"), "lrwxrwxrwx  student student  4  soft -> real");
+check("a dangling symlink", (sh("ln -s nowhere dangle"), sh("cat dangle")), "cat: dangle: No such file or directory");
+check("symlink to a directory", (sh("ln -s /etc etclink"), sh("cat etclink/hostname")), "bashbound");
+check("hard link to a missing file", sh("ln missing x"), "ln: failed to access 'missing': No such file or directory");
+check("hard link to a directory", sh("ln /etc e2"), "ln: /etc: hard link not allowed for directory");
+check("ln refuses an existing name", sh("ln -s real soft"), "ln: failed to create symbolic link 'soft': File exists");
+check("ln -sf replaces it", (sh("ln -sf hard soft"), sh("cat soft")), "three");
+check("ln into a directory", (sh("mkdir d; ln -s /etc/hostname d"), sh("cat d/hostname")), "bashbound");
+check("mv moves the link itself", (sh("mv soft moved"), sh("ls -l moved").endsWith("moved -> hard")), true);
+sh("cd ~");
 check("> keeps an existing file's mode", (sh("echo a > /tmp/keep; chmod 700 /tmp/keep; echo b > /tmp/keep"), sh("ls -l /tmp/keep").split(/\s+/)[0]), "-rwx------");
 check("prompt shows ~ for home", promptPath(state), "~");
 check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
