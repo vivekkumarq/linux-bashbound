@@ -7,6 +7,7 @@
  */
 
 import type { Node, TermState } from "./terminalEngine";
+import { globToRegExp } from "./terminalShell";
 
 /**
  * What a command produces. `output` is stdout, which pipes and `>` carry;
@@ -285,28 +286,74 @@ function makeExtras(deps: {
     },
 
     find: (state, args) => {
-      const start = args.find((a) => !a.startsWith("-")) ?? ".";
-      const nameIdx = args.indexOf("-name");
-      const typeIdx = args.indexOf("-type");
-      const pattern = nameIdx !== -1 ? args[nameIdx + 1] : null;
-      const wantType = typeIdx !== -1 ? args[typeIdx + 1] : null;
+      // Starting points come first; the expression starts at the first word
+      // beginning with "-". With none given, find starts at ".".
+      let i = 0;
+      const starts: string[] = [];
+      while (i < args.length && !args[i].startsWith("-")) starts.push(args[(i += 1) - 1]);
+      if (!starts.length) starts.push(".");
 
-      const root = walk(state.fs, resolve(state, start) ?? []);
-      if (!root) return fail(state, `find: '${start}': No such file or directory`);
+      type Test = (node: Node, base: string) => boolean;
+      const tests: Test[] = [];
+      let maxDepth = Infinity;
+      let minDepth = 0;
+      for (; i < args.length; i += 1) {
+        const a = args[i];
+        const value = args[i + 1];
+        const needsValue = ["-name", "-iname", "-type", "-size", "-maxdepth", "-mindepth"].includes(a);
+        if (needsValue && value === undefined) return fail(state, `find: missing argument to '${a}'`);
+        if (needsValue) i += 1;
 
-      const re = pattern ? globToRe(pattern) : null;
-      const out: string[] = [];
-      const visit = (node: Node, shown: string) => {
-        const base = shown.split("/").pop() || shown;
-        const t = node.kind === "dir" ? "d" : "f";
-        if ((!re || re.test(base)) && (!wantType || wantType === t)) out.push(shown || ".");
-        if (node.kind !== "dir") return;
-        for (const key of Object.keys(node.children).sort()) {
-          visit(node.children[key], `${shown === "/" ? "" : shown}/${key}`);
+        if (a === "-name" || a === "-iname") {
+          const re = globToRegExp(value, a === "-iname");
+          tests.push((_n, base) => re.test(base));
+        } else if (a === "-type") {
+          if (!/^[bcdpfls]$/.test(value)) return fail(state, `find: Unknown argument to -type: ${value}`);
+          tests.push((n) => (n.kind === "dir" ? "d" : "f") === value);
+        } else if (a === "-size") {
+          // GNU rounds a size up to whole units before comparing, so
+          // -size -1M only matches empty files.
+          const m = /^([+-]?)(\d+)([bckwMG]?)$/.exec(value);
+          if (!m) return fail(state, `find: invalid -size argument: '${value}'`);
+          const unit = { "": 512, b: 512, c: 1, w: 2, k: 1024, M: 1024 ** 2, G: 1024 ** 3 }[m[3]]!;
+          const want = Number(m[2]);
+          tests.push((n) => {
+            const size = Math.ceil((n.kind === "file" ? n.content.length : 4096) / unit);
+            return m[1] === "+" ? size > want : m[1] === "-" ? size < want : size === want;
+          });
+        } else if (a === "-empty") {
+          tests.push((n) => (n.kind === "file" ? n.content === "" : Object.keys(n.children).length === 0));
+        } else if (a === "-maxdepth" || a === "-mindepth") {
+          if (!/^\d+$/.test(value)) return fail(state, `find: Expected a positive decimal integer argument to ${a}, but got '${value}'`);
+          if (a === "-maxdepth") maxDepth = Number(value);
+          else minDepth = Number(value);
+        } else if (a !== "-print") {
+          return fail(
+            state,
+            `find: '${a}' is not simulated here (-name, -iname, -type, -size, -empty, -maxdepth, -mindepth and -print are)`,
+          );
         }
-      };
-      visit(root, start === "/" ? "" : start.replace(/\/$/, ""));
-      return { output: out.join("\n"), state };
+      }
+
+      const out: string[] = [];
+      const errors: string[] = [];
+      for (const start of starts) {
+        const root = walk(state.fs, resolve(state, start) ?? []);
+        if (!root) {
+          errors.push(`find: '${start}': No such file or directory`);
+          continue;
+        }
+        const visit = (node: Node, shown: string, depth: number) => {
+          const base = shown === "/" ? "/" : shown.split("/").pop() || shown;
+          if (depth >= minDepth && tests.every((t) => t(node, base))) out.push(shown);
+          if (node.kind !== "dir" || depth >= maxDepth) return;
+          for (const key of Object.keys(node.children).sort()) {
+            visit(node.children[key], `${shown.replace(/\/$/, "")}/${key}`, depth + 1);
+          }
+        };
+        visit(root, start.length > 1 ? start.replace(/\/+$/, "") : start, 0);
+      }
+      return { output: out.join("\n"), error: errors.join("\n") || undefined, status: errors.length ? 1 : 0, state };
     },
 
     tree: (state, args) => {
@@ -450,15 +497,6 @@ function makeExtras(deps: {
   };
 }
 
-function globToRe(pattern: string) {
-  let out = "^";
-  for (const ch of pattern) {
-    if (ch === "*") out += "[^/]*";
-    else if (ch === "?") out += "[^/]";
-    else out += ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-  return new RegExp(`${out}$`);
-}
 
 /** Writes `content` at `path`, creating the file if it does not exist. */
 export function writeFileAt(
