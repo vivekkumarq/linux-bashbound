@@ -150,7 +150,8 @@ function makeExtras(deps: {
         if (prev === null) return;
         if (flags.includes("d") && run < 2) return;
         if (flags.includes("u") && run > 1) return;
-        out.push(flags.includes("c") ? `${String(run).padStart(4)} ${prev}` : prev);
+        // GNU uniq -c prints the count right-aligned in seven columns.
+        out.push(flags.includes("c") ? `${String(run).padStart(7)} ${prev}` : prev);
       };
       for (const line of input) {
         if (line === prev) {
