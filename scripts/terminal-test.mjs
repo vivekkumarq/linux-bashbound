@@ -60,6 +60,12 @@ check("cd into a file", sh("cd hostname"), "bash: cd: hostname: Not a directory"
 check("cd to a missing path", sh("cd /nope"), "bash: cd: /nope: No such file or directory");
 check("cd with two arguments", sh("cd /tmp /var"), "bash: cd: too many arguments");
 check("bare cd goes home", (sh("cd"), sh("pwd")), "/home/student");
+check("ls hides dotfiles", sh("ls ~"), "Documents  Downloads  projects");
+check("ls -a shows them with . and ..", sh("ls -a ~"), ".  ..  .bashrc  Documents  Downloads  projects");
+check("ls -A shows them without . and ..", sh("ls -A ~"), ".bashrc  Documents  Downloads  projects");
+check("ls -d lists the directory itself", sh("ls -d /etc /var"), "/etc  /var");
+check("ls -ld shows the directory's own mode", sh("ls -ld /etc").split(/\s+/).pop(), "/etc");
+check("ls -1 and -r", sh("ls -1r ~"), "projects\nDownloads\nDocuments");
 check("prompt shows ~ for home", promptPath(state), "~");
 check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
 check("prompt outside home", (sh("cd /var/log"), promptPath(state)), "/var/log");
