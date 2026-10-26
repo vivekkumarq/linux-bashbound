@@ -581,18 +581,20 @@ export function writeFileAt(
 ): Node {
   // /dev/null swallows everything written to it.
   if (path.join("/") === "dev/null" || writeProblem(fs, path, walk)) return fs;
+  // structuredClone keeps shared nodes shared, so a hard link is still one
+  // node in the copy, and updating it in place updates every name for it. A
+  // symlink is followed to the file it names.
   const clone = structuredClone(fs) as Node;
+  const existing = walk(clone, path);
+  if (existing?.kind === "file") {
+    existing.content = (append ? existing.content : "") + content;
+    return clone;
+  }
   const parent = walk(clone, path.slice(0, -1)) as Extract<Node, { kind: "dir" }>;
   const name = path[path.length - 1];
-  const existing = own(parent.children, name);
-  const old = existing?.kind === "file" ? existing : null;
-  parent.children[name] = {
-    kind: "file",
-    name,
-    content: (append && old ? old.content : "") + content,
-    mode: old?.mode ?? "-rw-r--r--",
-    owner: old?.owner,
-  };
+  // A dangling symlink is left alone rather than replaced by a file.
+  if (own(parent.children, name)) return fs;
+  parent.children[name] = { kind: "file", name, content, mode: "-rw-r--r--" };
   return clone;
 }
 
