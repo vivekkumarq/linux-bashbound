@@ -112,6 +112,15 @@ check("ln -sf replaces it", (sh("ln -sf hard soft"), sh("cat soft")), "three");
 check("ln into a directory", (sh("mkdir d; ln -s /etc/hostname d"), sh("cat d/hostname")), "bashbound");
 check("mv moves the link itself", (sh("mv soft moved"), sh("ls -l moved").endsWith("moved -> hard")), true);
 sh("cd ~");
+
+// wc: any mix of flags, several files with a total, GNU's padding.
+check("wc -l on a file", sh("wc -l /etc/passwd"), "2 /etc/passwd");
+check("wc -lw keeps both columns", sh("wc -lw /etc/passwd"), " 2  2 /etc/passwd");
+check("wc with no flags", sh("wc /etc/passwd"), " 2  2 84 /etc/passwd");
+check("wc on a pipe pads to seven", sh("echo hello world | wc"), "      1       2      12");
+check("wc -c counts the newline echo prints", sh("echo hello | wc -c"), "6");
+check("wc several files has a total", sh("wc -l /etc/passwd /etc/hostname"), " 2 /etc/passwd\n 1 /etc/hostname\n 3 total");
+check("wc -c counts bytes, not characters", sh("echo é | wc -c"), "3");
 check("> keeps an existing file's mode", (sh("echo a > /tmp/keep; chmod 700 /tmp/keep; echo b > /tmp/keep"), sh("ls -l /tmp/keep").split(/\s+/)[0]), "-rwx------");
 check("prompt shows ~ for home", promptPath(state), "~");
 check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
