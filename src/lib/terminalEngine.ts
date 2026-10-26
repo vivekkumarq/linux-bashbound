@@ -239,10 +239,11 @@ function parentAndName(path: string[]) {
   return { parent: path.slice(0, -1), name: path[path.length - 1] };
 }
 
+/** The \w of bash's prompt: the working directory with $HOME shown as ~. */
 export function promptPath(state: TermState) {
-  const p = "/" + state.cwd.join("/");
-  if (p === "/home/student") return "~";
-  return p || "/";
+  const inHome = state.home.every((p, i) => state.cwd[i] === p);
+  if (inHome) return ["~", ...state.cwd.slice(state.home.length)].join("/");
+  return "/" + state.cwd.join("/");
 }
 
 export const SIMULATED = [
