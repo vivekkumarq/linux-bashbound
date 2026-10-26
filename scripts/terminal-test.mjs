@@ -53,6 +53,13 @@ check("pwd", sh("pwd"), "/home/student");
 check("whoami", sh("whoami"), "student");
 check("cd changes directory", (sh("cd Documents"), sh("pwd")), "/home/student/Documents");
 sh("cd ..");
+check("cd - with no previous directory", runCommand(freshState(), "cd -").output, "bash: cd: OLDPWD not set");
+check("cd - goes back and prints it", (sh("cd /etc"), sh("cd -")), "/home/student");
+check("cd - twice toggles", sh("cd -"), "/etc");
+check("cd into a file", sh("cd hostname"), "bash: cd: hostname: Not a directory");
+check("cd to a missing path", sh("cd /nope"), "bash: cd: /nope: No such file or directory");
+check("cd with two arguments", sh("cd /tmp /var"), "bash: cd: too many arguments");
+check("bare cd goes home", (sh("cd"), sh("pwd")), "/home/student");
 
 // Pipes: a filter with no file operand must read stdin.
 check("echo | wc -l", sh("echo hello | wc -l"), "1");
