@@ -280,12 +280,12 @@ export function parseLine(line: string): ParsedLine {
 }
 
 /** Converts a shell glob to an anchored regular expression. */
-export function globToRegExp(pattern: string): RegExp {
+export function globToRegExp(pattern: string, ignoreCase = false): RegExp {
   let out = "^";
   for (const ch of pattern) {
     if (ch === "*") out += "[^/]*";
     else if (ch === "?") out += "[^/]";
     else out += ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
-  return new RegExp(`${out}$`);
+  return new RegExp(`${out}$`, ignoreCase ? "i" : "");
 }

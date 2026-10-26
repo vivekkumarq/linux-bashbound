@@ -299,6 +299,19 @@ check("basename keeps a name equal to the suffix", sh("basename .txt .txt"), ".t
 check("basename of /", sh("basename /"), "/");
 check("basename needs an operand", sh("basename"), "basename: missing operand");
 
+// find: the path is optional, and predicates it cannot evaluate are named.
+check("find with no path starts at .", (sh("cd ~/Documents"), sh("find -name notes.txt")), "./notes.txt");
+sh("cd ~");
+check("find -type f with no path", sh("find -type f -name '*.md'"), "./projects/readme.md");
+check("find / starts with /", sh("find / -maxdepth 0"), "/");
+check("find -maxdepth 1", sh("find /etc -maxdepth 1 -type f"), "/etc/hostname\n/etc/os-release\n/etc/passwd");
+check("find -iname", sh("find /home -iname 'NOTES.*'"), "/home/student/Documents/notes.txt");
+check("find -size +100M finds nothing small", sh("find /var -type f -size +100M"), "");
+check("find -size -1k", sh("find /dev -size -1k"), "/dev/null");
+check("find -empty", sh("find ~ -empty -type d"), "/home/student/Downloads");
+check("find names what it cannot do", sh("find . -mtime -1"), (out) => out.includes("'-mtime' is not simulated here"));
+check("find reports a missing start", sh("find /nope /etc -maxdepth 0"), "find: '/nope': No such file or directory\n/etc");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));
