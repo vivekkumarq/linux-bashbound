@@ -328,10 +328,14 @@ function makeExtras(deps: {
       const append = args.includes("-a");
       const files = args.filter((a) => !a.startsWith("-"));
       let fs = state.fs;
+      const errors: string[] = [];
       for (const name of files) {
-        fs = writeFileAt(fs, resolve(state, name) ?? [], asFileText(stdin), append, walk);
+        const path = resolve(state, name) ?? [];
+        const problem = path.join("/") === "dev/null" ? null : writeProblem(fs, path, walk);
+        if (problem) errors.push(`tee: ${name}: ${problem}`);
+        else fs = writeFileAt(fs, path, asFileText(stdin), append, walk);
       }
-      return { output: stdin, state: { ...state, fs } };
+      return { output: stdin, error: errors.join("\n") || undefined, status: errors.length ? 1 : 0, state: { ...state, fs } };
     },
 
     find: (state, args) => {
@@ -550,8 +554,24 @@ function makeExtras(deps: {
   };
 }
 
+/**
+ * Why `path` cannot be opened for writing, or null if it can. Checked before
+ * a write so the caller can report it; writeFileAt itself never replaces a
+ * directory.
+ */
+export function writeProblem(fs: Node, path: string[], walk: (root: Node, p: string[]) => Node | null) {
+  if (!path.length || walk(fs, path)?.kind === "dir") return "Is a directory";
+  const parent = walk(fs, path.slice(0, -1));
+  if (!parent) return "No such file or directory";
+  if (parent.kind !== "dir") return "Not a directory";
+  return null;
+}
 
-/** Writes `content` at `path`, creating the file if it does not exist. */
+/**
+ * Writes `content` at `path`, creating the file if it does not exist. An
+ * existing file keeps its mode and owner, as it does when a shell truncates
+ * it.
+ */
 export function writeFileAt(
   fs: Node,
   path: string[],
@@ -560,14 +580,19 @@ export function writeFileAt(
   walk: (root: Node, p: string[]) => Node | null,
 ): Node {
   // /dev/null swallows everything written to it.
-  if (!path.length || path.join("/") === "dev/null") return fs;
+  if (path.join("/") === "dev/null" || writeProblem(fs, path, walk)) return fs;
   const clone = structuredClone(fs) as Node;
-  const parent = walk(clone, path.slice(0, -1));
-  if (!parent || parent.kind !== "dir") return fs;
+  const parent = walk(clone, path.slice(0, -1)) as Extract<Node, { kind: "dir" }>;
   const name = path[path.length - 1];
   const existing = own(parent.children, name);
-  const base = append && existing && existing.kind === "file" ? existing.content : "";
-  parent.children[name] = { kind: "file", name, content: base + content, mode: "-rw-r--r--" };
+  const old = existing?.kind === "file" ? existing : null;
+  parent.children[name] = {
+    kind: "file",
+    name,
+    content: (append && old ? old.content : "") + content,
+    mode: old?.mode ?? "-rw-r--r--",
+    owner: old?.owner,
+  };
   return clone;
 }
 

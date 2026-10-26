@@ -79,6 +79,14 @@ check("file on an empty file", sh("file ~/mine"), "/home/student/mine: empty");
 check("file on text", sh("file /etc/hostname"), "/etc/hostname: ASCII text");
 check("file on a missing path", sh("file /nope"), "/nope: cannot open `/nope' (No such file or directory)");
 sh("rm ~/mine");
+
+// Redirect targets: a directory is never replaced, a missing parent is an error.
+check("> into a directory", sh("echo x > ~/Documents"), "bash: /home/student/Documents: Is a directory");
+check("the directory survives", sh("ls ~/Documents"), "notes.txt");
+check("> under a missing directory", sh("echo x > /nope/out.txt"), "bash: /nope/out.txt: No such file or directory");
+check("the command did not run", (sh("echo x > /nope/out.txt; echo $?")), "bash: /nope/out.txt: No such file or directory\n1");
+check("tee into a directory", sh("echo x | tee /tmp"), "tee: /tmp: Is a directory\nx");
+check("> keeps an existing file's mode", (sh("echo a > /tmp/keep; chmod 700 /tmp/keep; echo b > /tmp/keep"), sh("ls -l /tmp/keep").split(/\s+/)[0]), "-rwx------");
 check("prompt shows ~ for home", promptPath(state), "~");
 check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
 check("prompt outside home", (sh("cd /var/log"), promptPath(state)), "/var/log");

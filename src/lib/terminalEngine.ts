@@ -7,6 +7,7 @@ import {
   own,
   stripTrailingNewline,
   writeFileAt,
+  writeProblem,
   type Result,
   type Runner,
 } from "./terminalExtras";
@@ -1036,6 +1037,13 @@ export function runCommand(state: TermState, line: string): { output: string; st
           }
           stdin = node.content;
           continue;
+        }
+        // `> Documents` must not replace the directory, and a missing parent
+        // is an error, not a silent no-op.
+        const problem = path.join("/") === "dev/null" ? null : writeProblem(current.fs, path, walk);
+        if (problem) {
+          broken = `bash: ${name}: ${problem}`;
+          break;
         }
         current = { ...current, fs: writeFileAt(current.fs, path, "", r.append, walk) };
         if (r.fd !== 2) out = path;
