@@ -12,9 +12,10 @@ import {
 } from "./terminalExtras";
 import { globToRegExp, parseLine, wordText, type Word } from "./terminalShell";
 
+/** `owner` is the user and group shown by ls -l; anything the learner creates is theirs. */
 export type Node =
-  | { kind: "dir"; name: string; children: Record<string, Node>; mode: string }
-  | { kind: "file"; name: string; content: string; mode: string };
+  | { kind: "dir"; name: string; children: Record<string, Node>; mode: string; owner?: string }
+  | { kind: "file"; name: string; content: string; mode: string; owner?: string };
 
 export interface TermState {
   cwd: string[];
@@ -38,25 +39,47 @@ function file(name: string, content: string, mode = "-rw-r--r--"): Node {
   return { kind: "file", name, content, mode };
 }
 
+/** Marks a subtree as installed by the system, so ls -l shows root as its owner. */
+function system(node: Node): Node {
+  node.owner = "root";
+  if (node.kind === "dir") Object.values(node.children).forEach(system);
+  return node;
+}
+
 export function initialFs(): Node {
+  // Every command the sandbox runs from PATH has a program in /usr/bin, so
+  // `which ls` and `ls -l /usr/bin/ls` agree. passwd is the classic setuid
+  // example the permission lessons point at.
+  const programs = [...SIMULATED, ...Object.keys(EXTRA)].filter((n) => !SHELL_ONLY.has(n));
+  const bin = dir("usr", [
+    dir("bin", [...programs.map((n) => file(n, "", "-rwxr-xr-x")), file("passwd", "", "-rwsr-xr-x")]),
+    dir("local", [dir("bin")]),
+  ]);
+
+  const home = dir("home", [
+    dir("student", [
+      dir("Documents", [file("notes.txt", "Welcome to Linux BashBound.\nPractice safely in simulation mode.\n")]),
+      dir("Downloads"),
+      dir("projects", [file("readme.md", "# projects\n")]),
+      file(".bashrc", "export PATH=/usr/local/bin:/usr/bin:/bin\n"),
+    ]),
+  ]);
+  home.owner = "root";
+
   return dir("/", [
-    dir("home", [
-      dir("student", [
-        dir("Documents", [file("notes.txt", "Welcome to Linux BashBound.\nPractice safely in simulation mode.\n")]),
-        dir("Downloads"),
-        dir("projects", [file("readme.md", "# projects\n")]),
-        file(".bashrc", "export PATH=/usr/local/bin:/usr/bin:/bin\n"),
+    home,
+    system(
+      dir("etc", [
+        file("hostname", "bashbound\n"),
+        file("os-release", 'NAME="Linux BashBound Lab"\nID=bashbound\n'),
+        file("passwd", "root:x:0:0:root:/root:/bin/bash\nstudent:x:1000:1000:Student:/home/student:/bin/bash\n"),
       ]),
-    ]),
-    dir("etc", [
-      file("hostname", "bashbound\n"),
-      file("os-release", 'NAME="Linux BashBound Lab"\nID=bashbound\n'),
-      file("passwd", "root:x:0:0:root:/root:/bin/bash\nstudent:x:1000:1000:Student:/home/student:/bin/bash\n"),
-    ]),
-    dir("dev", [file("null", "", "crw-rw-rw-")]),
-    dir("tmp"),
-    dir("usr", [dir("bin"), dir("local", [dir("bin")])]),
-    dir("var", [dir("log", [file("syslog", "INFO boot complete\nERROR disk simulated\nINFO ok\n")])]),
+    ),
+    system(dir("dev", [file("null", "", "crw-rw-rw-")])),
+    // World-writable with the sticky bit, exactly as on a real host.
+    system(dir("tmp", [], "drwxrwxrwt")),
+    system(bin),
+    system(dir("var", [dir("log", [file("syslog", "INFO boot complete\nERROR disk simulated\nINFO ok\n")])])),
   ]);
 }
 
@@ -406,10 +429,11 @@ function runBuiltin(
       const targets = args.filter((a) => !a.startsWith("-"));
       const operands = targets.length ? targets : ["."];
 
-      const describe = (name: string, node: Node) =>
-        long
-          ? `${node.mode}  student student  ${node.kind === "file" ? node.content.length : 4096}  ${name}`
-          : name;
+      const describe = (name: string, node: Node) => {
+        if (!long) return name;
+        const owner = node.owner ?? next.env.USER;
+        return `${node.mode}  ${owner} ${owner}  ${node.kind === "file" ? node.content.length : 4096}  ${name}`;
+      };
 
       const blocks: string[] = [];
       const errors: string[] = [];
@@ -432,10 +456,10 @@ function runBuiltin(
           .sort();
         if (flags.includes("r")) names.reverse();
         const shown = all ? [".", "..", ...names] : names;
-        const rows = shown.map((name) => {
-          if (name === "." || name === "..") return long ? `drwxr-xr-x  student student  4096  ${name}` : name;
-          return describe(name, node.children[name]);
-        });
+        const parent = walk(next.fs, (path ?? []).slice(0, -1)) ?? node;
+        const rows = shown.map((name) =>
+          describe(name, name === "." ? node : name === ".." ? parent : node.children[name]),
+        );
         const body = long || flags.includes("1") ? rows.join("\n") : rows.join("  ");
         // Only label directories when more than one thing is being listed.
         blocks.push(operands.length > 1 ? `${target}:\n${body}` : body);
@@ -748,6 +772,14 @@ function runBuiltin(
 
         const copy = structuredClone(srcNode);
         copy.name = name;
+        // A copy belongs to whoever made it; a move keeps the original owner.
+        if (cmd === "cp") {
+          const mine = (n: Node) => {
+            delete n.owner;
+            if (n.kind === "dir") Object.values(n.children).forEach(mine);
+          };
+          mine(copy);
+        }
         parentNode.children[name] = copy;
         if (cmd === "mv") {
           const from = parentAndName(srcPath);
@@ -825,8 +857,13 @@ function runBuiltin(
       const name = args[0];
       if (!name) return fail(next, "file: missing operand");
       const node = walk(next.fs, resolve(next, name)!);
-      if (!node) return { output: `${name}: cannot open`, state: next };
-      return { output: node.kind === "dir" ? `${name}: directory` : `${name}: ASCII text`, state: next };
+      // file reports problems on stdout and still exits 0.
+      if (!node) return { output: `${name}: cannot open \`${name}' (No such file or directory)`, state: next };
+      if (node.kind === "dir") return { output: `${name}: directory`, state: next };
+      if (node.mode.startsWith("c")) return { output: `${name}: character special (1/3)`, state: next };
+      // The programs in /usr/bin are stand-ins with no bytes of their own.
+      if (!node.content && node.owner === "root" && node.mode[3] !== "-") return { output: `${name}: ELF 64-bit LSB pie executable, x86-64, dynamically linked`, state: next };
+      return { output: `${name}: ${node.content ? "ASCII text" : "empty"}`, state: next };
     }
     case "chmod": {
       // -x is a mode, not an option, so only the real options are set aside.
