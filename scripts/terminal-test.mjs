@@ -289,6 +289,16 @@ check("seq -s and -w", sh("seq -w -s , 8 10"), "08,09,10");
 check("seq rejects junk", sh("seq x"), "seq: invalid floating point argument: 'x'");
 check("seq cannot hang the tab", sh("seq 1000000000 | wc -l"), "seq: stopped after 10000 numbers in Simulation Mode\n10000");
 
+// dirname and basename follow the POSIX rules.
+check("dirname of a bare name", sh("dirname notes.txt"), ".");
+check("dirname ignores a trailing slash", sh("dirname /etc/"), "/");
+check("dirname of a path", sh("dirname /var/log/syslog"), "/var/log");
+check("dirname of /", sh("dirname /"), "/");
+check("basename strips a suffix", sh("basename /home/student/notes.txt .txt"), "notes");
+check("basename keeps a name equal to the suffix", sh("basename .txt .txt"), ".txt");
+check("basename of /", sh("basename /"), "/");
+check("basename needs an operand", sh("basename"), "basename: missing operand");
+
 // Completion.
 check("completes commands", completionsFor(state, "gre"), (out) => out.includes("grep"));
 check("completes paths", completionsFor(state, "cat Doc"), (out) => out.some((c) => c.startsWith("Documents")));

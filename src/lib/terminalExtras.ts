@@ -378,15 +378,26 @@ function makeExtras(deps: {
       return { output: out.join(separator), state };
     },
 
-    basename: (state, args) => ({
-      output: (args[0] ?? "").split("/").filter(Boolean).pop() ?? "/",
-      state,
-    }),
+    basename: (state, args) => {
+      const [path, suffix] = args;
+      if (path === undefined) return fail(state, "basename: missing operand");
+      const base = path.split("/").filter(Boolean).pop() ?? (path.startsWith("/") ? "/" : "");
+      // `basename notes.txt .txt` drops the suffix, unless it is the whole name.
+      return { output: suffix && base !== suffix && base.endsWith(suffix) ? base.slice(0, -suffix.length) : base, state };
+    },
 
     dirname: (state, args) => {
-      const parts = (args[0] ?? "").split("/");
-      parts.pop();
-      return { output: parts.join("/") || "/", state };
+      if (!args.length) return fail(state, "dirname: missing operand");
+      // POSIX: trailing slashes go first, a bare name lives in ".", and
+      // everything directly under / reports "/".
+      const out = args.map((path) => {
+        const trimmed = path.replace(/\/+$/, "");
+        if (!trimmed) return path.startsWith("/") ? "/" : ".";
+        const slash = trimmed.lastIndexOf("/");
+        if (slash === -1) return ".";
+        return trimmed.slice(0, slash).replace(/\/+$/, "") || "/";
+      });
+      return { output: out.join("\n"), state };
     },
 
     // Static but accurate-looking system views. They are labelled as sample
