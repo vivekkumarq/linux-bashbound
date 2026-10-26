@@ -357,6 +357,7 @@ function makeExtras(deps: {
     },
 
     tree: (state, args) => {
+      const all = args.includes("-a");
       const start = args.find((a) => !a.startsWith("-")) ?? ".";
       const root = walk(state.fs, resolve(state, start) ?? []);
       if (!root) return fail(state, `tree: ${start}: No such file or directory`);
@@ -365,7 +366,10 @@ function makeExtras(deps: {
       let files = 0;
       const visit = (node: Node, prefix: string) => {
         if (node.kind !== "dir") return;
-        const keys = Object.keys(node.children).sort();
+        // Like ls, tree leaves dotfiles out unless -a asks for them.
+        const keys = Object.keys(node.children)
+          .filter((k) => all || !k.startsWith("."))
+          .sort();
         keys.forEach((key, i) => {
           const last = i === keys.length - 1;
           rows.push(`${prefix}${last ? "└── " : "├── "}${key}`);
@@ -379,7 +383,7 @@ function makeExtras(deps: {
         });
       };
       visit(root, "");
-      rows.push("", `${dirs} directories, ${files} files`);
+      rows.push("", `${dirs} director${dirs === 1 ? "y" : "ies"}, ${files} file${files === 1 ? "" : "s"}`);
       return { output: rows.join("\n"), state };
     },
 
