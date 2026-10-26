@@ -310,6 +310,10 @@ check("find -size +100M finds nothing small", sh("find /var -type f -size +100M"
 check("find -size -1k", sh("find /dev -size -1k"), "/dev/null");
 check("find -empty", sh("find ~ -empty -type d"), "/home/student/Downloads");
 check("find names what it cannot do", sh("find . -mtime -1"), (out) => out.includes("'-mtime' is not simulated here"));
+check("tree hides dotfiles", sh("tree ~").includes(".bashrc"), false);
+check("tree -a shows them", sh("tree -a ~").includes(".bashrc"), true);
+check("tree counts in the singular", sh("tree /etc").split("\n").pop(), "0 directories, 3 files");
+check("tree says 1 directory", sh("tree /var").split("\n").pop(), "1 directory, 1 file");
 check("find reports a missing start", sh("find /nope /etc -maxdepth 0"), "find: '/nope': No such file or directory\n/etc");
 
 // Completion.
