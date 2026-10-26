@@ -602,18 +602,50 @@ function runBuiltin(
       return { output: blocks.join("\n\n"), error: errors.join("\n") || undefined, status: errors.length ? 1 : 0, state: next };
     }
     case "wc": {
-      const flags = args.filter((a) => a.startsWith("-")).join("");
-      const files = args.filter((a) => !a.startsWith("-"));
-      const read = readInput(next, files, stdin);
-      if (read.error) return fail(next, `wc: ${read.error}`);
-      const text = read.text;
-      const lineCount = text === "" ? 0 : stripTrailingNewline(text).split("\n").length;
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-      const label = files.length === 1 ? ` ${files[0]}` : "";
-      if (flags.includes("l")) return { output: `${lineCount}${label}`, state: next };
-      if (flags.includes("w")) return { output: `${words}${label}`, state: next };
-      if (flags.includes("c")) return { output: `${text.length}${label}`, state: next };
-      return { output: `${lineCount} ${words} ${text.length}${label}`, state: next };
+      const flags = args.filter((a) => /^-[a-zA-Z]+$/.test(a)).join("");
+      const files = args.filter((a) => !/^-[a-zA-Z]+$/.test(a));
+      // Columns always come in the order lines, words, chars, bytes,
+      // whichever flags select them; no flags means -lwc.
+      const columns = [..."lwmc"].filter((c) => flags.includes(c));
+      if (!columns.length) columns.push("l", "w", "c");
+
+      const count = (text: string) => {
+        // Piped output arrives without its final newline; a file keeps it.
+        const whole = asFileText(text);
+        const values: Record<string, number> = {
+          l: lines(text).length,
+          w: text.trim() ? text.trim().split(/\s+/).length : 0,
+          m: [...whole].length,
+          c: new TextEncoder().encode(whole).length,
+        };
+        return columns.map((c) => values[c]);
+      };
+
+      const rows: { counts: number[]; label: string }[] = [];
+      const errors: string[] = [];
+      let fileBytes = 0;
+      if (!files.length) rows.push({ counts: count(stdin), label: "" });
+      for (const name of files) {
+        const read = readInput(next, [name], "");
+        if (read.error) errors.push(`wc: ${read.error}`);
+        else {
+          rows.push({ counts: count(read.text), label: name });
+          fileBytes += new TextEncoder().encode(read.text).length;
+        }
+      }
+      if (files.length > 1) {
+        rows.push({ counts: columns.map((_, i) => rows.reduce((sum, r) => sum + r.counts[i], 0)), label: "total" });
+      }
+
+      // GNU pads every column to one width: none for a lone number from one
+      // input, otherwise the digits in the files' total size, and at least
+      // seven when reading a pipe.
+      const width =
+        rows.length === 1 && columns.length === 1 ? 1 : Math.max(files.length ? 1 : 7, String(fileBytes).length);
+      const output = rows
+        .map((r) => [...r.counts.map((n) => String(n).padStart(width)), ...(r.label ? [r.label] : [])].join(" "))
+        .join("\n");
+      return { output, error: errors.join("\n") || undefined, status: errors.length ? 1 : 0, state: next };
     }
     case "grep": {
       const opts = new Set<string>();
