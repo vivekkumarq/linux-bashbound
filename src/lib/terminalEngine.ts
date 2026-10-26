@@ -394,8 +394,13 @@ function runBuiltin(
       return { output: escapes ? unbackslash(text) : text, state: next };
     }
     case "ls": {
-      const long = args.some((a) => /^-[a-z]*l/.test(a));
-      const all = args.some((a) => /^-[a-z]*a/.test(a));
+      const flags = args.filter((a) => /^-[a-zA-Z1]+$/.test(a)).join("");
+      const long = flags.includes("l");
+      const all = flags.includes("a");
+      // Dotfiles are hidden unless -a (or -A, which leaves out . and ..).
+      const hidden = all || flags.includes("A");
+      // -d lists a directory itself rather than what is inside it.
+      const asEntry = flags.includes("d");
       // Every non-flag word is an operand. A glob expands to many of them, so
       // listing only the first would drop most of the match.
       const targets = args.filter((a) => !a.startsWith("-"));
@@ -417,23 +422,26 @@ function runBuiltin(
           errors.push(`ls: cannot access '${target}': No such file or directory`);
           continue;
         }
-        if (node.kind === "file") {
+        if (node.kind === "file" || asEntry) {
           loose.push(describe(target, node));
           continue;
         }
 
-        const names = Object.keys(node.children).sort();
+        const names = Object.keys(node.children)
+          .filter((n) => hidden || !n.startsWith("."))
+          .sort();
+        if (flags.includes("r")) names.reverse();
         const shown = all ? [".", "..", ...names] : names;
         const rows = shown.map((name) => {
           if (name === "." || name === "..") return long ? `drwxr-xr-x  student student  4096  ${name}` : name;
           return describe(name, node.children[name]);
         });
-        const body = long ? rows.join("\n") : rows.join("  ");
+        const body = long || flags.includes("1") ? rows.join("\n") : rows.join("  ");
         // Only label directories when more than one thing is being listed.
         blocks.push(operands.length > 1 ? `${target}:\n${body}` : body);
       }
 
-      const parts = [...(loose.length ? [long ? loose.join("\n") : loose.join("  ")] : []), ...blocks];
+      const parts = [...(loose.length ? [long || flags.includes("1") ? loose.join("\n") : loose.join("  ")] : []), ...blocks];
       return {
         output: parts.join("\n\n"),
         error: errors.length ? errors.join("\n") : undefined,
