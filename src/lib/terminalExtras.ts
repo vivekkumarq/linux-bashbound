@@ -337,12 +337,45 @@ function makeExtras(deps: {
     },
 
     seq: (state, args) => {
-      const nums = args.map(Number).filter((n) => !Number.isNaN(n));
-      const [from, to] = nums.length === 1 ? [1, nums[0]] : nums;
-      if (to === undefined) return fail(state, "seq: usage: seq [FIRST] LAST");
-      const out: number[] = [];
-      for (let i = from; i <= to; i += 1) out.push(i);
-      return { output: out.join("\n"), state };
+      let separator = "\n";
+      let equalWidth = false;
+      const operands: string[] = [];
+      for (let i = 0; i < args.length; i += 1) {
+        if (args[i] === "-s") separator = args[(i += 1)] ?? "";
+        else if (args[i] === "-w") equalWidth = true;
+        else operands.push(args[i]);
+      }
+      if (!operands.length) return fail(state, "seq: missing operand");
+      if (operands.length > 3) return fail(state, `seq: extra operand '${operands[3]}'`);
+      const bad = operands.find((a) => !/^[-+]?(\d+\.?\d*|\.\d+)$/.test(a));
+      if (bad) return fail(state, `seq: invalid floating point argument: '${bad}'`);
+
+      // seq FIRST INCREMENT LAST, with FIRST and INCREMENT defaulting to 1.
+      const nums = operands.map(Number);
+      const [first, step, last] = nums.length === 1 ? [1, 1, nums[0]] : nums.length === 2 ? [nums[0], 1, nums[1]] : nums;
+      if (step === 0) return fail(state, "seq: invalid Zero increment value: '0'");
+      const decimals = Math.max(0, ...operands.map((a) => a.split(".")[1]?.length ?? 0));
+
+      // ponytail: capped so `seq 1000000000` cannot freeze the tab; a real
+      // seq would keep printing until interrupted.
+      const LIMIT = 10_000;
+      const out: string[] = [];
+      for (let i = 0; ; i += 1) {
+        const value = first + i * step;
+        if (step > 0 ? value > last + 1e-9 : value < last - 1e-9) break;
+        if (out.length === LIMIT) {
+          return { output: out.join(separator), error: `seq: stopped after ${LIMIT} numbers in Simulation Mode`, state };
+        }
+        out.push(value.toFixed(decimals));
+      }
+      if (equalWidth) {
+        const width = Math.max(...out.map((n) => n.replace("-", "").length));
+        for (let i = 0; i < out.length; i += 1) {
+          const negative = out[i].startsWith("-");
+          out[i] = (negative ? "-" : "") + out[i].replace("-", "").padStart(width, "0");
+        }
+      }
+      return { output: out.join(separator), state };
     },
 
     basename: (state, args) => ({
