@@ -66,6 +66,19 @@ check("ls -A shows them without . and ..", sh("ls -A ~"), ".bashrc  Documents  D
 check("ls -d lists the directory itself", sh("ls -d /etc /var"), "/etc  /var");
 check("ls -ld shows the directory's own mode", sh("ls -ld /etc").split(/\s+/).pop(), "/etc");
 check("ls -1 and -r", sh("ls -1r ~"), "projects\nDownloads\nDocuments");
+
+// System files belong to root and keep their real modes.
+check("/etc/passwd is root's", sh("ls -l /etc/passwd"), "-rw-r--r--  root root  84  /etc/passwd");
+check("/tmp is sticky and world-writable", sh("ls -ld /tmp").split(/\s+/)[0], "drwxrwxrwt");
+check("passwd is setuid root", sh("ls -l /usr/bin/passwd").split(/\s+/).slice(0, 3).join(" "), "-rwsr-xr-x root root");
+check("ls -l /usr/bin/id", sh("ls -l /usr/bin/id").split(/\s+/).slice(0, 3).join(" "), "-rwxr-xr-x root root");
+check("your files are yours", (sh("touch ~/mine"), sh("ls -l ~/mine").split(/\s+/)[1]), "student");
+check("a copy is yours", (sh("cp /etc/hostname /tmp/h"), sh("ls -l /tmp/h").split(/\s+/)[1]), "student");
+check("file on a program", sh("file /usr/bin/ls"), (out) => out.includes("ELF 64-bit"));
+check("file on an empty file", sh("file ~/mine"), "/home/student/mine: empty");
+check("file on text", sh("file /etc/hostname"), "/etc/hostname: ASCII text");
+check("file on a missing path", sh("file /nope"), "/nope: cannot open `/nope' (No such file or directory)");
+sh("rm ~/mine");
 check("prompt shows ~ for home", promptPath(state), "~");
 check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
 check("prompt outside home", (sh("cd /var/log"), promptPath(state)), "/var/log");
