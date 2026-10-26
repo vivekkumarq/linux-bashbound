@@ -441,14 +441,19 @@ function runBuiltin(
       };
     }
     case "cd": {
-      const dest = args[0] ?? "~";
-      const path = resolve(next, dest);
-      if (!path) return fail(next, "cd: path error");
+      if (args.length > 1) return fail(next, "bash: cd: too many arguments");
+      // `cd -` goes back to $OLDPWD and, as in bash, prints where it landed.
+      const back = args[0] === "-";
+      if (back && !next.env.OLDPWD) return fail(next, "bash: cd: OLDPWD not set");
+      const dest = back ? next.env.OLDPWD : (args[0] ?? next.env.HOME ?? "/");
+      const path = resolve(next, dest) ?? [];
       const node = walk(next.fs, path);
-      if (!node || node.kind !== "dir") return fail(next, `cd: ${dest}: No such directory`);
+      if (!node) return fail(next, `bash: cd: ${dest}: No such file or directory`);
+      if (node.kind !== "dir") return fail(next, `bash: cd: ${dest}: Not a directory`);
+      next.env.OLDPWD = "/" + next.cwd.join("/");
       next.cwd = path;
       next.env.PWD = "/" + path.join("/");
-      return { output: "", state: next };
+      return { output: back ? next.env.PWD : "", state: next };
     }
     case "mkdir": {
       const pflag = args.includes("-p");
