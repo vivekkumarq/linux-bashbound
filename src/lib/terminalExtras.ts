@@ -71,6 +71,12 @@ export function breToJs(pattern: string) {
   return out;
 }
 
+/** sort's -k N[,M] as a field range; trailing type letters such as 3n are dropped. */
+function parseKey(spec: string) {
+  const [from, to] = spec.split(",").map((part) => Number.parseInt(part, 10));
+  return { from: Number.isNaN(from) ? 0 : from, to: Number.isNaN(to) ? Infinity : to };
+}
+
 /** A tr set with its escapes, [:classes:] and a-z ranges spelled out. */
 function trSet(set: string) {
   const range = (from: string, to: string) => {
@@ -134,13 +140,55 @@ function makeExtras(deps: {
     };
 
   return {
-    sort: filter("sort", (input, flags) => {
-      const out = [...input].sort((a, b) =>
-        flags.includes("n") ? Number.parseFloat(a) - Number.parseFloat(b) || a.localeCompare(b) : a.localeCompare(b),
-      );
-      if (flags.includes("r")) out.reverse();
-      return flags.includes("u") ? [...new Set(out)] : out;
-    }),
+    sort: (state, args, stdin) => {
+      const opts = new Set<string>();
+      let separator: string | null = null;
+      let key: { from: number; to: number } | null = null;
+      const files: string[] = [];
+      for (let i = 0; i < args.length; i += 1) {
+        const a = args[i];
+        if (a === "-t" || a === "-k") {
+          const value = args[(i += 1)];
+          if (value === undefined) return fail(state, `sort: option requires an argument -- '${a[1]}'`, 2);
+          if (a === "-t") separator = value;
+          else key = parseKey(value);
+        } else if (a.startsWith("-t") && a.length > 2) separator = a.slice(2);
+        else if (a.startsWith("-k") && a.length > 2) key = parseKey(a.slice(2));
+        else if (/^-[a-zA-Z]+$/.test(a)) for (const c of a.slice(1)) opts.add(c);
+        else files.push(a);
+      }
+      if (key && !key.from) return fail(state, "sort: invalid number at field start", 2);
+      const unknown = [...opts].find((c) => !"nrufhb".includes(c));
+      if (unknown) return fail(state, `sort: -${unknown} is not simulated here`, 2);
+      const read = readInput(state, files, stdin);
+      if (read.error) return fail(state, `sort: cannot read: ${read.error}`, 2);
+
+      // -k N[,M] compares fields N..M, split on -t or on runs of blanks.
+      const field = (line: string) => {
+        if (!key) return line;
+        const parts = separator === null ? line.trim().split(/\s+/) : line.split(separator);
+        return parts.slice(key.from - 1, key.to).join(separator ?? " ");
+      };
+      // -n and -h compare leading numbers (non-numbers count as 0); -h also
+      // reads K, M, G suffixes, which is what makes `du -h | sort -h` work.
+      const number = (text: string) => {
+        const m = /^\s*([-+]?\d*\.?\d+)([KMGTP]?)/i.exec(text);
+        if (!m) return 0;
+        const scale = opts.has("h") ? 1024 ** " KMGTP".indexOf(m[2].toUpperCase() || " ") : 1;
+        return Number(m[1]) * scale;
+      };
+      const compare = (a: string, b: string) => {
+        const x = field(a);
+        const y = field(b);
+        if (opts.has("n") || opts.has("h")) return number(x) - number(y);
+        return opts.has("f") ? x.toLowerCase().localeCompare(y.toLowerCase()) : x.localeCompare(y);
+      };
+      // The whole line breaks ties, as GNU sort's last-resort comparison does.
+      let out = lines(read.text).sort((a, b) => compare(a, b) || a.localeCompare(b));
+      if (opts.has("r")) out.reverse();
+      if (opts.has("u")) out = out.filter((line, i) => i === 0 || compare(out[i - 1], line) !== 0);
+      return { output: out.join("\n"), state };
+    },
 
     uniq: filter("uniq", (input, flags) => {
       const out: string[] = [];
