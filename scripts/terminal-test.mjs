@@ -66,6 +66,12 @@ check("sort", sh("printf 'b\\na\\nc' | sort"), (out) => out === "b\na\nc" || out
 check("seq feeds sort -n", sh("seq 3 | sort -rn"), "3\n2\n1");
 check("uniq -c", sh("seq 2 | uniq -c"), (out) => out.includes("1"));
 check("uniq -c uses GNU's seven-column count", sh("printf 'a\\na\\nb\\n' | uniq -c"), "      2 a\n      1 b");
+check("sort -t: -k3 -n", sh("sort -t: -k3 -n /etc/passwd | cut -d: -f1"), "root\nstudent");
+check("sort -k 2 -r", sh("printf 'x 1\\ny 3\\nz 2\\n' | sort -k 2 -r"), "y 3\nz 2\nx 1");
+check("sort -h", sh("printf '2G\\n10K\\n512M\\n' | sort -h"), "10K\n512M\n2G");
+check("sort -n treats words as 0", sh("printf '5\\nabc\\n-1\\n' | sort -n"), "-1\nabc\n5");
+check("sort -u", sh("printf 'b\\na\\nb\\n' | sort -u"), "a\nb");
+check("sort names what it cannot do", sh("sort -V /etc/passwd"), "sort: -V is not simulated here");
 check("tr", sh("echo abc | tr a-z A-Z"), "ABC");
 check("sed substitution", sh("echo hello | sed s/hello/world/"), "world");
 check("cut", sh("echo one:two:three | cut -d: -f2"), "two");
