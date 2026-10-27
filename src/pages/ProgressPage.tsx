@@ -52,17 +52,18 @@ export function ProgressPage() {
           : <p className="muted">None yet.</p>}
       </div>
       <h2>Bookmarked questions</h2>
-      <ul>
-        {progress.bookmarkedQuestions.length ? (
-          progress.bookmarkedQuestions.map((id) => (
+      {/* The empty-state paragraph sat inside the <ul>, where only <li> may go. */}
+      {progress.bookmarkedQuestions.length ? (
+        <ul>
+          {progress.bookmarkedQuestions.map((id) => (
             <li key={id}>
               <Link to={`/interview/${id}`}>Question #{id}</Link>
             </li>
-          ))
-        ) : (
-          <p className="muted">Bookmark from the Interview Arena.</p>
-        )}
-      </ul>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">Bookmark from the Interview Arena.</p>
+      )}
       <h2>Quiz history</h2>
       {progress.quizHistory.length ? (
         <ul>
