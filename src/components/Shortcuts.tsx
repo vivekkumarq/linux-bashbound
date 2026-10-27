@@ -153,7 +153,14 @@ export function Shortcuts() {
           >
             <header className="sc-head">
               <h2>Keyboard shortcuts</h2>
-              <button type="button" className="btn btn-ghost btn-compact" onClick={() => setHelpOpen(false)}>
+              {/* Focus moves into the dialog when it opens, so it is announced
+                  and Enter or Space closes it, as aria-modal promises. */}
+              <button
+                type="button"
+                className="btn btn-ghost btn-compact"
+                onClick={() => setHelpOpen(false)}
+                autoFocus
+              >
                 Close
               </button>
             </header>
