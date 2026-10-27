@@ -47,8 +47,19 @@ export default function App() {
     if (meta) meta.setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#090c11");
   }, [progress, ready, palette]);
 
+  // Opening a question in the arena or picking a command from the explorer's
+  // list is a selection within one page, not a new page. Keying the page on
+  // the full path remounted it, which threw away the search and filters that
+  // produced the list.
+  const pageKey = loc.pathname.replace(/^\/(interview|commands)\/.+$/, "/$1");
+  // An arena question opens in place, so it must not send the page to the top.
+  const scrollKey = loc.pathname.replace(/^\/interview\/.+$/, "/interview");
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [scrollKey]);
+
+  useEffect(() => {
     const titles: Record<string, string> = {
       "/": "Linux BashBound — From First Command to System Mastery",
       "/roadmap": "Roadmap · Linux BashBound",
@@ -121,7 +132,7 @@ export default function App() {
               aria-hidden="true"
             />
             <div className="layout-main">
-              <main id="main" className="main page-enter" key={loc.pathname}>
+              <main id="main" className="main page-enter" key={pageKey}>
                 <Outlet />
               </main>
               <Footer />
