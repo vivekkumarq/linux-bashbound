@@ -33,11 +33,13 @@ function useActivity() {
     (progress.challengeDays ?? []).forEach((d) => bump(d, 2));
     (progress.quizHistory ?? []).forEach((q) => bump(dayKey(new Date(q.at)), 2));
 
-    // Build the grid back from today, aligned so each column is a week.
+    // Each column is a week, Sunday to Saturday, and the last column is the
+    // current week, so today is always on the grid and the days after it
+    // are drawn as future. (Counting back 83 days and then rewinding to a
+    // Sunday ended the grid up to six days before today.)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const start = new Date(today.getTime() - (WEEKS * 7 - 1) * DAY_MS);
-    start.setDate(start.getDate() - start.getDay()); // back to Sunday
+    const start = new Date(today.getTime() - (today.getDay() + (WEEKS - 1) * 7) * DAY_MS);
 
     const cells: { key: string; count: number; isToday: boolean; future: boolean }[] = [];
     for (let i = 0; i < WEEKS * 7; i += 1) {
@@ -51,7 +53,8 @@ function useActivity() {
       });
     }
 
-    return { cells, activeCount: counts.size };
+    // Only the days the grid shows; the store keeps about a year.
+    return { cells, activeCount: cells.filter((c) => c.count > 0).length };
   }, [progress.activeDays, progress.challengeDays, progress.quizHistory]);
 }
 
