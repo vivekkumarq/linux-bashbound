@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { labs } from "../data/labs";
 
 export function LabsPage() {
-  const [id, setId] = useState(labs[0].id);
-  const lab = labs.find((l) => l.id === id)!;
+  // The lab lives in the URL, so /troubleshooting/oom opens the OOM lab and a
+  // lab can be linked to. Changing lab changes the path, which starts it fresh.
+  const { id } = useParams();
+  const lab = labs.find((l) => l.id === id) ?? labs[0];
   const [step, setStep] = useState(lab.start);
   const node = lab.steps[step];
   const done = !node.options.length;
@@ -15,16 +18,16 @@ export function LabsPage() {
       <p className="muted">Choose the next command. There is a professional order of operations — not a single trivia answer.</p>
       <div className="row">
         {labs.map((l) => (
-          <button
+          <Link
             key={l.id}
             className="badge"
-            onClick={() => {
-              setId(l.id);
-              setStep(l.start);
-            }}
+            to={`/troubleshooting/${l.id}`}
+            aria-current={l.id === lab.id ? "page" : undefined}
+            // Picking the lab you are in starts it again.
+            onClick={() => setStep(l.start)}
           >
             {l.title}
-          </button>
+          </Link>
         ))}
       </div>
       <article className="card" style={{ marginTop: 20 }}>
