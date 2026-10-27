@@ -9,7 +9,9 @@ export function ChallengesPage() {
   const [id, setId] = useState(today.id);
   const ch = challenges.find((c) => c.id === id)!;
   const [hint, setHint] = useState(0);
-  const [show, setShow] = useState(false);
+  // Three levels of help, in order: hints, then the approach, then the
+  // actual command. Asking for the approach must not give away the answer.
+  const [show, setShow] = useState<"none" | "approach" | "solution">("none");
   const { progress, setProgress } = useStore();
   const done = progress.challengeDays.includes(todayKey());
 
@@ -23,10 +25,10 @@ export function ChallengesPage() {
         <button className="btn btn-ghost" onClick={() => setHint((h) => Math.min(ch.hints.length, h + 1))}>
           Hint
         </button>
-        <button className="btn btn-ghost" onClick={() => setShow(true)}>
+        <button className="btn btn-ghost" onClick={() => setShow((s) => (s === "solution" ? s : "approach"))}>
           Expected approach
         </button>
-        <button className="btn btn-secondary" onClick={() => setShow(true)}>
+        <button className="btn btn-secondary" onClick={() => setShow("solution")}>
           Reveal solution
         </button>
         <button
@@ -50,16 +52,16 @@ export function ChallengesPage() {
       ) : (
         <p className="muted">Hints stay hidden until you ask.</p>
       )}
-      {show ? (
+      {show !== "none" ? (
         <div className="card">
           <p>{ch.approach}</p>
-          <CodeBlock code={ch.solution} />
+          {show === "solution" ? <CodeBlock code={ch.solution} /> : null}
         </div>
       ) : null}
       <h2>Archive</h2>
       <div className="row">
         {challenges.map((c) => (
-          <button key={c.id} className="badge" onClick={() => { setId(c.id); setHint(0); setShow(false); }}>
+          <button key={c.id} className="badge" onClick={() => { setId(c.id); setHint(0); setShow("none"); }}>
             {c.title}
           </button>
         ))}
