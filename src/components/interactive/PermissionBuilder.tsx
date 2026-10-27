@@ -90,6 +90,18 @@ export function PermissionBuilder() {
   const target = isDir ? "project/" : "deploy.sh";
   const command = `chmod ${octal} ${target}`;
 
+  // The same mode as a symbolic chmod. A class with nothing set is written
+  // `o=` (chmod rejects `o=-`), and the special bits travel with their class
+  // as s or t — leaving them out would make `u=rwx` clear a set setuid bit.
+  const specialLetter: Record<Who, string> = {
+    owner: special.setuid ? "s" : "",
+    group: special.setgid ? "s" : "",
+    other: special.sticky ? "t" : "",
+  };
+  const symbolic = WHO.map(
+    (w) => `${w.symbol}=${BITS.filter((b) => perms[w.id][b.id]).map((b) => b.id).join("")}${specialLetter[w.id]}`,
+  ).join(",");
+
   function toggle(who: Who, bit: Bit) {
     setPerms((p) => ({ ...p, [who]: { ...p[who], [bit]: !p[who][bit] } }));
     setSelected({ who, bit });
@@ -223,8 +235,7 @@ export function PermissionBuilder() {
       <p className="muted pb-foot">
         Equivalent symbolic form:{" "}
         <code>
-          chmod {WHO.map((w) => `${w.symbol}=${BITS.filter((b) => perms[w.id][b.id]).map((b) => b.id).join("") || "-"}`).join(",")}{" "}
-          {target}
+          chmod {symbolic} {target}
         </code>
       </p>
     </section>
