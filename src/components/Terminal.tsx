@@ -20,7 +20,9 @@ export function Terminal({
   seed?: string;
 }) {
   const [state, setState] = useState<TermState>(() => freshState());
-  const [lines, setLines] = useState<{ q: string; a: string }[]>([]);
+  // Each line keeps the prompt it was typed at, as a real terminal's
+  // scrollback does; `cd` must not rewrite the prompts above it.
+  const [lines, setLines] = useState<{ prompt: string; q: string; a: string }[]>([]);
   const [value, setValue] = useState("");
   const [histIdx, setHistIdx] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -39,6 +41,7 @@ export function Terminal({
   }, [autoFocus, lines]);
 
   function exec(raw: string) {
+    const prompt = promptPath(stateRef.current);
     const { output, state: next } = runCommand(stateRef.current, raw);
     stateRef.current = next;
     setState(next);
@@ -46,7 +49,7 @@ export function Terminal({
       setLines([]);
       return;
     }
-    setLines((l) => [...l, { q: raw, a: output }]);
+    setLines((l) => [...l, { prompt, q: raw, a: output }]);
   }
 
   useEffect(() => {
@@ -78,7 +81,7 @@ export function Terminal({
       setValue(parts.join(" "));
       return;
     }
-    setLines((l) => [...l, { q: value, a: options.join("  ") }]);
+    setLines((l) => [...l, { prompt: promptPath(stateRef.current), q: value, a: options.join("  ") }]);
   }
 
   function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -100,7 +103,7 @@ export function Terminal({
     }
     if (e.key === "c" && e.ctrlKey) {
       e.preventDefault();
-      setLines((l) => [...l, { q: `${value}^C`, a: "" }]);
+      setLines((l) => [...l, { prompt: promptPath(stateRef.current), q: `${value}^C`, a: "" }]);
       setValue("");
       return;
     }
@@ -176,7 +179,7 @@ export function Terminal({
         {lines.map((l, i) => (
           <div key={i} style={{ marginBottom: 8 }}>
             <div>
-              <span className="prompt">student@bashbound:{promptPath(state)}$</span> {l.q}
+              <span className="prompt">student@bashbound:{l.prompt}$</span> {l.q}
             </div>
             {l.a ? (
               <pre style={{ margin: "4px 0 0", whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{l.a}</pre>
