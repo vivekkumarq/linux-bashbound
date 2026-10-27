@@ -37,9 +37,12 @@ export function CommandsPage() {
 
   if (name && !current) {
     return (
-      <p>
-        Unknown command. <Link to="/commands">Explorer</Link>
-      </p>
+      <div className="notfound">
+        <h1>No such command</h1>
+        <p className="muted">
+          The explorer has no entry for <code>{name}</code>. <Link to="/commands">Browse all commands</Link>
+        </p>
+      </div>
     );
   }
 
@@ -50,7 +53,9 @@ export function CommandsPage() {
         summary={`${filtered.length} of ${commands.length}`}
         label="Browse commands"
       >
-        <h1 className="side-panel-heading">Command explorer</h1>
+        {/* The command is the page's h1: this heading is hidden with the rest
+            of the panel on phones, which left those pages with none. */}
+        <h2 className="side-panel-heading">Command explorer</h2>
         <input
           className="input"
           placeholder="Search grep, chmod…"
@@ -81,9 +86,9 @@ export function CommandsPage() {
       {current ? (
         <article>
           <p className="kicker">{current.category}</p>
-          <h2>
+          <h1>
             <code>{current.name}</code>
-          </h2>
+          </h1>
           <p>{current.summary}</p>
           {current.destructive ? <div className="callout danger">{current.warning}</div> : null}
           <p>
