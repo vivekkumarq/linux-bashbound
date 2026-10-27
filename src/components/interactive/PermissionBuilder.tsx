@@ -26,7 +26,7 @@ const BITS: { id: Bit; label: string; value: number }[] = [
 const FILE_MEANING: Record<Bit, string> = {
   r: "Open the file and read its contents.",
   w: "Modify the file's contents. Note that deleting it depends on the directory, not the file.",
-  x: "Run the file as a program. For a script the interpreter on the shebang line must also be readable.",
+  x: "Run the file as a program. A script also needs read permission, because the interpreter named on its shebang line has to open and read the file.",
 };
 
 const DIR_MEANING: Record<Bit, string> = {
