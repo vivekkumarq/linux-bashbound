@@ -8,6 +8,9 @@ export function LabsPage() {
   const { id } = useParams();
   const lab = labs.find((l) => l.id === id) ?? labs[0];
   const [step, setStep] = useState(lab.start);
+  // What the last choice taught: every option carries a note saying why it
+  // is right or wrong, and a weak choice can still lead on to the next step.
+  const [last, setLast] = useState<{ label: string; note: string } | null>(null);
   const node = lab.steps[step];
   const done = !node.options.length;
 
@@ -24,7 +27,10 @@ export function LabsPage() {
             to={`/troubleshooting/${l.id}`}
             aria-current={l.id === lab.id ? "page" : undefined}
             // Picking the lab you are in starts it again.
-            onClick={() => setStep(l.start)}
+            onClick={() => {
+              setStep(l.start);
+              setLast(null);
+            }}
           >
             {l.title}
           </Link>
@@ -34,6 +40,16 @@ export function LabsPage() {
         <div className="callout danger">{lab.alert}</div>
         <p>{lab.symptom}</p>
         <p className="muted">Goal: {lab.goal}</p>
+        <div aria-live="polite">
+          {last ? (
+            <p className="callout">
+              <strong>
+                <code>{last.label}</code>
+              </strong>{" "}
+              — {last.note}
+            </p>
+          ) : null}
+        </div>
         <h2>{node.prompt}</h2>
         <div className="stack">
           {node.options.map((o) => (
@@ -42,6 +58,7 @@ export function LabsPage() {
               className="quiz-choice"
               onClick={() => {
                 setStep(o.next);
+                setLast({ label: o.label, note: o.note });
               }}
             >
               {o.label}
