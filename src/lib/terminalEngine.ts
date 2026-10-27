@@ -426,13 +426,29 @@ function runBuiltin(
     case "hostname":
       return { output: "bashbound", state: next };
     case "uname": {
-      if (args.includes("-a")) return { output: "Linux bashbound 6.8.0-lab x86_64 GNU/Linux", state: next };
-      if (args.includes("-r")) return { output: "6.8.0-lab", state: next };
-      if (args.includes("-s") || args.length === 0) return { output: "Linux", state: next };
-      return { output: "Linux", state: next };
+      // Fields always print in this order, whichever flags pick them.
+      const fields: [string, string][] = [
+        ["s", "Linux"],
+        ["n", "bashbound"],
+        ["r", "6.8.0-lab"],
+        ["v", "#1 SMP PREEMPT_DYNAMIC"],
+        ["m", "x86_64"],
+        ["o", "GNU/Linux"],
+      ];
+      const flags = args.join("").replace(/-/g, "");
+      const bad = [...flags].find((c) => !"snrvmoa".includes(c));
+      if (bad) return fail(next, `uname: invalid option -- '${bad}'`);
+      const picked = flags.includes("a") ? fields : fields.filter(([c]) => flags.includes(c));
+      return { output: (picked.length ? picked : fields.slice(0, 1)).map(([, v]) => v).join(" "), state: next };
     }
-    case "id":
+    case "id": {
+      const flags = args.join("").replace(/-/g, "");
+      const name = flags.includes("n");
+      if (flags.includes("u")) return { output: name ? "student" : "1000", state: next };
+      if (flags.includes("g")) return { output: name ? "student" : "1000", state: next };
+      if (flags.includes("G")) return { output: name ? "student" : "1000", state: next };
       return { output: "uid=1000(student) gid=1000(student) groups=1000(student)", state: next };
+    }
     case "date":
       return { output: new Date().toUTCString(), state: next };
     case "env":
