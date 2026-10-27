@@ -56,8 +56,12 @@ export default function App() {
   const scrollKey = loc.pathname.replace(/^\/interview\/.+$/, "/interview");
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [scrollKey]);
+    // A #fragment names a place on the page — the home page's level chips
+    // link to /roadmap#level-9 — so go there instead of to the top.
+    const target = loc.hash ? document.getElementById(decodeURIComponent(loc.hash.slice(1))) : null;
+    if (target) target.scrollIntoView();
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [scrollKey, loc.hash]);
 
   useEffect(() => {
     const titles: Record<string, string> = {
