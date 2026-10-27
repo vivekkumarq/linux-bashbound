@@ -299,7 +299,9 @@ export function InterviewPage() {
           </nav>
         </aside>
 
-        <main className="arena-main">
+        {/* A section, not <main>: the app shell already has the page's one
+            main landmark, and a second one nested inside it is invalid. */}
+        <section className="arena-main" aria-label="Questions">
           <div className="arena-main-head">
             <div>
               <h2 className="arena-heading">
@@ -377,7 +379,7 @@ export function InterviewPage() {
               )}
             </>
           )}
-        </main>
+        </section>
       </div>
     </div>
   );
