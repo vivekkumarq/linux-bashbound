@@ -13,11 +13,15 @@ export function Terminal({
   compact,
   autoFocus,
   seed,
+  runKey = 0,
 }: {
   initialCommands?: string[];
   compact?: boolean;
   autoFocus?: boolean;
+  /** A command to run in this session. */
   seed?: string;
+  /** Bump to run `seed` again, even when it is the same command. */
+  runKey?: number;
 }) {
   const [state, setState] = useState<TermState>(() => freshState());
   // Each line keeps the prompt it was typed at, as a real terminal's
@@ -28,7 +32,7 @@ export function Terminal({
   const [copied, setCopied] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const seeded = useRef(false);
+  const ranKey = useRef<number | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -52,11 +56,13 @@ export function Terminal({
     setLines((l) => [...l, { prompt, q: raw, a: output }]);
   }
 
+  // Each runKey runs the seed once, in the existing session, so the palette's
+  // chips and "Try in Terminal" build on what was already typed.
   useEffect(() => {
-    if (!seed || seeded.current) return;
-    seeded.current = true;
+    if (!seed || ranKey.current === runKey) return;
+    ranKey.current = runKey;
     exec(seed.trim());
-  }, [seed]);
+  }, [seed, runKey]);
 
   function complete() {
     const options = completionsFor(stateRef.current, value);

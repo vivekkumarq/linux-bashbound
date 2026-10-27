@@ -135,7 +135,7 @@ export function CommandPalette() {
                 </button>
               ))}
             </div>
-            <Terminal key={pal.runKey} compact autoFocus seed={pal.seed ?? undefined} />
+            <Terminal compact autoFocus seed={pal.seed ?? undefined} runKey={pal.runKey} />
           </div>
         )}
       </div>
