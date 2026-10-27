@@ -274,6 +274,32 @@ function applyMode(bits: number, mode: string, isDir: boolean): number | null {
   return out;
 }
 
+/**
+ * A stable inode number per node. Hard links share a node, so they share a
+ * number — which is what `stat -c %i a b` is meant to show.
+ */
+const inodes = new WeakMap<Node, number>();
+let nextInode = 1_048_589;
+function inode(node: Node) {
+  if (!inodes.has(node)) inodes.set(node, (nextInode += 7));
+  return inodes.get(node)!;
+}
+
+/** How many directory entries point at `node`: names for a file, subdirectories plus 2 for a directory. */
+function linkCount(root: Node, node: Node): number {
+  if (node.kind === "dir") return 2 + Object.values(node.children).filter((c) => c.kind === "dir").length;
+  let count = 0;
+  const visit = (n: Node) => {
+    if (n.kind !== "dir") return;
+    for (const child of Object.values(n.children)) {
+      if (child === node) count += 1;
+      visit(child);
+    }
+  };
+  visit(root);
+  return Math.max(1, count);
+}
+
 function parentAndName(path: string[]) {
   if (!path.length) return { parent: [] as string[], name: "" };
   return { parent: path.slice(0, -1), name: path[path.length - 1] };
@@ -910,14 +936,57 @@ function runBuiltin(
       return { output: found.join("\n"), error: error || undefined, status: missing.length ? 1 : 0, state: next };
     }
     case "stat": {
-      const name = args.find((a) => !a.startsWith("-")) || ".";
-      const path = resolve(next, name);
-      const node = path ? walk(next.fs, path) : null;
-      if (!node) return fail(next, `stat: cannot statx '${name}'`);
-      return {
-        output: `  File: ${name}\n  Size: ${node.kind === "file" ? node.content.length : 4096}\n  Type: ${node.kind}\nAccess: ${node.mode}`,
-        state: next,
-      };
+      // -c FORMAT (or --format=FORMAT) takes a value; everything else that
+      // is not an option is a file.
+      let format: string | null = null;
+      const names: string[] = [];
+      for (let i = 0; i < args.length; i += 1) {
+        if (args[i] === "-c") format = args[(i += 1)] ?? "";
+        else if (args[i].startsWith("--format=")) format = args[i].slice(9);
+        else if (!args[i].startsWith("-")) names.push(args[i]);
+      }
+      if (!names.length) return fail(next, "stat: missing operand");
+
+      const out: string[] = [];
+      const errors: string[] = [];
+      for (const name of names) {
+        const node = walk(next.fs, resolve(next, name) ?? [], false);
+        if (!node) {
+          errors.push(`stat: cannot statx '${name}': No such file or directory`);
+          continue;
+        }
+        const size = node.kind === "file" ? (node.target ?? node.content).length : 4096;
+        const type = node.kind === "dir" ? "directory" : node.target !== undefined ? "symbolic link" : node.mode[0] === "c" ? "character special file" : size ? "regular file" : "regular empty file";
+        const octal = modeBits(node.mode).toString(8).padStart(4, "0");
+        const owner = node.owner ?? next.env.USER;
+        const uid = owner === "root" ? 0 : 1000;
+        const fields: Record<string, string> = {
+          n: name,
+          s: String(size),
+          F: type,
+          A: node.mode,
+          a: modeBits(node.mode).toString(8),
+          U: owner,
+          G: owner,
+          u: String(uid),
+          g: String(uid),
+          i: String(inode(node)),
+          h: String(linkCount(next.fs, node)),
+        };
+        if (format !== null) {
+          out.push(format.replace(/%(.)/g, (all, c: string) => (c === "%" ? "%" : (fields[c] ?? all))));
+        } else {
+          out.push(
+            [
+              `  File: ${name}${node.kind === "file" && node.target !== undefined ? ` -> ${node.target}` : ""}`,
+              `  Size: ${String(size).padEnd(10)}\tBlocks: ${String(Math.ceil(size / 4096) * 8).padEnd(10)} IO Block: 4096   ${type}`,
+              `Inode: ${fields.i}      Links: ${fields.h}`,
+              `Access: (${octal}/${node.mode})  Uid: (${String(uid).padStart(5)}/${owner.padStart(8)})   Gid: (${String(uid).padStart(5)}/${owner.padStart(8)})`,
+            ].join("\n"),
+          );
+        }
+      }
+      return { output: out.join("\n"), error: errors.join("\n") || undefined, status: errors.length ? 1 : 0, state: next };
     }
     case "file": {
       const name = args[0];

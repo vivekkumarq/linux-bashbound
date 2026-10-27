@@ -121,6 +121,13 @@ check("wc on a pipe pads to seven", sh("echo hello world | wc"), "      1       
 check("wc -c counts the newline echo prints", sh("echo hello | wc -c"), "6");
 check("wc several files has a total", sh("wc -l /etc/passwd /etc/hostname"), " 2 /etc/passwd\n 1 /etc/hostname\n 3 total");
 check("wc -c counts bytes, not characters", sh("echo é | wc -c"), "3");
+
+// stat: -c formats, the lesson's inode/links example, and the default layout.
+check("stat -c is a format, not a file", sh("stat -c '%n %s %F %A %a %U' /etc/hostname"), "/etc/hostname 10 regular file -rw-r--r-- 644 root");
+check("hard links share an inode", (sh("echo x > /tmp/i1; ln /tmp/i1 /tmp/i2"), new Set(sh("stat -c %i /tmp/i1 /tmp/i2").split("\n")).size), 1);
+check("and count two links", sh("stat -c %h /tmp/i1"), "2");
+check("stat default output", sh("stat /etc/hostname"), (out) => out.includes("Access: (0644/-rw-r--r--)") && out.includes("regular file"));
+check("stat on a missing file", sh("stat /nope"), "stat: cannot statx '/nope': No such file or directory");
 check("> keeps an existing file's mode", (sh("echo a > /tmp/keep; chmod 700 /tmp/keep; echo b > /tmp/keep"), sh("ls -l /tmp/keep").split(/\s+/)[0]), "-rwx------");
 check("prompt shows ~ for home", promptPath(state), "~");
 check("prompt abbreviates below home", (sh("cd Documents"), promptPath(state)), "~/Documents");
