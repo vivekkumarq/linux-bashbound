@@ -28,6 +28,7 @@ export function LabsPage() {
             aria-current={l.id === lab.id ? "page" : undefined}
             // Picking the lab you are in starts it again.
             onClick={() => {
+              if (l.id !== lab.id) return;
               setStep(l.start);
               setLast(null);
             }}
