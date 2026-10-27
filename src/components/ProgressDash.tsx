@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { stats } from "../data/stats.generated";
 import { useStore } from "../hooks/useStore";
 import { coursePosition, nextTopic, overallPercent } from "../lib/learning";
+import { dayKey } from "../utils/storage";
 
 /**
  * The "where you are" panel on the home page.
@@ -12,11 +13,6 @@ import { coursePosition, nextTopic, overallPercent } from "../lib/learning";
  */
 
 const WEEKS = 12;
-const DAY_MS = 86_400_000;
-
-function dayKey(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
 
 /**
  * Activity per day, counted from the things that carry a date already:
@@ -39,11 +35,15 @@ function useActivity() {
     // Sunday ended the grid up to six days before today.)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const start = new Date(today.getTime() - (today.getDay() + (WEEKS - 1) * 7) * DAY_MS);
+    const start = new Date(today);
+    start.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7);
 
     const cells: { key: string; count: number; isToday: boolean; future: boolean }[] = [];
     for (let i = 0; i < WEEKS * 7; i += 1) {
-      const d = new Date(start.getTime() + i * DAY_MS);
+      // Calendar days rather than 24-hour steps, so a daylight-saving change
+      // cannot repeat or skip a date.
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
       const key = dayKey(d);
       cells.push({
         key,

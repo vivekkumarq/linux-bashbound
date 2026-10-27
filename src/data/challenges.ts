@@ -304,7 +304,8 @@ export const challenges: Challenge[] = [
 ];
 
 export function challengeForDate(d = new Date()) {
-  const start = Date.UTC(d.getUTCFullYear(), 0, 0);
-  const day = Math.floor((d.getTime() - start) / 86400000);
+  // Day of the year by the local calendar, so the challenge changes at the
+  // learner's midnight — the same moment "Logged for today" resets.
+  const day = (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000;
   return challenges[day % challenges.length];
 }
