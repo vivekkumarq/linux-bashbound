@@ -2606,8 +2606,18 @@ const mcqBank: Mcq[] = [
 ];
 
 function mcqQuestions(): InterviewQuestion[] {
-  return [...mcqBank, ...mcqExtra].map((m) =>
-    q({
+  return [...mcqBank, ...mcqExtra].map((m) => {
+    // The bank is authored with the answer almost always second, and the
+    // arena shows options in stored order, so "B" was right 84 times in 86.
+    // Place the answer by a hash of the question text instead: stable from
+    // build to build, but with no A-B-C-D cycle to spot when the arena lists
+    // the questions in order. Distractors keep their authored order around it.
+    const others = m.choices.filter((c) => c !== m.answer);
+    let hash = 0;
+    for (const ch of m.question) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    const at = hash % m.choices.length;
+    const choices = m.choices.includes(m.answer) ? [...others.slice(0, at), m.answer, ...others.slice(at)] : m.choices;
+    return q({
       question: m.question,
       category: m.category,
       difficulty: m.difficulty,
@@ -2617,10 +2627,10 @@ function mcqQuestions(): InterviewQuestion[] {
       answer: m.answer,
       explanation: m.explanation,
       relatedTopics: [m.topic],
-      choices: m.choices,
-      correctIndex: m.choices.indexOf(m.answer),
-    }),
-  );
+      choices,
+      correctIndex: choices.indexOf(m.answer),
+    });
+  });
 }
 
 const assembled: InterviewQuestion[] = [
