@@ -127,6 +127,13 @@ check("stat -c is a format, not a file", sh("stat -c '%n %s %F %A %a %U' /etc/ho
 check("hard links share an inode", (sh("echo x > /tmp/i1; ln /tmp/i1 /tmp/i2"), new Set(sh("stat -c %i /tmp/i1 /tmp/i2").split("\n")).size), 1);
 check("and count two links", sh("stat -c %h /tmp/i1"), "2");
 check("stat default output", sh("stat /etc/hostname"), (out) => out.includes("Access: (0644/-rw-r--r--)") && out.includes("regular file"));
+check("cut -f ranges", sh("echo a:b:c:d | cut -d: -f2-3"), "b:c");
+check("cut -f N-", sh("echo a:b:c:d | cut -d: -f3-"), "c:d");
+check("cut prints in input order", sh("echo a:b:c | cut -d: -f3,1"), "a:c");
+check("cut -c", sh("echo abcdef | cut -c2-4"), "bcd");
+check("cut passes undelimited lines", sh("echo plain | cut -d: -f2"), "plain");
+check("cut -s drops them", sh("echo plain | cut -s -d: -f2"), "");
+check("cut rejects a long delimiter", sh("echo a | cut -d ab -f1"), "cut: the delimiter must be a single character");
 check("stat on a missing file", sh("stat /nope"), "stat: cannot statx '/nope': No such file or directory");
 check("> keeps an existing file's mode", (sh("echo a > /tmp/keep; chmod 700 /tmp/keep; echo b > /tmp/keep"), sh("ls -l /tmp/keep").split(/\s+/)[0]), "-rwx------");
 check("prompt shows ~ for home", promptPath(state), "~");
