@@ -308,6 +308,7 @@ export const commands: CommandEntry[] = [
     mistakes: ["Trusting file as a security boundary — magic can be spoofed."],
     interview: ["Does file use the filename extension?"],
     related: ["stat", "hexdump"],
+    posix: true,
   }),
   c({
     name: "stat",
@@ -401,6 +402,7 @@ export const commands: CommandEntry[] = [
     mistakes: ["Using which for the same job in Bash scripts."],
     interview: ["How do you detect whether grep is aliased?"],
     related: ["command", "which", "alias"],
+    posix: true,
   }),
   c({
     name: "grep",
@@ -670,7 +672,6 @@ export const commands: CommandEntry[] = [
     mistakes: ["Extracting tarbombs with absolute or ../ paths.", "Forgetting -f and writing to tape device."],
     interview: ["Why prefer relative paths inside a tar?", "tar vs cpio?"],
     related: ["gzip", "rsync"],
-    posix: true,
   }),
   c({
     name: "gzip",
@@ -946,7 +947,6 @@ export const commands: CommandEntry[] = [
     mistakes: ["Assuming ping failure means the host is down.", "Using ping as an SLA for HTTP."],
     interview: ["Does a successful ping mean SSH will work?"],
     related: ["traceroute", "mtr"],
-    posix: true,
   }),
   c({
     name: "traceroute",
@@ -1220,7 +1220,6 @@ export const commands: CommandEntry[] = [
     mistakes: ["Mounting over a non-empty directory hides existing files."],
     interview: ["What is a bind mount?", "How do you remount read-only?"],
     related: ["umount", "findmnt", "fstab"],
-    posix: true,
   }),
   c({
     name: "umount",
@@ -1234,7 +1233,6 @@ export const commands: CommandEntry[] = [
     mistakes: ["Lazy unmount as a habit hiding open files."],
     interview: ["How do you find which process holds a mount busy?"],
     related: ["mount", "lsof", "fuser"],
-    posix: true,
   }),
   c({
     name: "systemctl",
@@ -1386,7 +1384,6 @@ export const commands: CommandEntry[] = [
     realWorld: "Sanity check in scripts and labs.",
     interview: ["whoami vs id vs who?"],
     related: ["id", "who"],
-    posix: true,
   }),
   c({
     name: "uname",
@@ -1425,7 +1422,6 @@ export const commands: CommandEntry[] = [
     realWorld: "Quick health: unexpected reboot, load spikes.",
     interview: ["Load average on a 4-CPU host of 4.0 means what?"],
     related: ["top", "w"],
-    posix: true,
   }),
   c({
     name: "vmstat",
@@ -1525,6 +1521,7 @@ export const commands: CommandEntry[] = [
     mistakes: ["Missing newline at end of crontab.", "PATH differences vs interactive shells."],
     interview: ["cron vs systemd timers?", "Why did my cron job not get PATH?"],
     related: ["systemctl", "at"],
+    posix: true,
   }),
   c({
     name: "alias",
@@ -1888,7 +1885,6 @@ export const commands: CommandEntry[] = [
     realWorld: "Editing on servers without an IDE.",
     interview: ["How do you quit vim?", "Insert vs normal mode?"],
     related: ["vi", "nano"],
-    posix: true,
   }),
   c({
     name: "nano",
