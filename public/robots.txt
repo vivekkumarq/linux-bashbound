@@ -1,7 +1,7 @@
 # Linux BashBound
-# https://vivekkumarq.github.io/linux-bashbound/
+# https://linuxbashbound.duckdns.org/
 
 User-agent: *
 Allow: /
 
-Sitemap: https://vivekkumarq.github.io/linux-bashbound/sitemap.xml
+Sitemap: https://linuxbashbound.duckdns.org/sitemap.xml
