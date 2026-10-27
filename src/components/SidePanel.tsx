@@ -40,7 +40,16 @@ export function SidePanel({
         </svg>
       </button>
 
-      <div className={`side-panel-body${open ? " is-open" : ""}`}>{children}</div>
+      {/* Picking an entry closes the disclosure, so on a phone the page that
+          was picked is what comes into view rather than the list. */}
+      <div
+        className={`side-panel-body${open ? " is-open" : ""}`}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("a")) setOpen(false);
+        }}
+      >
+        {children}
+      </div>
     </aside>
   );
 }
