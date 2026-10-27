@@ -27,14 +27,17 @@ function poolFor(category: string) {
   return category === "Mixed" ? POOL : POOL.filter((q) => q.category === category);
 }
 
-/** Fisher-Yates, seeded per run so a re-render never reshuffles mid-quiz. */
-function shuffle<T>(items: T[], seed: number): T[] {
+/**
+ * Fisher-Yates. A run is drawn once in start() and stored, so a re-render
+ * never reshuffles mid-quiz; that needs no seed. The seeded generator this
+ * replaced gave each question consecutive seeds (Date.now() + 1, + 2, ...),
+ * and a Lehmer generator's first outputs for neighbouring seeds are almost
+ * identical, so neighbouring questions got nearly the same option order.
+ */
+function shuffle<T>(items: T[]): T[] {
   const out = [...items];
-  let state = seed % 2147483647;
-  if (state <= 0) state += 2147483646;
   for (let i = out.length - 1; i > 0; i -= 1) {
-    state = (state * 16807) % 2147483647;
-    const j = Math.floor((state / 2147483647) * (i + 1));
+    const j = Math.floor(Math.random() * (i + 1));
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
@@ -90,11 +93,10 @@ export function QuizPage() {
   }, [finished, run, finishedAt, score, wrong, setProgress]);
 
   function start() {
-    const seed = Date.now();
-    const picks = shuffle(poolFor(category), seed).slice(0, drawn);
+    const picks = shuffle(poolFor(category)).slice(0, drawn);
     setRun({
       questions: picks,
-      order: picks.map((q, qi) => shuffle(q.choices!.map((_, i) => i), seed + qi + 1)),
+      order: picks.map((q) => shuffle(q.choices!.map((_, i) => i))),
       category,
       startedAt: Date.now(),
     });
