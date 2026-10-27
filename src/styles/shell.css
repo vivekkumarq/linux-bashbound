@@ -207,12 +207,20 @@
     width: min(288px, 86vw);
     border-right: 1px solid var(--border-strong);
     transform: translateX(-100%);
-    transition: transform var(--dur-base) var(--ease-out);
+    /* Hidden, not just moved off-screen: otherwise Tab walks through all
+       sixty-odd links of a drawer nobody can see. visibility flips only
+       after the slide-out finishes, and at once when it opens. */
+    visibility: hidden;
+    transition:
+      transform var(--dur-base) var(--ease-out),
+      visibility 0s linear var(--dur-base);
     box-shadow: var(--elev-4);
   }
 
   .rail.is-open {
     transform: none;
+    visibility: visible;
+    transition: transform var(--dur-base) var(--ease-out);
   }
 
   .rail-scrim {
