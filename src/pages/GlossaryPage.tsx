@@ -71,7 +71,10 @@ export function GlossaryPage() {
                 <p className="gloss-def">{entry.definition}</p>
                 {entry.why ? (
                   <p className="gloss-why">
-                    <b>Why it is called that. </b>
+                    {/* Only some of these notes are about the name; others say
+                        why the term matters ("Ubuntu, Debian, Fedora and Arch
+                        are distributions"), so the label covers both. */}
+                    <b>Background. </b>
                     {entry.why}
                   </p>
                 ) : null}
