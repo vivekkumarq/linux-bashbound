@@ -98,9 +98,12 @@
   color: var(--muted);
 }
 
-/* Visual gap between the owner, group and other triplets. */
-.pb-char:nth-child(4),
-.pb-char:nth-child(7) {
+/* Visual gap between the type and the owner, group and other triplets. The
+   first character is the file type, so the triplets start at children 2, 5
+   and 8. */
+.pb-char:nth-child(2),
+.pb-char:nth-child(5),
+.pb-char:nth-child(8) {
   margin-left: 12px;
 }
 
