@@ -220,21 +220,48 @@ function makeExtras(deps: {
 
     cut: (state, args, stdin) => {
       let delim = "\t";
-      let fields: string[] | null = null;
+      let list: string | null = null;
+      let mode: "f" | "c" = "f";
+      let onlyDelimited = false;
       const files: string[] = [];
       for (let i = 0; i < args.length; i += 1) {
         const a = args[i];
-        if (a.startsWith("-d")) delim = a.length > 2 ? a.slice(2) : args[(i += 1)] ?? "\t";
-        else if (a.startsWith("-f")) fields = (a.length > 2 ? a.slice(2) : args[(i += 1)] ?? "1").split(",");
-        else if (!a.startsWith("-")) files.push(a);
+        const value = () => (a.length > 2 ? a.slice(2) : (args[(i += 1)] ?? ""));
+        if (a.startsWith("-d")) delim = value();
+        else if (a.startsWith("-f") || a.startsWith("-c") || a.startsWith("-b")) {
+          mode = a[1] === "f" ? "f" : "c";
+          list = value();
+        } else if (a === "-s") onlyDelimited = true;
+        else files.push(a);
       }
+      if (list === null) return fail(state, "cut: you must specify a list of bytes, characters, or fields");
+      if (delim.length !== 1) return fail(state, "cut: the delimiter must be a single character");
+
+      // A LIST is N, N-M, N- or -M items separated by commas; the selected
+      // positions are printed in input order whatever order they are listed.
+      const ranges: [number, number][] = [];
+      for (const item of list.split(",")) {
+        const m = /^(\d*)(-?)(\d*)$/.exec(item);
+        if (!m || (!m[1] && !m[3]) || m[1] === "0" || m[3] === "0") return fail(state, `cut: invalid field value '${item}'`);
+        const from = m[1] ? Number(m[1]) : 1;
+        const to = m[2] ? (m[3] ? Number(m[3]) : Infinity) : from;
+        ranges.push([from, to]);
+      }
+      const picked = (n: number) => ranges.some(([from, to]) => n >= from && n <= to);
+
       const read = readInput(state, files, stdin);
       if (read.error) return fail(state, `cut: ${read.error}`);
-      if (!fields) return fail(state, "cut: you must specify a list of fields, e.g. -f1");
-      const out = lines(read.text).map((line) => {
-        const parts = line.split(delim);
-        return fields!.map((f) => parts[Number(f) - 1] ?? "").join(delim);
-      });
+      const out: string[] = [];
+      for (const line of lines(read.text)) {
+        if (mode === "c") {
+          out.push([...line].filter((_, i) => picked(i + 1)).join(""));
+        } else if (!line.includes(delim)) {
+          // A line with no delimiter passes through whole, unless -s.
+          if (!onlyDelimited) out.push(line);
+        } else {
+          out.push(line.split(delim).filter((_, i) => picked(i + 1)).join(delim));
+        }
+      }
       return { output: out.join("\n"), state };
     },
 
