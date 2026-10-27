@@ -42,8 +42,18 @@ export function saveProgress(state: ProgressState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+/**
+ * A local calendar date as YYYY-MM-DD. toISOString() gives the UTC date,
+ * which in India rolls over at 05:30 and in California mid-evening, so a
+ * day's activity landed on the wrong day of the heatmap and streak.
+ */
+export function dayKey(d = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return dayKey();
 }
 
 export function updateStreak(state: ProgressState): ProgressState {
@@ -51,7 +61,7 @@ export function updateStreak(state: ProgressState): ProgressState {
   if (state.lastVisit === today) return state;
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const y = yesterday.toISOString().slice(0, 10);
+  const y = dayKey(yesterday);
   const streak = state.lastVisit === y ? state.streak + 1 : 1;
   // Roughly a year of history is plenty for a twelve-week heatmap and keeps
   // the stored object small.
