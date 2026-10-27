@@ -76,6 +76,7 @@ export default function App() {
       "/troubleshooting": "Troubleshooting Lab · Linux BashBound",
       "/progress": "My Learning · Linux BashBound",
       "/terminal": "Terminal · Linux BashBound",
+      "/glossary": "Glossary · Linux BashBound",
     };
     const hit = Object.keys(titles).find((k) => (k === "/" ? loc.pathname === "/" : loc.pathname.startsWith(k)));
     if (hit) document.title = titles[hit];
