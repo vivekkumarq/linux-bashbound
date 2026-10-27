@@ -127,6 +127,12 @@ check("stat -c is a format, not a file", sh("stat -c '%n %s %F %A %a %U' /etc/ho
 check("hard links share an inode", (sh("echo x > /tmp/i1; ln /tmp/i1 /tmp/i2"), new Set(sh("stat -c %i /tmp/i1 /tmp/i2").split("\n")).size), 1);
 check("and count two links", sh("stat -c %h /tmp/i1"), "2");
 check("stat default output", sh("stat /etc/hostname"), (out) => out.includes("Access: (0644/-rw-r--r--)") && out.includes("regular file"));
+check("uname -o", sh("uname -o"), "GNU/Linux");
+check("uname -sr", sh("uname -sr"), "Linux 6.8.0-lab");
+check("uname -a", sh("uname -a"), "Linux bashbound 6.8.0-lab #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux");
+check("uname -m", sh("uname -m"), "x86_64");
+check("id -u", sh("id -u"), "1000");
+check("id -un", sh("id -un"), "student");
 check("cut -f ranges", sh("echo a:b:c:d | cut -d: -f2-3"), "b:c");
 check("cut -f N-", sh("echo a:b:c:d | cut -d: -f3-"), "c:d");
 check("cut prints in input order", sh("echo a:b:c | cut -d: -f3,1"), "a:c");
