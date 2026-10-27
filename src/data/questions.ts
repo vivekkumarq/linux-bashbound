@@ -2176,7 +2176,7 @@ const mcqBank: Mcq[] = [
     topic: "inodes-and-links",
   },
   {
-    question: "You can create files in a directory but `df` says there is free space and writes still fail with ENOSPC. Check:",
+    question: "`df -h` shows free space, yet creating new files fails with ENOSPC (No space left on device). Check:",
     answer: "Inode exhaustion with `df -i`",
     choices: [
       "Swap usage with `free`",
