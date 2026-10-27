@@ -108,7 +108,7 @@ Everything visual resolves to tokens in `src/styles/tokens.css`: a fluid type sc
 | CLS | **0** |
 | First load | 2 chunks. The lesson corpus and question bank build on idle, after first paint |
 
-Most pages never download the corpus at all: the build emits a link-level catalog — 40 modules and 16 levels, no lesson bodies — that the home page, roadmap, dashboard and all progress maths work from. `robots.txt`, `sitemap.xml` (190 routes) and `llms.txt` are generated from the same content, so a new module appears in them automatically.
+Most pages never download the corpus at all: the build emits a link-level catalog — 40 modules and 16 levels, no lesson bodies — that the home page, roadmap, dashboard and all progress maths work from. `sitemap.xml` (191 routes) and `llms.txt` are generated from the same content, so a new module appears in them automatically; `robots.txt` is a static file that points crawlers at the sitemap.
 
 Destructive tools — `rm`, `dd`, `mkfs`, `fdisk`, `chmod -R`, `rsync --delete` — carry warnings and safe examples. The sandbox refuses `rm -rf /` the way a real system does.
 
