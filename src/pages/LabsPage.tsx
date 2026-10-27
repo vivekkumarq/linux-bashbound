@@ -53,7 +53,7 @@ export function LabsPage() {
         </div>
         <h2>{node.prompt}</h2>
         <div className="stack">
-          {node.options.map((o) => (
+          {node.options.map((o, i) => (
             <button
               key={o.id}
               className="quiz-choice"
@@ -62,7 +62,11 @@ export function LabsPage() {
                 setLast({ label: o.label, note: o.note });
               }}
             >
-              {o.label}
+              {/* .quiz-choice is a two-column grid: a letter, then the text.
+                  A bare label landed in the 26px letter column and wrapped
+                  one word per line. */}
+              <span className="quiz-choice-key">{String.fromCharCode(65 + i)}</span>
+              <code>{o.label}</code>
             </button>
           ))}
         </div>
