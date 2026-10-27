@@ -497,6 +497,16 @@
   grid-template-columns: minmax(0, 1fr) 210px;
 }
 
+/* The command explorer and the cheat sheets put their list first, so their
+   narrow track is the first one. Without this the list took the wide column
+   and the command or sheet was squeezed into 210px. Focus mode hides the
+   list and keeps its own single column. */
+@media (min-width: 1241px) {
+  :root:not([data-focus="on"]) .learn-layout:has(> aside:first-child) {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1240px) {
   .learn-layout {
     grid-template-columns: minmax(0, 1fr);
