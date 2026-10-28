@@ -36,6 +36,11 @@ jobs:
       # Pages to serve it there.
       - name: Build
         run: npm run build
+      # public/404.html bounces deep links back into the app, but Pages serves it
+      # with a 404 status, so search engines see every page but / as missing.
+      # A real copy of the shell for each page in the sitemap is answered with 200.
+      - name: Give every page a real file
+        run: node scripts/static-routes.mjs dist
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
